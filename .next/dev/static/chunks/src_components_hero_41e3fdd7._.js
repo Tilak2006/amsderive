@@ -113,63 +113,6 @@ function WireframeMesh() {
             });
             const wireframe = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineSegments"](wireGeometry, wireMaterial);
             scene.add(wireframe);
-            // ── Laser beam ────────────────────────────────────────────────────────────
-            const laserPeakX = -1.5;
-            const laserPeakZ = -0.5;
-            const laserPeakY = getHeight(laserPeakX, laserPeakZ);
-            const beamGeo = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["BufferGeometry"]();
-            beamGeo.setAttribute('position', new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Float32BufferAttribute"]([
-                laserPeakX,
-                laserPeakY,
-                laserPeakZ,
-                laserPeakX,
-                laserPeakY + 18,
-                laserPeakZ
-            ], 3));
-            // Gold laser pillar — ethereal upward beam
-            const beamMaterial = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineBasicMaterial"]({
-                color: 0xFFD060,
-                transparent: true,
-                opacity: 0.7
-            });
-            const beam = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineSegments"](beamGeo, beamMaterial);
-            scene.add(beam);
-            // Soft gold glow corona around beam
-            for(let i = 1; i <= 3; i++){
-                const g = beam.clone();
-                g.material = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineBasicMaterial"]({
-                    color: 0xD4A017,
-                    transparent: true,
-                    opacity: 0.14 / i
-                });
-                g.scale.set(1 + i * 0.012, 1, 1 + i * 0.012);
-                scene.add(g);
-            }
-            // Halo ring at emission point — gold shimmer
-            const haloMaterial = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["MeshBasicMaterial"]({
-                color: 0xFFD060,
-                transparent: true,
-                opacity: 0.55,
-                side: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["DoubleSide"]
-            });
-            const halo = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Mesh"](new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["RingGeometry"](0.10, 0.18, 32), haloMaterial);
-            halo.position.set(laserPeakX, laserPeakY + 0.05, laserPeakZ);
-            halo.rotation.x = -Math.PI / 2;
-            scene.add(halo);
-            const outerHaloMat = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["MeshBasicMaterial"]({
-                color: 0xD4A017,
-                transparent: true,
-                opacity: 0.18,
-                side: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["DoubleSide"]
-            });
-            const outerHalo = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Mesh"](new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["RingGeometry"](0.22, 0.32, 32), outerHaloMat);
-            outerHalo.position.copy(halo.position);
-            outerHalo.rotation.x = -Math.PI / 2;
-            scene.add(outerHalo);
-            // Gold point light — warm illumination at peak
-            const laserLight = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["PointLight"](0xFFB800, 2.5, 9);
-            laserLight.position.set(laserPeakX, laserPeakY + 1, laserPeakZ);
-            scene.add(laserLight);
             // ── Starfield ─────────────────────────────────────────────────────────────
             const starCount = 220;
             const starPos = new Float32Array(starCount * 3);
@@ -225,15 +168,6 @@ function WireframeMesh() {
                 stars.rotation.x = time * 0.009;
                 // Twinkle: modulate global opacity with a gentle wave
                 starMaterial.opacity = 0.35 + 0.15 * Math.sin(time * 1.3);
-                // Laser pulse — corrected opacity range
-                beamMaterial.opacity = 0.5 + 0.5 * Math.sin(time * 4);
-                laserLight.intensity = 1.5 + 0.5 * Math.sin(time * 4);
-                // Halo pulse (scale + opacity)
-                const haloPulse = 0.8 + 0.2 * Math.sin(time * 3.5);
-                halo.scale.setScalar(haloPulse);
-                haloMaterial.opacity = 0.4 * haloPulse;
-                const outerPulse = 0.9 + 0.1 * Math.sin(time * 2.8 + 1);
-                outerHalo.scale.setScalar(outerPulse);
                 renderer.render(scene, camera);
             }
             animate();
@@ -264,7 +198,7 @@ function WireframeMesh() {
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$hero$2f$WireframeMesh$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].wireframeMeshContainer
     }, void 0, false, {
         fileName: "[project]/src/components/hero/WireframeMesh.jsx",
-        lineNumber: 295,
+        lineNumber: 223,
         columnNumber: 10
     }, this);
 }

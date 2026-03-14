@@ -127,66 +127,6 @@ export default function WireframeMesh() {
     const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
     scene.add(wireframe);
 
-    // ── Laser beam ────────────────────────────────────────────────────────────
-    const laserPeakX = -1.5;
-    const laserPeakZ = -0.5;
-    const laserPeakY = getHeight(laserPeakX, laserPeakZ);
-
-    const beamGeo = new THREE.BufferGeometry();
-    beamGeo.setAttribute('position', new THREE.Float32BufferAttribute([
-      laserPeakX, laserPeakY, laserPeakZ,
-      laserPeakX, laserPeakY + 18, laserPeakZ,
-    ], 3));
-
-    // Gold laser pillar — ethereal upward beam
-    const beamMaterial = new THREE.LineBasicMaterial({
-      color: 0xFFD060, // warm bright gold
-      transparent: true,
-      opacity: 0.7,
-    });
-    const beam = new THREE.LineSegments(beamGeo, beamMaterial);
-    scene.add(beam);
-
-    // Soft gold glow corona around beam
-    for (let i = 1; i <= 3; i++) {
-      const g = beam.clone();
-      g.material = new THREE.LineBasicMaterial({
-        color: 0xD4A017,
-        transparent: true,
-        opacity: 0.14 / i,
-      });
-      g.scale.set(1 + i * 0.012, 1, 1 + i * 0.012);
-      scene.add(g);
-    }
-
-    // Halo ring at emission point — gold shimmer
-    const haloMaterial = new THREE.MeshBasicMaterial({
-      color: 0xFFD060,
-      transparent: true,
-      opacity: 0.55,
-      side: THREE.DoubleSide,
-    });
-    const halo = new THREE.Mesh(new THREE.RingGeometry(0.10, 0.18, 32), haloMaterial);
-    halo.position.set(laserPeakX, laserPeakY + 0.05, laserPeakZ);
-    halo.rotation.x = -Math.PI / 2;
-    scene.add(halo);
-
-    const outerHaloMat = new THREE.MeshBasicMaterial({
-      color: 0xD4A017,
-      transparent: true,
-      opacity: 0.18,
-      side: THREE.DoubleSide,
-    });
-    const outerHalo = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.32, 32), outerHaloMat);
-    outerHalo.position.copy(halo.position);
-    outerHalo.rotation.x = -Math.PI / 2;
-    scene.add(outerHalo);
-
-    // Gold point light — warm illumination at peak
-    const laserLight = new THREE.PointLight(0xFFB800, 2.5, 9);
-    laserLight.position.set(laserPeakX, laserPeakY + 1, laserPeakZ);
-    scene.add(laserLight);
-
     // ── Starfield ─────────────────────────────────────────────────────────────
     const starCount = 220;
     const starPos = new Float32Array(starCount * 3);
@@ -254,18 +194,6 @@ export default function WireframeMesh() {
       stars.rotation.x = time * 0.009;
       // Twinkle: modulate global opacity with a gentle wave
       starMaterial.opacity = 0.35 + 0.15 * Math.sin(time * 1.3);
-
-      // Laser pulse — corrected opacity range
-      beamMaterial.opacity = 0.5 + 0.5 * Math.sin(time * 4);
-      laserLight.intensity = 1.5 + 0.5 * Math.sin(time * 4);
-
-      // Halo pulse (scale + opacity)
-      const haloPulse = 0.8 + 0.2 * Math.sin(time * 3.5);
-      halo.scale.setScalar(haloPulse);
-      haloMaterial.opacity = 0.4 * haloPulse;
-
-      const outerPulse = 0.9 + 0.1 * Math.sin(time * 2.8 + 1);
-      outerHalo.scale.setScalar(outerPulse);
 
       renderer.render(scene, camera);
     }
