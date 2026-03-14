@@ -1,0 +1,15 @@
+.wireframeMeshContainer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.wireframeMeshContainer canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.18)) drop-shadow(0 0 2px rgba(212, 168, 68, 0.12));
+}

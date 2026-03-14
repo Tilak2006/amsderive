@@ -1,0 +1,34 @@
+/*
+ * Vignette.module.css
+ *
+ * Radial gradient: transparent at center → near-black at edges.
+ * Draws focus to the center of the viewport (where the countdown timer sits).
+ * Two-layer construction:
+ *   1. Elliptical radial for horizontal falloff
+ *   2. Stronger top/bottom linear for vertical framing
+ *
+ * Zero JS, zero GPU cost — pure CSS compositing.
+ */
+
+.vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+
+    background:
+        /* Primary radial vignette — transparent center, dark edges */
+        radial-gradient(ellipse 70% 60% at 50% 52%,
+            transparent 0%,
+            rgba(0, 0, 0, 0.18) 50%,
+            rgba(0, 0, 0, 0.55) 80%,
+            rgba(0, 0, 0, 0.72) 100%),
+        /* Top bar — extra darkness above the title for legibility */
+        linear-gradient(to bottom,
+            rgba(0, 0, 0, 0.30) 0%,
+            transparent 18%),
+        /* Bottom bar — grounds the lower mesh edge */
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.40) 0%,
+            transparent 20%);
+}

@@ -1,84 +1,307 @@
-[00:00:00.708] Server  LOG     ✓ Ready in 486ms
-[00:51:04.942] Server  LOG       Reload env: .env.local
-[00:51:05.260] Server  LOG     ✓ Compiled in 275ms
-[01:25:17.749] Browser ERROR   uncaughtError: Error: Hydration failed because the server rendered text didn't match the client. As a result this tree will be regenerated on the client. This can happen if a SSR-ed Client Component used:
+[00:00:00.907] Server  LOG     ✓ Ready in 542ms
+[00:00:02.934] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
 
-- A server/client branch `if (typeof window !== 'undefined')`.
-- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
-- Date formatting in a user's locale which doesn't match the server.
-- External changing data without sending a snapshot of it along with the HTML.
-- Invalid HTML tag nesting.
 
-It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
 
-https://react.dev/link/hydration-mismatch
+https://nextjs.org/docs/messages/module-not-found
 
-  ...
-    <App pageProps={{}} Component={function LandingPage} err={undefined} router={{sdc:{},sbc:{}, ...}}>
-      <div className="pt_serif_f...">
-        <LandingPage>
-          <Head>
-          <main className="landing-main">
-            <div className="landing-hero">
-              <Wordmark>
-              <p>
-              <CountdownTimer targetDate="2026-06-01...">
-                <div className="countdown-...">
-                  <div className="countdown-...">
-                    <TimeBlock>
-                    <span>
-                    <TimeBlock>
-                    <span>
-                    <TimeBlock>
-                    <span>
-                    <TimeBlock value={16} label="Seconds">
-                      <div className="timeblock">
-                        <span className="timeblock-value">
-+                         16
--                         17
-                        ...
-              ...
-    ...
 
-[01:25:27.838] Server  LOG     ✓ Compiled in 38ms
-[01:25:28.703] Browser LOG     Refreshing page data due to server-side change
-[01:25:30.944] Server  LOG     ✓ Compiled in 39ms
-[01:25:31.011] Browser LOG     Refreshing page data due to server-side change
-[01:26:50.049] Server  LOG     ✓ Compiled in 427ms
-[01:27:05.077] Server  LOG     ✓ Compiled in 43ms
-[01:27:11.194] Server  LOG     ✓ Compiled in 52ms
-[01:27:11.247] Browser LOG     Refreshing page data due to server-side change
-[01:32:42.071] Server  LOG     ✓ Compiled in 101ms
-[01:33:01.171] Server  LOG     ✓ Compiled in 13ms
-[01:34:17.943] Server  LOG     ✓ Compiled in 97ms
-[01:34:31.604] Server  LOG     ✓ Compiled in 16ms
-[01:34:42.757] Server  LOG     ✓ Compiled in 17ms
-[01:36:18.939] Server  LOG     ✓ Compiled in 96ms
-[01:37:20.523] Server  LOG     ✓ Compiled in 82ms
-[01:37:46.599] Server  LOG     ✓ Compiled in 19ms
-[01:38:34.896] Server  LOG     ✓ Compiled in 15ms
-[01:38:46.065] Server  LOG     ✓ Compiled in 16ms
-[01:39:09.898] Server  LOG     ✓ Compiled in 23ms
-[01:39:24.397] Server  LOG     ✓ Compiled in 21ms
-[01:39:52.900] Server  LOG     ✓ Compiled in 15ms
-[01:39:59.731] Server  LOG     ✓ Compiled in 9ms
-[01:40:31.935] Server  LOG     ✓ Compiled in 14ms
-[01:40:44.648] Server  LOG     ✓ Compiled in 11ms
-[01:41:49.273] Server  LOG     ✓ Compiled in 19ms
-[01:42:09.326] Server  LOG     ✓ Compiled in 10ms
-[01:42:32.608] Server  LOG     ✓ Compiled in 13ms
-[01:42:54.496] Server  LOG     ✓ Compiled in 20ms
-[01:43:06.586] Server  LOG     ✓ Compiled in 15ms
-[01:43:20.941] Server  LOG     ✓ Compiled in 11ms
-[01:43:40.104] Server  LOG     ✓ Compiled in 18ms
-[01:43:52.323] Server  LOG     ✓ Compiled in 46ms
-[01:44:07.751] Server  LOG     ✓ Compiled in 18ms
-[01:44:18.494] Server  LOG     ✓ Compiled in 15ms
-[01:45:19.422] Server  LOG     ✓ Compiled in 15ms
-[01:52:03.636] Server  LOG     ✓ Compiled in 115ms
-[01:53:19.731] Server  LOG     ✓ Compiled in 111ms
-[01:53:32.326] Server  LOG     ✓ Compiled in 15ms
-[01:53:52.924] Server  LOG     ✓ Compiled in 26ms
-[01:54:51.882] Server  LOG     ✓ Compiled in 14ms
-[01:55:23.534] Server  LOG     ✓ Compiled in 39ms
-[01:55:43.588] Server  LOG     ✓ Compiled in 14ms
+[00:00:02.936] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.018] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.024] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.030] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.030] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.037] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:03.400] Browser ERROR   uncaughtError: Error: Cannot find module '../components/hero/WireframeMesh.css'
+[00:00:03.571] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:03.572] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:03.572] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:03.572] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:04.631] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.633] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.637] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.639] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.643] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.643] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.646] Server  ERROR   ⨯ ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+[00:00:04.822] Browser ERROR   uncaughtError: Error: Cannot find module '../components/hero/WireframeMesh.css'
+[00:00:05.004] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:05.004] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:05.004] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:05.004] Browser ERROR   ./src/pages/_app.jsx:13:1
+Module not found: Can't resolve '../components/hero/WireframeMesh.css'
+  11 | import '../components/ui/SuccessState.css';
+  12 | import '../components/layout/Wordmark.css';
+> 13 | import '../components/hero/WireframeMesh.css';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  14 | import './index.css';
+  15 | import './register.css';
+  16 |
+
+https://nextjs.org/docs/messages/module-not-found
+[00:00:33.023] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:00:33.024] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:00:33.040] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:00:33.040] Server  WARN    ⚠ Fast Refresh had to perform a full reload when ./src/pages/_app.jsx changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[00:00:33.041] Server  WARN    ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[00:00:33.052] Server  LOG     ✓ Compiled in 51ms
