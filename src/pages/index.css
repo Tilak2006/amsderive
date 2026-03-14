@@ -1,27 +1,134 @@
-.landing-main {
+.hero-main {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 60%, #061a1f 0%, #020808 50%, #000000 100%);
+}
+
+/* --- Content overlay --- */
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  padding: var(--space-8);
+  pointer-events: none;
+  gap: 8px;
 }
 
-.landing-hero {
+/* --- Heading --- */
+.hero-heading {
+  font-family: var(--font-oswald), 'Oswald', sans-serif;
+  font-weight: 700;
+  font-size: clamp(24px, 5vw, 48px);
+  color: #ffffff;
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin: 0 0 8px 0;
+  text-shadow:
+    0 0 20px rgba(255, 255, 255, 0.25),
+    0 0 60px rgba(255, 255, 255, 0.08);
+}
+
+/* --- Countdown numbers --- */
+.hero-countdown {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-6);
+  gap: 0;
+}
+
+.hero-countdown-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-family: var(--font-oswald), 'Oswald', sans-serif;
+  font-weight: 600;
+  font-size: clamp(48px, 10vw, 96px);
+  color: #ffffff;
+  letter-spacing: 0.06em;
+  text-shadow:
+    0 0 30px rgba(255, 255, 255, 0.3),
+    0 0 80px rgba(255, 255, 255, 0.1);
+}
+
+.hero-countdown-numbers span {
+  display: inline-block;
+  min-width: 0.55em;
   text-align: center;
 }
 
-.landing-tagline {
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  font-style: italic;
-  color: var(--color-text-secondary);
+.hero-colon {
+  opacity: 0.6;
+  margin: 0 0.05em;
+  font-weight: 400;
 }
 
-.landing-actions {
-  margin-top: var(--space-4);
+/* --- Divider line --- */
+.hero-countdown-divider {
+  width: 100%;
+  max-width: 540px;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  margin: 8px 0 12px 0;
+}
+
+/* --- Labels --- */
+.hero-countdown-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 540px;
+  font-family: var(--font-oswald), 'Oswald', sans-serif;
+  font-weight: 400;
+  font-size: clamp(10px, 1.4vw, 14px);
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.hero-countdown-labels span {
+  flex: 1;
+  text-align: center;
+}
+
+/* --- Bottom-right topo label --- */
+.hero-topo-label {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  z-index: 10;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.15em;
+}
+
+/* --- Responsive --- */
+@media (max-width: 600px) {
+  .hero-countdown-numbers {
+    font-size: 48px;
+    letter-spacing: 0.03em;
+  }
+
+  .hero-heading {
+    font-size: 20px;
+  }
+
+  .hero-countdown-labels {
+    font-size: 9px;
+    max-width: 300px;
+  }
+
+  .hero-countdown-divider {
+    max-width: 300px;
+  }
 }

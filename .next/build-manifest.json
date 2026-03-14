@@ -1,37 +1,37 @@
 {
   "pages": {
     "/": [
-      "static/chunks/9e87b54b20742d7f.js",
-      "static/chunks/5df4a7f99913139f.js",
-      "static/chunks/02db564c9342fb86.js",
-      "static/chunks/turbopack-6a750256a2833af7.js"
+      "static/chunks/5c0096840464974b.js",
+      "static/chunks/a170ed7b7b3e4a76.js",
+      "static/chunks/6ea28f2e8b97bd5f.js",
+      "static/chunks/turbopack-744e1e10292b9de5.js"
     ],
     "/_app": [
-      "static/chunks/6a51957525304a42.js",
-      "static/chunks/5df4a7f99913139f.js",
-      "static/chunks/02db564c9342fb86.js",
-      "static/chunks/6e38b2f5dbd923b0.css",
-      "static/chunks/turbopack-a86c198a7a25ec11.js"
+      "static/chunks/f282b115b0367946.js",
+      "static/chunks/a170ed7b7b3e4a76.js",
+      "static/chunks/6ea28f2e8b97bd5f.js",
+      "static/chunks/ed0b0a89e23199db.css",
+      "static/chunks/turbopack-4d202729cb3cc967.js"
     ],
     "/_error": [
-      "static/chunks/fa9d9e1fe6f93133.js",
-      "static/chunks/5df4a7f99913139f.js",
-      "static/chunks/02db564c9342fb86.js",
-      "static/chunks/turbopack-5b7c66d24dddbffa.js"
+      "static/chunks/91f300df2f62d51a.js",
+      "static/chunks/a170ed7b7b3e4a76.js",
+      "static/chunks/6ea28f2e8b97bd5f.js",
+      "static/chunks/turbopack-a16092dbe1e2dbf7.js"
     ],
     "/register": [
-      "static/chunks/9a49c5ab8a649913.js",
-      "static/chunks/02db564c9342fb86.js",
-      "static/chunks/5df4a7f99913139f.js",
-      "static/chunks/566a031ce904c297.js",
-      "static/chunks/turbopack-a26c3885f8accd62.js"
+      "static/chunks/27bdbd20a1c52a56.js",
+      "static/chunks/6ea28f2e8b97bd5f.js",
+      "static/chunks/a170ed7b7b3e4a76.js",
+      "static/chunks/feaddb85eba9eb9d.js",
+      "static/chunks/turbopack-3e10fa3281e28a29.js"
     ]
   },
   "devFiles": [],
   "polyfillFiles": [],
   "lowPriorityFiles": [
-    "static/bJTgiLfgApdt7dgIe9MOb/_ssgManifest.js",
-    "static/bJTgiLfgApdt7dgIe9MOb/_buildManifest.js"
+    "static/08UKYIs5A4bd0Fj899s4-/_ssgManifest.js",
+    "static/08UKYIs5A4bd0Fj899s4-/_buildManifest.js"
   ],
   "rootMainFiles": []
 }

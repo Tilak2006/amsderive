@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 13, "column": 0}, "map": {"version":3,"sources":["file:///Users/apple/Desktop/amsderive/src/pages/_app.jsx"],"sourcesContent":["import { ptSerif, ibmPlexMono, oswald } from '../lib/fonts';\nimport '../styles/globals.css';\n\nimport '../components/countdown/CountdownTimer.css';\nimport '../components/countdown/TimeBlock.css';\nimport '../components/form/TextInput.css';\nimport '../components/form/FileUpload.css';\nimport '../components/form/RegistrationForm.css';\nimport '../components/ui/Button.css';\nimport '../components/ui/ErrorBanner.css';\nimport '../components/ui/SuccessState.css';\nimport '../components/layout/Wordmark.css';\nimport '../components/hero/WireframeMesh.css';\nimport './index.css';\nimport './register.css';\n\nexport default function App({ Component, pageProps }) {\n  return (\n    <div className={`${ptSerif.variable} ${ibmPlexMono.variable} ${oswald.variable}`}>\n      <Component {...pageProps} />\n    </div>\n  );\n}\n"],"names":[],"mappings":";;;;;AAAA;AAAA;AAAA;AAAA;;;;;;;;;;;;;;;;AAgBe,SAAS,IAAI,EAAE,SAAS,EAAE,SAAS,EAAE;IAClD,qBACE,qKAAC;QAAI,WAAW,GAAG,sLAAO,CAAC,QAAQ,CAAC,CAAC,EAAE,mMAAW,CAAC,QAAQ,CAAC,CAAC,EAAE,kLAAM,CAAC,QAAQ,EAAE;kBAC9E,cAAA,qKAAC;YAAW,GAAG,SAAS;;;;;;;;;;;AAG9B"}}]
+}

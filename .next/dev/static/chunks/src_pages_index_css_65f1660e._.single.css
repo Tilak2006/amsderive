@@ -1,30 +1,121 @@
 /* [project]/src/pages/index.css [client] (css) */
-.landing-main {
-  min-height: 100vh;
-  padding: var(--space-8);
+.hero-main {
+  background: radial-gradient(at 50% 60%, #061a1f 0%, #020808 50%, #000 100%);
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-overlay {
+  z-index: 10;
+  pointer-events: none;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  gap: 8px;
   display: flex;
+  position: absolute;
+  inset: 0;
 }
 
-.landing-hero {
-  align-items: center;
-  gap: var(--space-6);
+.hero-heading {
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  color: #fff;
+  letter-spacing: .08em;
   text-align: center;
+  text-shadow: 0 0 20px #ffffff40, 0 0 60px #ffffff14;
+  margin: 0 0 8px;
+  font-size: clamp(24px, 5vw, 48px);
+  font-weight: 700;
+}
+
+.hero-countdown {
   flex-direction: column;
+  align-items: center;
+  gap: 0;
   display: flex;
 }
 
-.landing-tagline {
-  font-family: var(--font-serif);
-  font-size: var(--text-lg);
-  color: var(--color-text-secondary);
-  font-style: italic;
+.hero-countdown-numbers {
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  color: #fff;
+  letter-spacing: .06em;
+  text-shadow: 0 0 30px #ffffff4d, 0 0 80px #ffffff1a;
+  align-items: center;
+  gap: 0;
+  font-size: clamp(48px, 10vw, 96px);
+  font-weight: 600;
+  display: flex;
 }
 
-.landing-actions {
-  margin-top: var(--space-4);
+.hero-countdown-numbers span {
+  text-align: center;
+  min-width: .55em;
+  display: inline-block;
+}
+
+.hero-colon {
+  opacity: .6;
+  margin: 0 .05em;
+  font-weight: 400;
+}
+
+.hero-countdown-divider {
+  background: linear-gradient(to right, #0000, #ffffff4d, #0000);
+  width: 100%;
+  max-width: 540px;
+  height: 1px;
+  margin: 8px 0 12px;
+}
+
+.hero-countdown-labels {
+  width: 100%;
+  max-width: 540px;
+  font-family: var(--font-oswald), "Oswald", sans-serif;
+  color: #ffffff73;
+  letter-spacing: .2em;
+  text-align: center;
+  justify-content: space-between;
+  font-size: clamp(10px, 1.4vw, 14px);
+  font-weight: 400;
+  display: flex;
+}
+
+.hero-countdown-labels span {
+  text-align: center;
+  flex: 1;
+}
+
+.hero-topo-label {
+  z-index: 10;
+  font-family: var(--font-mono), monospace;
+  color: #fff3;
+  letter-spacing: .15em;
+  font-size: 10px;
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+}
+
+@media (max-width: 600px) {
+  .hero-countdown-numbers {
+    letter-spacing: .03em;
+    font-size: 48px;
+  }
+
+  .hero-heading {
+    font-size: 20px;
+  }
+
+  .hero-countdown-labels {
+    max-width: 300px;
+    font-size: 9px;
+  }
+
+  .hero-countdown-divider {
+    max-width: 300px;
+  }
 }
 
 /*# sourceMappingURL=src_pages_index_css_65f1660e._.single.css.map*/

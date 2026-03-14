@@ -1,1 +1,11 @@
-{}
+{
+  "[project]/src/components/hero/WireframeMesh.jsx [client] (ecmascript, next/dynamic entry)": {
+    "id": "[project]/src/components/hero/WireframeMesh.jsx [client] (ecmascript, next/dynamic entry)",
+    "files": [
+      "static/chunks/node_modules_three_build_three_core_1094d3ef.js",
+      "static/chunks/node_modules_three_build_three_module_74ce5faf.js",
+      "static/chunks/src_components_hero_WireframeMesh_jsx_cdcb3e0e._.js",
+      "static/chunks/src_components_hero_WireframeMesh_jsx_0c4df0b1._.js"
+    ]
+  }
+}

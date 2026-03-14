@@ -1,16 +1,17 @@
 globalThis.__BUILD_MANIFEST = {
   "pages": {
     "/": [
+      "static/chunks/src_components_hero_WireframeMesh_jsx_7ff945ab._.js",
       "static/chunks/node_modules_next_dist_compiled_8ca6b690._.js",
-      "static/chunks/node_modules_next_dist_shared_lib_9a2a7093._.js",
+      "static/chunks/node_modules_next_dist_shared_lib_39596ef1._.js",
       "static/chunks/node_modules_next_dist_client_5a8a528e._.js",
       "static/chunks/node_modules_next_dist_75b597d7._.js",
-      "static/chunks/node_modules_next_head_6b89d279.js",
+      "static/chunks/node_modules_next_c8955594._.js",
       "static/chunks/node_modules_react-dom_4411d9bd._.js",
       "static/chunks/node_modules_f1be3ba2._.js",
-      "static/chunks/[root-of-the-server]__25398e66._.js",
+      "static/chunks/[root-of-the-server]__0bd725a6._.js",
       "static/chunks/src_pages_index_2da965e7._.js",
-      "static/chunks/turbopack-src_pages_index_64fb90c4._.js"
+      "static/chunks/turbopack-src_pages_index_d8fbf84e._.js"
     ],
     "/_app": [
       "static/chunks/node_modules_next_dist_compiled_8ca6b690._.js",
@@ -19,10 +20,10 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/node_modules_next_dist_75b597d7._.js",
       "static/chunks/node_modules_react-dom_4411d9bd._.js",
       "static/chunks/node_modules_f1be3ba2._.js",
-      "static/chunks/[root-of-the-server]__f2c14981._.js",
-      "static/chunks/[root-of-the-server]__c37b35fc._.css",
+      "static/chunks/[root-of-the-server]__d15c2f7f._.js",
+      "static/chunks/[root-of-the-server]__ca4befea._.css",
       "static/chunks/src_pages__app_2da965e7._.js",
-      "static/chunks/turbopack-src_pages__app_15ec2d4b._.js"
+      "static/chunks/turbopack-src_pages__app_685008c1._.js"
     ],
     "/register": [
       "static/chunks/node_modules_next_dist_compiled_caaa605a._.js",
