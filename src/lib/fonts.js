@@ -1,0 +1,16 @@
+import { PT_Serif, IBM_Plex_Mono } from 'next/font/google';
+
+export const ptSerif = PT_Serif({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-pt-serif',
+  display: 'swap',
+});
+
+export const ibmPlexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-ibm-plex-mono',
+  display: 'swap',
+});
