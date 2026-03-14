@@ -70,15 +70,18 @@ function WireframeMesh() {
         function buildWireframeLines() {
             const positions = [];
             const colors = [];
-            const cyanColor = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Color"](0x00e5ff);
-            const goldColor = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Color"](0xd4a844);
+            // Ethereal all-gold palette:
+            // champagne (left, bright) → deep amber (right, rich)
+            // height controls brightness → valleys near-black, peaks glow
+            const champagne = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Color"](0xFFE57A); // pale warm gold
+            const amber = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Color"](0xB8720A); // deep amber-gold
             const tmp = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Color"]();
             function addVertex(x, y, z) {
                 positions.push(x, y, z);
-                const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.8);
-                tmp.copy(cyanColor).lerp(goldColor, t);
-                // FIX: base brightness 0.08 (was 0.3) → valleys emerge from darkness
-                const brightness = 0.08 + 0.92 * Math.pow(Math.max(y, 0) / 4.5, 1.8);
+                const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
+                tmp.copy(champagne).lerp(amber, t);
+                // Slightly gentler power so mid-slopes glow faintly too
+                const brightness = 0.06 + 0.94 * Math.pow(Math.max(y, 0) / 4.5, 1.6);
                 colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
             }
             // Horizontal lines
@@ -125,49 +128,48 @@ function WireframeMesh() {
             laserPeakY + 18,
             laserPeakZ
         ], 3));
-        // FIX: base opacity 0.6 (was impossible 1.9)
+        // Gold laser pillar — ethereal upward beam
         const beamMaterial = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["LineBasicMaterial"]({
-            color: 0x00e5ff,
+            color: 0xFFD060,
             transparent: true,
-            opacity: 0.6
+            opacity: 0.7
         });
         const beam = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["LineSegments"](beamGeo, beamMaterial);
         scene.add(beam);
-        // Soft glow layers around beam
+        // Soft gold glow corona around beam
         for(let i = 1; i <= 3; i++){
             const g = beam.clone();
             g.material = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["LineBasicMaterial"]({
-                color: 0x00e5ff,
+                color: 0xD4A017,
                 transparent: true,
-                opacity: 0.12 / i
+                opacity: 0.14 / i
             });
             g.scale.set(1 + i * 0.012, 1, 1 + i * 0.012);
             scene.add(g);
         }
-        // Halo ring at emission point — sells the "source"
-        const haloGeo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["RingGeometry"](0.10, 0.18, 32);
+        // Halo ring at emission point — gold shimmer
         const haloMaterial = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["MeshBasicMaterial"]({
-            color: 0x00e5ff,
+            color: 0xFFD060,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.55,
             side: __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["DoubleSide"]
         });
-        const halo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Mesh"](haloGeo, haloMaterial);
+        const halo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Mesh"](new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["RingGeometry"](0.10, 0.18, 32), haloMaterial);
         halo.position.set(laserPeakX, laserPeakY + 0.05, laserPeakZ);
         halo.rotation.x = -Math.PI / 2;
         scene.add(halo);
-        // Outer pulse ring (second ring, larger, lower opacity)
-        const outerHaloGeo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["RingGeometry"](0.22, 0.32, 32);
-        const outerHalo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Mesh"](outerHaloGeo, new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["MeshBasicMaterial"]({
-            color: 0x00e5ff,
+        const outerHaloMat = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["MeshBasicMaterial"]({
+            color: 0xD4A017,
             transparent: true,
-            opacity: 0.15,
+            opacity: 0.18,
             side: __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["DoubleSide"]
-        }));
+        });
+        const outerHalo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Mesh"](new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["RingGeometry"](0.22, 0.32, 32), outerHaloMat);
         outerHalo.position.copy(halo.position);
         outerHalo.rotation.x = -Math.PI / 2;
         scene.add(outerHalo);
-        const laserLight = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["PointLight"](0x00e5ff, 2, 8);
+        // Gold point light — warm illumination at peak
+        const laserLight = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["PointLight"](0xFFB800, 2.5, 9);
         laserLight.position.set(laserPeakX, laserPeakY + 1, laserPeakZ);
         scene.add(laserLight);
         // ── Starfield ─────────────────────────────────────────────────────────────
@@ -184,16 +186,16 @@ function WireframeMesh() {
         const starGeo = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["BufferGeometry"]();
         starGeo.setAttribute('position', new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Float32BufferAttribute"](starPos, 3));
         const starMaterial = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["PointsMaterial"]({
-            color: 0xffffff,
+            color: 0xFFF8DC,
             size: 0.07,
             transparent: true,
-            opacity: 0.5,
+            opacity: 0.45,
             sizeAttenuation: true
         });
         const stars = new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["Points"](starGeo, starMaterial);
         scene.add(stars);
-        // ── Ambient light ─────────────────────────────────────────────────────────
-        scene.add(new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["AmbientLight"](0x112233, 0.5));
+        // Warm ambient — dark ochre undertone instead of cold blue
+        scene.add(new __TURBOPACK__imported__module__$5b$externals$5d2f$three__$5b$external$5d$__$28$three$2c$__esm_import$2c$__$5b$project$5d2f$node_modules$2f$three$29$__["AmbientLight"](0x1A1200, 0.6));
         // ── Mouse (via ref — no state, no re-renders) ─────────────────────────────
         const camTiltRange = 1.5;
         function handleMouseMove(e) {
@@ -261,7 +263,7 @@ function WireframeMesh() {
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$hero$2f$WireframeMesh$2e$module$2e$css__$5b$ssr$5d$__$28$css__module$29$__["default"].wireframeMeshContainer
     }, void 0, false, {
         fileName: "[project]/src/components/hero/WireframeMesh.jsx",
-        lineNumber: 293,
+        lineNumber: 295,
         columnNumber: 10
     }, this);
 }

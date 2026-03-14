@@ -77,16 +77,19 @@ export default function WireframeMesh() {
     function buildWireframeLines() {
       const positions = [];
       const colors = [];
-      const cyanColor = new THREE.Color(0x00e5ff);
-      const goldColor = new THREE.Color(0xd4a844);
+      // Ethereal all-gold palette:
+      // champagne (left, bright) → deep amber (right, rich)
+      // height controls brightness → valleys near-black, peaks glow
+      const champagne = new THREE.Color(0xFFE57A); // pale warm gold
+      const amber = new THREE.Color(0xB8720A); // deep amber-gold
       const tmp = new THREE.Color();
 
       function addVertex(x, y, z) {
         positions.push(x, y, z);
-        const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.8);
-        tmp.copy(cyanColor).lerp(goldColor, t);
-        // FIX: base brightness 0.08 (was 0.3) → valleys emerge from darkness
-        const brightness = 0.08 + 0.92 * Math.pow(Math.max(y, 0) / 4.5, 1.8);
+        const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
+        tmp.copy(champagne).lerp(amber, t);
+        // Slightly gentler power so mid-slopes glow faintly too
+        const brightness = 0.06 + 0.94 * Math.pow(Math.max(y, 0) / 4.5, 1.6);
         colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
       }
 
@@ -135,53 +138,52 @@ export default function WireframeMesh() {
       laserPeakX, laserPeakY + 18, laserPeakZ,
     ], 3));
 
-    // FIX: base opacity 0.6 (was impossible 1.9)
+    // Gold laser pillar — ethereal upward beam
     const beamMaterial = new THREE.LineBasicMaterial({
-      color: 0x00e5ff,
+      color: 0xFFD060, // warm bright gold
       transparent: true,
-      opacity: 0.6,
+      opacity: 0.7,
     });
     const beam = new THREE.LineSegments(beamGeo, beamMaterial);
     scene.add(beam);
 
-    // Soft glow layers around beam
+    // Soft gold glow corona around beam
     for (let i = 1; i <= 3; i++) {
       const g = beam.clone();
       g.material = new THREE.LineBasicMaterial({
-        color: 0x00e5ff,
+        color: 0xD4A017,
         transparent: true,
-        opacity: 0.12 / i,
+        opacity: 0.14 / i,
       });
       g.scale.set(1 + i * 0.012, 1, 1 + i * 0.012);
       scene.add(g);
     }
 
-    // Halo ring at emission point — sells the "source"
-    const haloGeo = new THREE.RingGeometry(0.10, 0.18, 32);
+    // Halo ring at emission point — gold shimmer
     const haloMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00e5ff,
+      color: 0xFFD060,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.55,
       side: THREE.DoubleSide,
     });
-    const halo = new THREE.Mesh(haloGeo, haloMaterial);
+    const halo = new THREE.Mesh(new THREE.RingGeometry(0.10, 0.18, 32), haloMaterial);
     halo.position.set(laserPeakX, laserPeakY + 0.05, laserPeakZ);
     halo.rotation.x = -Math.PI / 2;
     scene.add(halo);
 
-    // Outer pulse ring (second ring, larger, lower opacity)
-    const outerHaloGeo = new THREE.RingGeometry(0.22, 0.32, 32);
-    const outerHalo = new THREE.Mesh(outerHaloGeo, new THREE.MeshBasicMaterial({
-      color: 0x00e5ff,
+    const outerHaloMat = new THREE.MeshBasicMaterial({
+      color: 0xD4A017,
       transparent: true,
-      opacity: 0.15,
+      opacity: 0.18,
       side: THREE.DoubleSide,
-    }));
+    });
+    const outerHalo = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.32, 32), outerHaloMat);
     outerHalo.position.copy(halo.position);
     outerHalo.rotation.x = -Math.PI / 2;
     scene.add(outerHalo);
 
-    const laserLight = new THREE.PointLight(0x00e5ff, 2, 8);
+    // Gold point light — warm illumination at peak
+    const laserLight = new THREE.PointLight(0xFFB800, 2.5, 9);
     laserLight.position.set(laserPeakX, laserPeakY + 1, laserPeakZ);
     scene.add(laserLight);
 
@@ -202,17 +204,17 @@ export default function WireframeMesh() {
     starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
 
     const starMaterial = new THREE.PointsMaterial({
-      color: 0xffffff,
+      color: 0xFFF8DC, // cornsilk — warm gold-white stars
       size: 0.07,
       transparent: true,
-      opacity: 0.5,
+      opacity: 0.45,
       sizeAttenuation: true,
     });
     const stars = new THREE.Points(starGeo, starMaterial);
     scene.add(stars);
 
-    // ── Ambient light ─────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0x112233, 0.5));
+    // Warm ambient — dark ochre undertone instead of cold blue
+    scene.add(new THREE.AmbientLight(0x1A1200, 0.6));
 
     // ── Mouse (via ref — no state, no re-renders) ─────────────────────────────
     const camTiltRange = 1.5;

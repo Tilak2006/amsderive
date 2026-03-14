@@ -46,9 +46,9 @@
 
 /* Scan lines: very faint, slow vertical drift */
 .scanLine {
-  stroke: #00e5ff;
+  stroke: #D4AF37;
   stroke-width: 0.4;
-  opacity: 0.04;
+  opacity: 0.05;
   animation: scanDrift 9s ease-in-out infinite;
 }
 

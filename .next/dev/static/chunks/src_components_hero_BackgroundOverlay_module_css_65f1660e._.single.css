@@ -35,9 +35,9 @@
 }
 
 .BackgroundOverlay-module__OvLICq__scanLine {
-  stroke: #00e5ff;
+  stroke: #d4af37;
   stroke-width: .4px;
-  opacity: .04;
+  opacity: .05;
   animation: 9s ease-in-out infinite BackgroundOverlay-module__OvLICq__scanDrift;
 }
 
