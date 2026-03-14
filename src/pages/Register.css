@@ -2,30 +2,116 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   min-height: 100vh;
-  padding: var(--space-8);
+  padding: 64px 24px;
 }
 
-.register-header {
+.register-container {
   width: 100%;
-  max-width: 480px;
-  margin-bottom: var(--space-12);
-  padding-top: var(--space-8);
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
+/* Custom header */
+.register-wordmark {
+  font-family: var(--font-serif);
+  font-size: 48px;
+  font-weight: 700;
+  color: #f0ede6;
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin: 0;
+}
+
+.register-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b6560;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+  margin: var(--space-3) 0 0 0;
+}
+
+/* Divider */
+.register-divider {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #1e1e1e;
+  margin: var(--space-8) 0;
+}
+
+.register-accent-line {
+  width: 48px;
+  height: 1px;
+  background: #c9a84c;
+  margin: -20px auto var(--space-8) auto;
+  display: block;
+}
+
+/* Content area */
 .register-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-8);
   width: 100%;
-  max-width: 480px;
 }
 
-.register-title {
+/* Error banner override */
+.register-main .error-banner {
+  background: #1a0a0a;
+  border-color: #e05555;
+  width: 100%;
+  margin-bottom: var(--space-6);
+}
+
+.register-main .error-banner-message {
+  color: #e05555;
+}
+
+/* Success card */
+.register-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid #c9a84c;
+  border-radius: var(--radius-md);
+  width: 100%;
+  text-align: center;
+}
+
+.register-success-checkmark {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.register-success-title {
   font-family: var(--font-serif);
-  font-size: var(--text-2xl);
+  font-size: 28px;
   font-weight: 700;
-  color: var(--color-text-primary);
-  align-self: flex-start;
+  color: #f0ede6;
+  margin: 0;
+}
+
+.register-success-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.register-success-message {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: #6b6560;
+  margin: 0;
 }

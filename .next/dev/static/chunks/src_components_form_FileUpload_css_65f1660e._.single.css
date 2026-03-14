@@ -1,0 +1,128 @@
+/* [project]/src/components/form/FileUpload.css [client] (css) */
+.file-upload-field {
+  gap: var(--space-2);
+  flex-direction: column;
+  display: flex;
+}
+
+.file-upload-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  letter-spacing: var(--tracking-wide);
+  font-weight: 500;
+}
+
+.file-upload-required {
+  color: var(--color-error);
+}
+
+.file-upload-subtext {
+  font-family: var(--font-mono);
+  color: #6b6560;
+  margin: 0;
+  font-size: 12px;
+}
+
+.file-upload-dropzone {
+  padding: var(--space-6) var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+  background: #0a0a0a;
+  border: 1px dashed #1e1e1e;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  display: flex;
+}
+
+.file-upload-dropzone:hover {
+  background: #0d0d0d;
+  border-color: #c9a84c22;
+}
+
+.file-upload-dropzone-dragging {
+  border-color: var(--color-accent);
+  background: #0d0d0d;
+}
+
+.file-upload-dropzone-selected {
+  border-style: solid;
+  border-color: #1e1e1e;
+}
+
+.file-upload-dropzone-error {
+  border-color: var(--color-error);
+}
+
+.file-upload-empty {
+  align-items: center;
+  gap: var(--space-2);
+  flex-direction: column;
+  display: flex;
+}
+
+.file-upload-prompt {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.file-upload-formats {
+  font-family: var(--font-mono);
+  color: #6b6560;
+  font-size: 12px;
+}
+
+.file-upload-selected {
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  display: flex;
+}
+
+.file-upload-preview {
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
+
+.file-upload-info {
+  text-align: left;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+  min-width: 0;
+  display: flex;
+}
+
+.file-upload-filename {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.file-upload-filesize {
+  font-family: var(--font-mono);
+  color: #6b6560;
+  font-size: 12px;
+}
+
+.file-upload-checkmark {
+  flex-shrink: 0;
+}
+
+.file-upload-hidden {
+  display: none;
+}
+
+.file-upload-error-msg {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+/*# sourceMappingURL=src_components_form_FileUpload_css_65f1660e._.single.css.map*/

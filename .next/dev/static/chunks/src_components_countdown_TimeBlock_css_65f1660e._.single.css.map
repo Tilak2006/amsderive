@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/src/components/countdown/TimeBlock.css"],"sourcesContent":[".timeblock {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: var(--space-1);\n}\n\n.timeblock-value {\n  font-family: var(--font-mono);\n  font-size: var(--text-4xl);\n  font-weight: 600;\n  line-height: var(--leading-tight);\n  color: var(--color-text-primary);\n  letter-spacing: var(--tracking-tight);\n}\n\n.timeblock-label {\n  font-family: var(--font-mono);\n  font-size: var(--text-xs);\n  font-weight: 500;\n  color: var(--color-text-muted);\n  text-transform: uppercase;\n  letter-spacing: var(--tracking-widest);\n}\n"],"names":[],"mappings":"AAAA;;;;;;;AAOA;;;;;;;;;AASA"}}]
+}

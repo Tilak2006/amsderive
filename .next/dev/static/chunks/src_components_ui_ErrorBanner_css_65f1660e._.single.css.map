@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/src/components/ui/ErrorBanner.css"],"sourcesContent":[".error-banner {\n  padding: var(--space-4);\n  background: var(--color-error-bg);\n  border: 1px solid var(--color-error);\n  border-radius: var(--radius-md);\n}\n\n.error-banner-message {\n  font-size: var(--text-sm);\n  color: var(--color-error);\n}\n"],"names":[],"mappings":"AAAA;;;;;;;AAOA"}}]
+}

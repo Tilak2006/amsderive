@@ -1,0 +1,14 @@
+/* [project]/src/components/ui/ErrorBanner.css [client] (css) */
+.error-banner {
+  padding: var(--space-4);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+}
+
+.error-banner-message {
+  font-size: var(--text-sm);
+  color: var(--color-error);
+}
+
+/*# sourceMappingURL=src_components_ui_ErrorBanner_css_65f1660e._.single.css.map*/

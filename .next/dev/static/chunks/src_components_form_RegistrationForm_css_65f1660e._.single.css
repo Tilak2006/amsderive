@@ -1,0 +1,49 @@
+/* [project]/src/components/form/RegistrationForm.css [client] (css) */
+.registration-form {
+  gap: var(--space-6);
+  flex-direction: column;
+  width: 100%;
+  display: flex;
+}
+
+.registration-form .btn {
+  width: 100%;
+}
+
+.submit-loading {
+  align-items: center;
+  gap: 0;
+  display: inline-flex;
+}
+
+.submit-dot {
+  opacity: 0;
+  margin-left: 1px;
+  font-size: 1.2em;
+  animation: 1.4s ease-in-out infinite dotFade;
+  display: inline-block;
+}
+
+.submit-dot-1 {
+  animation-delay: 0s;
+}
+
+.submit-dot-2 {
+  animation-delay: .2s;
+}
+
+.submit-dot-3 {
+  animation-delay: .4s;
+}
+
+@keyframes dotFade {
+  0%, 80%, 100% {
+    opacity: 0;
+  }
+
+  40% {
+    opacity: 1;
+  }
+}
+
+/*# sourceMappingURL=src_components_form_RegistrationForm_css_65f1660e._.single.css.map*/

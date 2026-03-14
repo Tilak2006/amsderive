@@ -39,6 +39,13 @@
   border-color: var(--color-error);
 }
 
+.text-input-hint {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #6b6560;
+  margin: 0;
+}
+
 .text-input-error-msg {
   font-size: var(--text-sm);
   color: var(--color-error);

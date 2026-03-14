@@ -10,8 +10,8 @@ import '../components/ui/Button.css';
 import '../components/ui/ErrorBanner.css';
 import '../components/ui/SuccessState.css';
 import '../components/layout/Wordmark.css';
-import './LandingPage.css';
-import './Register.css';
+import './index.css';
+import './register.css';
 
 export default function App({ Component, pageProps }) {
   return (

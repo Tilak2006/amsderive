@@ -1,0 +1,30 @@
+/* [project]/src/pages/landing-page.css [client] (css) */
+.landing-main {
+  min-height: 100vh;
+  padding: var(--space-8);
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.landing-hero {
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
+  flex-direction: column;
+  display: flex;
+}
+
+.landing-tagline {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.landing-actions {
+  margin-top: var(--space-4);
+}
+
+/*# sourceMappingURL=src_pages_landing-page_css_65f1660e._.single.css.map*/
