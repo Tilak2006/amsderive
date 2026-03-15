@@ -9,6 +9,7 @@ import CompetitionSection from '../components/sections/CompetitionSection';
 import TimelineSection from '../components/sections/TimelineSection';
 import WhoSection from '../components/sections/WhoSection';
 import FadeInSection from '../components/FadeInSection';
+import Footer from '../components/Footer';
 import styles from '../styles/hero.module.css';
 
 // Dynamic import to avoid SSR issues with Three.js
@@ -67,6 +68,8 @@ export default function LandingPage() {
           <WhoSection />
         </FadeInSection>
       </div>
+
+      <Footer />
     </>
   );
 }

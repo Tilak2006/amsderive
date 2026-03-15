@@ -50,7 +50,7 @@
   font-family: var(--font-serif);
   color: #fff;
   letter-spacing: .1em;
-  text-shadow: 0 0 12px #ffffff26;
+  text-shadow: 0 0 10px #d4af3766, 0 0 40px #d4af3733, 0 0 80px #d4af371a;
   text-transform: uppercase;
   margin: 0;
   font-size: clamp(32px, 5vw, 64px);
@@ -60,10 +60,11 @@
 
 .hero-module__6qflza__subTitle {
   font-family: var(--font-sans);
-  color: #8a8a8a;
+  color: #a09880;
   letter-spacing: .25em;
   text-transform: uppercase;
   opacity: .8;
+  text-shadow: 0 0 10px #d4af374d, 0 0 30px #d4af371f;
   margin-top: 20px;
   font-size: clamp(12px, 1.5vw, 16px);
   font-weight: 400;
@@ -74,7 +75,7 @@
   color: #fff;
   letter-spacing: .2em;
   text-transform: uppercase;
-  text-shadow: 0 0 12px #fff3;
+  text-shadow: 0 0 10px #d4af3759, 0 0 40px #d4af3726;
   margin-bottom: 0;
   font-size: 1rem;
   font-weight: 600;

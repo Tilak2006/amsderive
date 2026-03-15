@@ -112,4 +112,44 @@
   margin: 0;
 }
 
+@media (max-width: 600px) {
+  .register-main {
+    padding: 40px 16px;
+  }
+
+  .register-wordmark {
+    letter-spacing: .05em;
+    font-size: 32px;
+  }
+
+  .register-subtitle {
+    letter-spacing: .18em;
+    font-size: 9px;
+  }
+
+  .register-success {
+    padding: var(--space-6);
+    gap: var(--space-4);
+  }
+
+  .register-success-title {
+    font-size: 22px;
+  }
+
+  .register-success-checkmark {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media (max-width: 400px) {
+  .register-main {
+    padding: 32px 12px;
+  }
+
+  .register-wordmark {
+    font-size: 26px;
+  }
+}
+
 /*# sourceMappingURL=src_pages_register_css_65f1660e._.single.css.map*/

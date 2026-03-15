@@ -61,7 +61,10 @@
   letter-spacing: 0.1em;
   line-height: 1.1;
   margin: 0;
-  text-shadow: 0px 0px 12px rgba(255, 255, 255, 0.15);
+  text-shadow:
+    0 0 10px rgba(212, 175, 55, 0.4),
+    0 0 40px rgba(212, 175, 55, 0.2),
+    0 0 80px rgba(212, 175, 55, 0.1);
   text-transform: uppercase;
 }
 
@@ -69,11 +72,14 @@
   font-family: var(--font-sans);
   font-weight: 400;
   font-size: clamp(12px, 1.5vw, 16px);
-  color: #8A8A8A;
+  color: #a09880;
   letter-spacing: 0.25em;
   margin-top: 20px;
   text-transform: uppercase;
   opacity: 0.8;
+  text-shadow:
+    0 0 10px rgba(212, 175, 55, 0.3),
+    0 0 30px rgba(212, 175, 55, 0.12);
 }
 
 .signupLabel {
@@ -84,7 +90,9 @@
   letter-spacing: 0.2em;
   margin-bottom: 0;
   text-transform: uppercase;
-  text-shadow: 0px 0px 12px rgba(255, 255, 255, 0.2);
+  text-shadow:
+    0 0 10px rgba(212, 175, 55, 0.35),
+    0 0 40px rgba(212, 175, 55, 0.15);
 }
 
 .lightBeam {
