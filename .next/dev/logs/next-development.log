@@ -122,3 +122,13 @@ https://react.dev/link/hydration-mismatch
 [02:58:38.668] Server  LOG     ✓ Compiled in 21ms
 [02:59:56.840] Server  LOG     ✓ Compiled in 19ms
 [03:00:21.240] Server  LOG     ✓ Compiled in 15ms
+[06:45:50.770] Server  LOG     ✓ Compiled in 158ms
+[06:52:19.841] Server  LOG     ✓ Compiled in 140ms
+[06:52:19.985] Browser ERROR   %o
+
+%s
+
+%s
+ {} The above error occurred in the <Navbar> component. React will try to recreate this component tree from scratch using the error boundary you provided, PagesDevOverlayErrorBoundary.
+[06:52:24.275] Server  LOG     ✓ Compiled in 19ms
+[06:53:55.505] Server  LOG     ✓ Compiled in 23ms
