@@ -34,7 +34,6 @@ var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$o
 ;
 ;
 ;
-;
 function App({ Component, pageProps }) {
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$externals$5d2f$react$2f$jsx$2d$dev$2d$runtime__$5b$external$5d$__$28$react$2f$jsx$2d$dev$2d$runtime$2c$__cjs$29$__["jsxDEV"])("div", {
         className: `${__TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$pt_serif_f44cd6b0$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ptSerif$3e$__["ptSerif"].variable} ${__TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$ibm_plex_mono_c006d040$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__ibmPlexMono$3e$__["ibmPlexMono"].variable} ${__TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$oswald_80fec9a6$2e$js__$5b$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__oswald$3e$__["oswald"].variable}`,
@@ -42,12 +41,12 @@ function App({ Component, pageProps }) {
             ...pageProps
         }, void 0, false, {
             fileName: "[project]/src/pages/_app.jsx",
-            lineNumber: 20,
+            lineNumber: 19,
             columnNumber: 7
         }, this)
     }, void 0, false, {
         fileName: "[project]/src/pages/_app.jsx",
-        lineNumber: 19,
+        lineNumber: 18,
         columnNumber: 5
     }, this);
 }

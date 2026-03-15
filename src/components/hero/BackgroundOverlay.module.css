@@ -1,0 +1,108 @@
+/*
+ * BackgroundOverlay.module.css
+ * Changes applied:
+ *  - Container opacity: 0.4 → 0.55 (price path was effectively invisible at 0.4)
+ *  - .equationSpaced: letter-spacing 0.08em for monospace readability
+ *  - .scanLine: very faint horizontal lines for upper-region texture
+ *  - @keyframes float removed (animateFloat no longer used)
+ */
+
+.overlayContainer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+  /* FIX: raised from 0.4 → 0.55 so inner elements at low opacity are visible */
+  opacity: 0.55;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+}
+
+.element {
+  stroke: #D4AF37;
+  stroke-width: 0.5;
+  fill: none;
+  opacity: 0.14;
+}
+
+.equation {
+  fill: #FFFFFF;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 10px;
+  opacity: 0.1;
+  text-transform: uppercase;
+}
+
+/* FIX: letter-spacing for monospace quant formulas — breathing room */
+.equationSpaced {
+  letter-spacing: 0.08em;
+}
+
+/* Scan lines: very faint, slow vertical drift */
+.scanLine {
+  stroke: #D4AF37;
+  stroke-width: 0.4;
+  opacity: 0.05;
+  animation: scanDrift 9s ease-in-out infinite;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+.animatePath {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 20s linear infinite;
+}
+
+.animatePulse {
+  animation: pulse 10s ease-in-out infinite;
+}
+
+/* animateFloat intentionally removed — translateX/Y on SVG paths
+   inside a fixed viewBox creates a jitter glitch, not intentional motion */
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulse {
+
+  0%,
+  100% {
+    opacity: 0.05;
+  }
+
+  50% {
+    opacity: 0.20;
+  }
+}
+
+@keyframes scanDrift {
+  0% {
+    transform: translateY(0px);
+    opacity: 0.03;
+  }
+
+  40% {
+    transform: translateY(-18px);
+    opacity: 0.06;
+  }
+
+  60% {
+    transform: translateY(-18px);
+    opacity: 0.06;
+  }
+
+  100% {
+    transform: translateY(0px);
+    opacity: 0.03;
+  }
+}

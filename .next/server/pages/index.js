@@ -1,0 +1,10 @@
+var R=require("../chunks/ssr/[turbopack]_runtime.js")("server/pages/index.js")
+R.c("server/chunks/ssr/src_components_hero_WireframeMesh_jsx_ce923efc._.js")
+R.c("server/chunks/ssr/_1501e4cd._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__74858115._.js")
+R.c("server/chunks/ssr/node_modules_next_4e5be032._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__824cd842._.js")
+R.c("server/chunks/ssr/[root-of-the-server]__32faecc1._.js")
+R.c("server/chunks/ssr/src_pages__app_jsx_35c8365f._.js")
+R.m(22052)
+module.exports=R.m(22052).exports

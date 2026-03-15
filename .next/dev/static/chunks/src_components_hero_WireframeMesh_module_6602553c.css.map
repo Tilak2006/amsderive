@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["file:///home/user/AMS%20Derive/amsderive/src/components/hero/WireframeMesh.module.css"],"sourcesContent":[".wireframeMeshContainer {\n    position: absolute;\n    inset: 0;\n    width: 100%;\n    height: 100%;\n    z-index: 0;\n    overflow: hidden;\n}\n\n.wireframeMeshContainer canvas {\n    display: block;\n    width: 100%;\n    height: 100%;\n    /* Gold bloom glow — warm drop-shadow replaces the cyan version */\n    filter: drop-shadow(0 0 8px rgba(212, 160, 23, 0.22)) drop-shadow(0 0 3px rgba(255, 213, 96, 0.14));\n}"],"names":[],"mappings":"AAAA;;;;;;;;;AASA"}}]
+}

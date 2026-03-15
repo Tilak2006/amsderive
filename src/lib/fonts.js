@@ -1,4 +1,4 @@
-import { PT_Serif, IBM_Plex_Mono, Oswald } from 'next/font/google';
+import { PT_Serif, IBM_Plex_Mono, Oswald, Inter, JetBrains_Mono } from 'next/font/google';
 
 export const ptSerif = PT_Serif({
   subsets: ['latin'],
@@ -19,5 +19,18 @@ export const oswald = Oswald({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   variable: '--font-oswald',
+  display: 'swap',
+});
+
+export const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+export const jetBrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-jetbrains-mono',
   display: 'swap',
 });

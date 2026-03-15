@@ -10,7 +10,6 @@ import '../components/ui/Button.css';
 import '../components/ui/ErrorBanner.css';
 import '../components/ui/SuccessState.css';
 import '../components/layout/Wordmark.css';
-import '../components/hero/WireframeMesh.css';
 import './index.css';
 import './register.css';
 

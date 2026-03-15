@@ -1,0 +1,41 @@
+/* [project]/src/components/Navbar.module.css [client] (css) */
+.Navbar-module__cJzEcG__navbar {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  background: none;
+  border-bottom: 1px solid #d4af371a;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  height: 70px;
+  padding: 0 40px;
+  transition: all .3s;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+.Navbar-module__cJzEcG__logo {
+  font-family: var(--font-serif);
+  color: #fff;
+  letter-spacing: .15em;
+  cursor: pointer;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: opacity .3s;
+}
+
+@media (max-width: 768px) {
+  .Navbar-module__cJzEcG__navbar {
+    padding: 0 20px;
+  }
+
+  .Navbar-module__cJzEcG__navLinks {
+    display: none;
+  }
+}
+
+/*# sourceMappingURL=src_components_Navbar_module_css_65f1660e._.single.css.map*/
