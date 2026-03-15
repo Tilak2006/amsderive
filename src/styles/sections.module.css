@@ -134,7 +134,35 @@
 
 @media (max-width: 768px) {
   .section {
-    padding: 60px 20px;
+    padding: 60px 16px;
+  }
+
+  .sectionTitle {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    margin-bottom: 36px;
+    letter-spacing: 0.06em;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .card {
+    padding: 24px;
+  }
+
+  .cardTitle {
+    font-size: 1rem;
+  }
+
+  .cardText {
+    font-size: 0.9rem;
+  }
+
+  .timelineItem {
+    padding-left: 24px;
+    padding-bottom: 28px;
   }
 }
 

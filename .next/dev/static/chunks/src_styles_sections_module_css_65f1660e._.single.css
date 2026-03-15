@@ -135,7 +135,35 @@
 
 @media (max-width: 768px) {
   .sections-module__6gzkAW__section {
-    padding: 60px 20px;
+    padding: 60px 16px;
+  }
+
+  .sections-module__6gzkAW__sectionTitle {
+    letter-spacing: .06em;
+    margin-bottom: 36px;
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+
+  .sections-module__6gzkAW__grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .sections-module__6gzkAW__card {
+    padding: 24px;
+  }
+
+  .sections-module__6gzkAW__cardTitle {
+    font-size: 1rem;
+  }
+
+  .sections-module__6gzkAW__cardText {
+    font-size: .9rem;
+  }
+
+  .sections-module__6gzkAW__timelineItem {
+    padding-bottom: 28px;
+    padding-left: 24px;
   }
 }
 

@@ -77,12 +77,42 @@
   border-color: #D4AF37;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .numbers {
+    font-size: clamp(32px, 8vw, 48px);
+    letter-spacing: 0.05em;
+  }
+
   .separator {
     padding: 0 0.1em;
   }
+
   .labels {
-    letter-spacing: 0.2em;
-    max-width: 320px;
+    letter-spacing: 0.15em;
+    max-width: 300px;
+    font-size: 8px;
+    padding: 0 0.5rem;
+  }
+
+  .registerBtn {
+    font-size: 0.9rem;
+    padding: 14px 36px;
+  }
+}
+
+@media (max-width: 400px) {
+  .numbers {
+    font-size: 28px;
+  }
+
+  .labels {
+    max-width: 240px;
+    font-size: 7px;
+    letter-spacing: 0.1em;
+  }
+
+  .registerBtn {
+    font-size: 0.8rem;
+    padding: 12px 28px;
   }
 }

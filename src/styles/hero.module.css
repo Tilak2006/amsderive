@@ -118,8 +118,52 @@
   pointer-events: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .heroOverlay {
+    padding: 0 16px;
+    margin-top: 0;
+  }
+
+  .heroContent {
+    gap: 20px;
+  }
+
+  .titleGroup {
+    margin-bottom: 20px;
+  }
+
+  .mainTitle {
+    font-size: clamp(24px, 8vw, 40px);
+    letter-spacing: 0.06em;
+  }
+
   .subTitle {
-    letter-spacing: 0.2em;
+    font-size: clamp(9px, 2.5vw, 12px);
+    letter-spacing: 0.15em;
+    margin-top: 12px;
+  }
+
+  .signupLabel {
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+  }
+
+  .heroMain::after {
+    height: 150px;
+  }
+}
+
+@media (max-width: 400px) {
+  .mainTitle {
+    font-size: 22px;
+  }
+
+  .subTitle {
+    font-size: 8px;
+    letter-spacing: 0.1em;
+  }
+
+  .signupLabel {
+    font-size: 0.65rem;
   }
 }

@@ -76,14 +76,43 @@
   border-color: #d4af37;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .Countdown-module__UY-Ckq__numbers {
+    letter-spacing: .05em;
+    font-size: clamp(32px, 8vw, 48px);
+  }
+
   .Countdown-module__UY-Ckq__separator {
     padding: 0 .1em;
   }
 
   .Countdown-module__UY-Ckq__labels {
-    letter-spacing: .2em;
-    max-width: 320px;
+    letter-spacing: .15em;
+    max-width: 300px;
+    padding: 0 .5rem;
+    font-size: 8px;
+  }
+
+  .Countdown-module__UY-Ckq__registerBtn {
+    padding: 14px 36px;
+    font-size: .9rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .Countdown-module__UY-Ckq__numbers {
+    font-size: 28px;
+  }
+
+  .Countdown-module__UY-Ckq__labels {
+    letter-spacing: .1em;
+    max-width: 240px;
+    font-size: 7px;
+  }
+
+  .Countdown-module__UY-Ckq__registerBtn {
+    padding: 12px 28px;
+    font-size: .8rem;
   }
 }
 

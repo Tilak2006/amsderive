@@ -48,11 +48,33 @@
 
 @media (max-width: 768px) {
   .Navbar-module__cJzEcG__navbar {
-    padding: 0 20px;
+    height: 56px;
+    padding: 0 16px;
   }
 
-  .Navbar-module__cJzEcG__navLinks {
-    display: none;
+  .Navbar-module__cJzEcG__logo {
+    letter-spacing: .1em;
+    font-size: 1rem;
+  }
+
+  .Navbar-module__cJzEcG__notifyBtn {
+    padding: 6px 14px;
+    font-size: .65rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .Navbar-module__cJzEcG__navbar {
+    padding: 0 12px;
+  }
+
+  .Navbar-module__cJzEcG__logo {
+    font-size: .85rem;
+  }
+
+  .Navbar-module__cJzEcG__notifyBtn {
+    padding: 5px 10px;
+    font-size: .6rem;
   }
 }
 

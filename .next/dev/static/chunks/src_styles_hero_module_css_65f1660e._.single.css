@@ -118,9 +118,53 @@
   right: 28px;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .hero-module__6qflza__heroOverlay {
+    margin-top: 0;
+    padding: 0 16px;
+  }
+
+  .hero-module__6qflza__heroContent {
+    gap: 20px;
+  }
+
+  .hero-module__6qflza__titleGroup {
+    margin-bottom: 20px;
+  }
+
+  .hero-module__6qflza__mainTitle {
+    letter-spacing: .06em;
+    font-size: clamp(24px, 8vw, 40px);
+  }
+
   .hero-module__6qflza__subTitle {
-    letter-spacing: .2em;
+    letter-spacing: .15em;
+    margin-top: 12px;
+    font-size: clamp(9px, 2.5vw, 12px);
+  }
+
+  .hero-module__6qflza__signupLabel {
+    letter-spacing: .15em;
+    font-size: .75rem;
+  }
+
+  .hero-module__6qflza__heroMain:after {
+    height: 150px;
+  }
+}
+
+@media (max-width: 400px) {
+  .hero-module__6qflza__mainTitle {
+    font-size: 22px;
+  }
+
+  .hero-module__6qflza__subTitle {
+    letter-spacing: .1em;
+    font-size: 8px;
+  }
+
+  .hero-module__6qflza__signupLabel {
+    font-size: .65rem;
   }
 }
 

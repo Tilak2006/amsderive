@@ -3,7 +3,6 @@ module.exports = [
 
 __turbopack_context__.v({
   "logo": "Navbar-module__cJzEcG__logo",
-  "navLinks": "Navbar-module__cJzEcG__navLinks",
   "navbar": "Navbar-module__cJzEcG__navbar",
   "notifyBtn": "Navbar-module__cJzEcG__notifyBtn",
 });
