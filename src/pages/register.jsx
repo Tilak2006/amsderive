@@ -7,6 +7,7 @@ import { checkDuplicateHandle, submitRegistration } from '../firebase/firestoreS
 import { uploadFile } from '../firebase/storageService';
 import { checkRateLimit } from '../utils/rateLimit';
 import { hashIp } from '../utils/hashIp';
+import PerformanceLogger from '../utils/performanceLogger';
 
 // April 20, 2026 00:00 IST = April 19, 2026 18:30 UTC
 const REGISTRATION_OPENS = new Date('2026-04-19T18:30:00Z');
@@ -27,6 +28,11 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
 
+  // Monitoring component mount
+  useEffect(() => {
+    PerformanceLogger.logDuration('Register Page Mount', 0); // Simplified tracking
+  }, []);
+
   // Date gate — redirect before registration opens
   // In production, add server-side check via getServerSideProps
   useEffect(() => {
@@ -40,8 +46,29 @@ export default function Register() {
     setErrorMessage('');
 
     try {
-      // Step 1: Check for duplicate handles
-      const dupResult = await withTimeout(checkDuplicateHandle(data.cfHandle.trim(), data.ccHandle.trim()));
+      // Step 1: Trigger independent tasks in parallel
+      const sanitizedName = data.name.trim().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      const storagePath = `registrants/${Date.now()}_${sanitizedName}_${data.file.name}`;
+
+      // Start checkDuplicateHandle, uploadFile, and IP retrieval concurrently
+      const [dupResult, uploadResult, ipHash] = await PerformanceLogger.monitor('Registration Pre-checks (Parallel)', Promise.all([
+        withTimeout(checkDuplicateHandle(data.cfHandle.trim(), data.ccHandle.trim())),
+        withTimeout(uploadFile(data.file, storagePath)),
+        (async () => {
+          try {
+            const ipRes = await fetch('/api/get-ip');
+            const ipData = await ipRes.json();
+            if (ipData.ip) {
+              return await hashIp(ipData.ip);
+            }
+          } catch {
+            return 'unknown';
+          }
+          return 'unknown';
+        })()
+      ]));
+
+      // Handle duplicate check result
       if (dupResult.duplicate) {
         setStatus('error');
         setErrorMessage(dupResult.error || 'A registration with this handle already exists.');
@@ -53,38 +80,23 @@ export default function Register() {
         return;
       }
 
-      // Step 2: Upload ID document
-      const sanitizedName = data.name.trim().replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
-      const storagePath = `registrants/${Date.now()}_${sanitizedName}_${data.file.name}`;
-      const uploadResult = await withTimeout(uploadFile(data.file, storagePath));
+      // Handle file upload result
       if (!uploadResult.success) {
         setStatus('error');
         setErrorMessage(uploadResult.error || 'Failed to upload document. Please try again.');
         return;
       }
 
-      // Step 3: Get IP and hash it (graceful fallback)
-      let ipHash = 'unknown';
-      try {
-        const ipRes = await fetch('/api/get-ip');
-        const ipData = await ipRes.json();
-        if (ipData.ip) {
-          ipHash = await hashIp(ipData.ip);
-        }
-      } catch {
-        // Graceful fallback — proceed with 'unknown'
-      }
-
-      // Step 4: Check rate limit
-      const rateResult = await withTimeout(checkRateLimit(ipHash));
+      // Step 2: Check rate limit (depends on ipHash)
+      const rateResult = await PerformanceLogger.monitor('Rate Limit Check', withTimeout(checkRateLimit(ipHash)));
       if (!rateResult.allowed) {
         setStatus('error');
         setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
         return;
       }
 
-      // Step 5: Submit registration to Firestore
-      const regResult = await withTimeout(submitRegistration({
+      // Step 3: Submit registration to Firestore
+      const regResult = await PerformanceLogger.monitor('Firestore Submission', withTimeout(submitRegistration({
         name: data.name.trim(),
         institution: data.institution.trim(),
         codeforcesHandle: data.cfHandle.trim(),
@@ -92,7 +104,7 @@ export default function Register() {
         idDocumentUrl: uploadResult.url,
         idDocumentFileName: data.file.name,
         ipHash,
-      }));
+      })));
 
       if (!regResult.success) {
         setStatus('error');
@@ -107,6 +119,8 @@ export default function Register() {
       setErrorMessage(err.message || 'Something went wrong. Please try again.');
     }
   }
+
+
 
   return (
     <>

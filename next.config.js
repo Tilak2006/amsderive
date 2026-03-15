@@ -1,6 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  // reactStrictMode intentionally disabled:
+  // In development, Strict Mode double-invokes useEffect which causes Two WebGL
+  // contexts + two requestAnimationFrame loops to run simultaneously on the
+  // WireframeMesh component. Even with cleanup, there is a window where both
+  // are active. Re-enable only if you need lifecycle warnings during debugging.
+  reactStrictMode: false,
+
+  compiler: {
+    // Strip all console.* calls from production bundle
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+
   images: {
     remotePatterns: [
       {
@@ -9,6 +20,7 @@ const nextConfig = {
       },
     ],
   },
+
   async headers() {
     return [
       {

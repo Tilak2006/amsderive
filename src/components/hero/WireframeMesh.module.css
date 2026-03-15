@@ -1,3 +1,22 @@
+/* WireframeMesh.module.css — performance edition
+ *
+ * KEY CHANGE: CSS filter (blur + drop-shadow) has been removed from the canvas.
+ *
+ * Why it was causing lag:
+ *   Any CSS filter on a <canvas> that repaints at 60fps forces the browser to
+ *   perform a GPU→CPU pixel readback, run a software blur/shadow pass on the
+ *   CPU, then re-upload the result to the GPU — every single frame. On integrated
+ *   graphics this alone can consume 8–15ms of the 16ms frame budget.
+ *
+ * Replacement strategy:
+ *   The warm amber glow is now a static ::before pseudo-element on the container.
+ *   Static elements are composited once and cached by the GPU; they have zero
+ *   per-frame cost regardless of what the canvas does.
+ *
+ *   The mix-blend-mode grain overlay is also removed — it forced a full
+ *   compositor re-read on every frame due to blend mode stacking.
+ */
+
 .wireframeMeshContainer {
     position: absolute;
     inset: 0;
@@ -7,10 +26,41 @@
     overflow: hidden;
 }
 
+/*
+ * Static ambient glow — replaces the CSS filter.
+ * This pseudo-element is painted once and never repaints.
+ * It sits behind the canvas (z-index -1) and radiates the warm
+ * amber bloom outward from the center, mimicking the old drop-shadow
+ * at zero per-frame cost.
+ */
+.wireframeMeshContainer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse 60% 40% at 50% 60%,
+            rgba(212, 160, 23, 0.13) 0%,
+            rgba(184, 114, 10, 0.07) 45%,
+            transparent 80%);
+}
+
+/* Canvas: no filter, no blend mode — pure GPU compositing */
 .wireframeMeshContainer canvas {
     display: block;
-    width: 100%;
-    height: 100%;
-    /* Gold bloom glow — warm drop-shadow replaces the cyan version */
-    filter: blur(0.5px) drop-shadow(0 0 8px rgba(212, 160, 23, 0.22)) drop-shadow(0 0 3px rgba(255, 213, 96, 0.14));
+    width: 100% !important;
+    height: 100% !important;
+    /* will-change set in JS on renderer.domElement for better timing */
+}
+
+/* ── Mobile: nothing to remove here since there's no filter anymore ── */
+@media (max-width: 768px) {
+    .wireframeMeshContainer::before {
+        background:
+            radial-gradient(ellipse 65% 35% at 50% 62%,
+                rgba(212, 160, 23, 0.10) 0%,
+                rgba(184, 114, 10, 0.05) 50%,
+                transparent 80%);
+    }
 }

@@ -1,13 +1,14 @@
 /*
- * Vignette.module.css
+ * Vignette.module.css — cinematic premium edition
  *
- * Radial gradient: transparent at center → near-black at edges.
- * Draws focus to the center of the viewport (where the countdown timer sits).
- * Two-layer construction:
- *   1. Elliptical radial for horizontal falloff
- *   2. Stronger top/bottom linear for vertical framing
+ * Architecture:
+ *   Layer 1 — Primary radial vignette    (transparent center → ink-black edges)
+ *   Layer 2 — Warm amber floor bloom     (very subtle, grounds the mesh)
+ *   Layer 3 — Top bar                    (deep overhead darkness for text legibility)
+ *   Layer 4 — Bottom bar                 (weights the base, anchors the mesh edge)
  *
- * Zero JS, zero GPU cost — pure CSS compositing.
+ * The center ellipse is intentionally wide so the hero content breathes.
+ * The warm floor bloom subtly connects the vignette to the Three.js ring glow.
  */
 
 .vignette {
@@ -17,18 +18,63 @@
     pointer-events: none;
 
     background:
-        /* Primary radial vignette — transparent center, dark edges */
-        radial-gradient(ellipse 70% 60% at 50% 52%,
+        /* ── Layer 1: Primary radial vignette ── */
+        radial-gradient(ellipse 68% 58% at 50% 50%,
             transparent 0%,
-            rgba(0, 0, 0, 0.18) 50%,
-            rgba(0, 0, 0, 0.55) 80%,
-            rgba(0, 0, 0, 0.72) 100%),
-        /* Top bar — extra darkness above the title for legibility */
+            rgba(0, 0, 0, 0.08) 35%,
+            rgba(0, 0, 0, 0.30) 62%,
+            rgba(0, 0, 0, 0.62) 82%,
+            rgba(0, 0, 0, 0.82) 100%),
+        /* ── Layer 2: Warm amber floor bloom (connects to Three.js ring) ── */
+        radial-gradient(ellipse 55% 22% at 50% 92%,
+            rgba(180, 100, 10, 0.09) 0%,
+            rgba(140, 70, 5, 0.04) 55%,
+            transparent 100%),
+        /* ── Layer 3: Top letterbox bar ── */
         linear-gradient(to bottom,
-            rgba(0, 0, 0, 0.30) 0%,
-            transparent 18%),
-        /* Bottom bar — grounds the lower mesh edge */
+            rgba(0, 0, 0, 0.45) 0%,
+            rgba(0, 0, 0, 0.10) 8%,
+            transparent 22%),
+        /* ── Layer 4: Bottom ground bar ── */
         linear-gradient(to top,
-            rgba(0, 0, 0, 0.40) 0%,
-            transparent 20%);
+            rgba(0, 0, 0, 0.55) 0%,
+            rgba(0, 0, 0, 0.15) 9%,
+            transparent 22%);
+}
+
+/* ── Mobile: tighten the spotlight so it doesn't eat the content ── */
+@media (max-width: 768px) {
+    .vignette {
+        background:
+            radial-gradient(ellipse 75% 50% at 50% 48%,
+                transparent 0%,
+                rgba(0, 0, 0, 0.10) 30%,
+                rgba(0, 0, 0, 0.38) 60%,
+                rgba(0, 0, 0, 0.72) 84%,
+                rgba(0, 0, 0, 0.88) 100%),
+            radial-gradient(ellipse 60% 18% at 50% 94%,
+                rgba(180, 100, 10, 0.07) 0%,
+                transparent 100%),
+            linear-gradient(to bottom,
+                rgba(0, 0, 0, 0.50) 0%,
+                transparent 20%),
+            linear-gradient(to top,
+                rgba(0, 0, 0, 0.60) 0%,
+                transparent 18%);
+    }
+}
+
+/* ── Portrait phones: stronger side vignette for immersion ── */
+@media (max-width: 420px) {
+    .vignette {
+        background:
+            radial-gradient(ellipse 65% 44% at 50% 46%,
+                transparent 0%,
+                rgba(0, 0, 0, 0.12) 28%,
+                rgba(0, 0, 0, 0.45) 58%,
+                rgba(0, 0, 0, 0.80) 82%,
+                rgba(0, 0, 0, 0.92) 100%),
+            linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, transparent 18%),
+            linear-gradient(to top, rgba(0, 0, 0, 0.65) 0%, transparent 16%);
+    }
 }

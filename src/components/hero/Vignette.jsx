@@ -1,21 +1,20 @@
 import styles from './Vignette.module.css';
 
 /**
- * Vignette
- * ─────────
- * Pure CSS radial gradient overlay.
- * Transparent at center (where the timer lives) → dark at edges.
- * Creates natural focal gravity without any JS or GPU cost.
+ * Vignette — cinematic edition.
  *
- * Mount this BETWEEN WireframeMesh (z:0) and BackgroundOverlay (z:1):
+ * Three-layer depth system:
+ *   1. Primary radial vignette   — transparent center → rich dark edges
+ *   2. Chromatic fringe          — very subtle warm tint at bottom edge
+ *   3. Top/bottom linear bars    — letterbox gravity
+ *
+ * Mount order (z-indices must match parent):
  *
  *   <WireframeMesh />       z-index: 0
- *   <Vignette />            z-index: 1  ← here
+ *   <Vignette />            z-index: 1
  *   <BackgroundOverlay />   z-index: 2
  *   <HeroContent />         z-index: 3
  */
-const Vignette = () => {
-    return <div className={styles.vignette} />;
-};
+const Vignette = () => <div className={styles.vignette} />;
 
 export default Vignette;

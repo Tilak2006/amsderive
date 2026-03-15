@@ -1,8 +1,8 @@
 /* [project]/src/components/hero/BackgroundOverlay.module.css [client] (css) */
 .BackgroundOverlay-module__OvLICq__overlayContainer {
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
-  opacity: .55;
+  opacity: .6;
   width: 100%;
   height: 100%;
   position: absolute;
@@ -24,14 +24,20 @@
 
 .BackgroundOverlay-module__OvLICq__equation {
   fill: #fff;
-  font-family: var(--font-jetbrains-mono), monospace;
-  opacity: .1;
+  font-family: var(--font-jetbrains-mono), "Courier New", monospace;
+  opacity: .09;
   text-transform: uppercase;
   font-size: 10px;
 }
 
 .BackgroundOverlay-module__OvLICq__equationSpaced {
   letter-spacing: .08em;
+}
+
+.BackgroundOverlay-module__OvLICq__scatterDot {
+  fill: #d4af37;
+  opacity: 0;
+  animation: 6s ease-in-out infinite BackgroundOverlay-module__OvLICq__dotAppear;
 }
 
 .BackgroundOverlay-module__OvLICq__scanLine {
@@ -42,28 +48,46 @@
 }
 
 .BackgroundOverlay-module__OvLICq__animatePath {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000px;
-  animation: 20s linear infinite BackgroundOverlay-module__OvLICq__draw;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200px;
+  animation: 18s linear infinite BackgroundOverlay-module__OvLICq__draw;
+}
+
+.BackgroundOverlay-module__OvLICq__animatePathSlow {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400px;
+  animation: 32s linear infinite BackgroundOverlay-module__OvLICq__draw;
 }
 
 .BackgroundOverlay-module__OvLICq__animatePulse {
   animation: 10s ease-in-out infinite BackgroundOverlay-module__OvLICq__pulse;
 }
 
+.BackgroundOverlay-module__OvLICq__eqAll {
+  display: block;
+}
+
+.BackgroundOverlay-module__OvLICq__eqDesktop {
+  opacity: .09;
+}
+
 @keyframes BackgroundOverlay-module__OvLICq__draw {
-  to {
+  0% {
+    stroke-dashoffset: 1400px;
+  }
+
+  100% {
     stroke-dashoffset: 0;
   }
 }
 
 @keyframes BackgroundOverlay-module__OvLICq__pulse {
   0%, 100% {
-    opacity: .05;
+    opacity: .04;
   }
 
   50% {
-    opacity: .2;
+    opacity: .22;
   }
 }
 
@@ -86,6 +110,66 @@
   100% {
     opacity: .03;
     transform: translateY(0);
+  }
+}
+
+@keyframes BackgroundOverlay-module__OvLICq__dotAppear {
+  0%, 100% {
+    opacity: 0;
+    r: 2.2;
+  }
+
+  20% {
+    opacity: .28;
+    r: 2.5;
+  }
+
+  40% {
+    opacity: .16;
+    r: 2.2;
+  }
+
+  60% {
+    opacity: .22;
+    r: 2.4;
+  }
+
+  80% {
+    opacity: .08;
+    r: 2.2;
+  }
+}
+
+@media (max-width: 768px) {
+  .BackgroundOverlay-module__OvLICq__overlayContainer {
+    opacity: .45;
+  }
+
+  .BackgroundOverlay-module__OvLICq__eqDesktop {
+    opacity: 0 !important;
+  }
+
+  .BackgroundOverlay-module__OvLICq__eqAll {
+    opacity: .07;
+    font-size: 8px;
+  }
+
+  .BackgroundOverlay-module__OvLICq__scatterDot {
+    animation-duration: 8s;
+  }
+
+  .BackgroundOverlay-module__OvLICq__animatePath {
+    animation-duration: 24s;
+  }
+}
+
+@media (max-width: 420px) {
+  .BackgroundOverlay-module__OvLICq__overlayContainer {
+    opacity: .38;
+  }
+
+  .BackgroundOverlay-module__OvLICq__eqAll {
+    opacity: 0;
   }
 }
 

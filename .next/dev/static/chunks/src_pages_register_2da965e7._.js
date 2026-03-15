@@ -10,7 +10,7 @@
   "static/chunks/node_modules_@firebase_firestore_dist_d8556d19._.js",
   "static/chunks/node_modules_@firebase_storage_dist_index_esm_c28a6df1.js",
   "static/chunks/node_modules_25f1a766._.js",
-  "static/chunks/[root-of-the-server]__3474af30._.js"
+  "static/chunks/[root-of-the-server]__6df01848._.js"
 ],
     source: "entry"
 });
