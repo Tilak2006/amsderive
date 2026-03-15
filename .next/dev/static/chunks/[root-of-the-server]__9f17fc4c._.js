@@ -1317,7 +1317,7 @@ const TimelineSection = ()=>{
         {
             date: 'APRIL 20, 2026',
             title: 'Registrations Open',
-            desc: 'Early bird access and system on-boarding for all participants.'
+            desc: 'Participant registrations begin.'
         },
         {
             date: 'MAY 23, 2026',
@@ -1327,12 +1327,12 @@ const TimelineSection = ()=>{
         {
             date: 'JUNE 21, 2026',
             title: 'Round 2: POSTERIOR',
-            desc: 'Backtesting phase for algorithmic strategy implementation.'
+            desc: 'Advanced round for top performers.'
         },
         {
             date: 'JULY 11, 2026',
             title: 'Finals: CONVERGENCE',
-            desc: 'Live trading battle between the top performing teams.'
+            desc: 'Onsite coding round for the top competitors.'
         }
     ];
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("section", {
