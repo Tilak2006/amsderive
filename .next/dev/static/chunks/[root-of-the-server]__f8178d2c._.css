@@ -1237,8 +1237,20 @@ button {
   font-size: 12px;
 }
 
-.file-upload-checkmark {
+.file-upload-remove {
+  cursor: pointer;
+  opacity: .7;
   flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  width: 28px;
+  height: 28px;
+  transition: opacity .2s;
+  display: flex;
+}
+
+.file-upload-remove:hover {
+  opacity: 1;
 }
 
 .file-upload-hidden {

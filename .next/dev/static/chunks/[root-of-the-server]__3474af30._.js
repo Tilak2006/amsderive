@@ -690,37 +690,45 @@ function FileUpload({ label, name, accept = '', onFileSelect, error = '', file =
                             lineNumber: 102,
                             columnNumber: 13
                         }, this),
-                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
-                            className: "file-upload-checkmark",
-                            width: "24",
-                            height: "24",
-                            viewBox: "0 0 24 24",
-                            fill: "none",
-                            "aria-hidden": "true",
-                            children: [
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("circle", {
-                                    cx: "12",
-                                    cy: "12",
-                                    r: "12",
-                                    fill: "#c9a84c"
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                            className: "file-upload-remove",
+                            role: "button",
+                            tabIndex: 0,
+                            "aria-label": "Remove file",
+                            onClick: (e)=>{
+                                e.stopPropagation();
+                                if (onFileSelect) onFileSelect(null);
+                                if (inputRef.current) inputRef.current.value = '';
+                            },
+                            onKeyDown: (e)=>{
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.stopPropagation();
+                                    if (onFileSelect) onFileSelect(null);
+                                    if (inputRef.current) inputRef.current.value = '';
+                                }
+                            },
+                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("svg", {
+                                width: "14",
+                                height: "14",
+                                viewBox: "0 0 14 14",
+                                fill: "none",
+                                "aria-hidden": "true",
+                                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
+                                    d: "M1 1l12 12M13 1L1 13",
+                                    stroke: "#c9a84c",
+                                    strokeWidth: "1.5",
+                                    strokeLinecap: "round"
                                 }, void 0, false, {
                                     fileName: "[project]/src/components/form/FileUpload.jsx",
-                                    lineNumber: 114,
-                                    columnNumber: 15
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("path", {
-                                    d: "M7 12.5l3 3 7-7",
-                                    stroke: "#0a0a0a",
-                                    strokeWidth: "2",
-                                    strokeLinecap: "round",
-                                    strokeLinejoin: "round"
-                                }, void 0, false, {
-                                    fileName: "[project]/src/components/form/FileUpload.jsx",
-                                    lineNumber: 115,
-                                    columnNumber: 15
+                                    lineNumber: 125,
+                                    columnNumber: 17
                                 }, this)
-                            ]
-                        }, void 0, true, {
+                            }, void 0, false, {
+                                fileName: "[project]/src/components/form/FileUpload.jsx",
+                                lineNumber: 124,
+                                columnNumber: 15
+                            }, this)
+                        }, void 0, false, {
                             fileName: "[project]/src/components/form/FileUpload.jsx",
                             lineNumber: 106,
                             columnNumber: 13
@@ -738,7 +746,7 @@ function FileUpload({ label, name, accept = '', onFileSelect, error = '', file =
                             children: "Click to upload or drag and drop"
                         }, void 0, false, {
                             fileName: "[project]/src/components/form/FileUpload.jsx",
-                            lineNumber: 126,
+                            lineNumber: 131,
                             columnNumber: 13
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -746,13 +754,13 @@ function FileUpload({ label, name, accept = '', onFileSelect, error = '', file =
                             children: "JPG, PNG or PDF · Max 5MB"
                         }, void 0, false, {
                             fileName: "[project]/src/components/form/FileUpload.jsx",
-                            lineNumber: 127,
+                            lineNumber: 132,
                             columnNumber: 13
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/src/components/form/FileUpload.jsx",
-                    lineNumber: 125,
+                    lineNumber: 130,
                     columnNumber: 11
                 }, this)
             }, void 0, false, {
@@ -772,7 +780,7 @@ function FileUpload({ label, name, accept = '', onFileSelect, error = '', file =
                 tabIndex: -1
             }, void 0, false, {
                 fileName: "[project]/src/components/form/FileUpload.jsx",
-                lineNumber: 131,
+                lineNumber: 136,
                 columnNumber: 7
             }, this),
             error && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -782,7 +790,7 @@ function FileUpload({ label, name, accept = '', onFileSelect, error = '', file =
                 children: error
             }, void 0, false, {
                 fileName: "[project]/src/components/form/FileUpload.jsx",
-                lineNumber: 143,
+                lineNumber: 148,
                 columnNumber: 9
             }, this)
         ]
@@ -1535,8 +1543,8 @@ var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
-// March 20, 2026 00:00 IST = March 19, 2026 18:30 UTC
-const REGISTRATION_OPENS = new Date('2026-03-19T18:30:00Z');
+// April 20, 2026 00:00 IST = April 19, 2026 18:30 UTC
+const REGISTRATION_OPENS = new Date('2026-04-19T18:30:00Z');
 const TIMEOUT_MS = 50000;
 function withTimeout(promise, ms = TIMEOUT_MS) {
     return Promise.race([

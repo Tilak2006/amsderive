@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import styles from './Countdown.module.css';
 
-const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // March 20 2026, 00:00 IST
+const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // April 20 2026, 00:00 IST
 
 function pad(n) {
   return String(n).padStart(2, '0');
@@ -19,17 +20,31 @@ function getTimeRemaining() {
   };
 }
 
-const Countdown = () => {
+const Countdown = ({ onExpiredChange }) => {
   const [time, setTime] = useState(getTimeRemaining);
 
   useEffect(() => {
+    if (time.expired && onExpiredChange) onExpiredChange(true);
     const interval = setInterval(() => {
       const remaining = getTimeRemaining();
       setTime(remaining);
-      if (remaining.expired) clearInterval(interval);
+      if (remaining.expired) {
+        clearInterval(interval);
+        if (onExpiredChange) onExpiredChange(true);
+      }
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  if (time.expired) {
+    return (
+      <div className={styles.countdownContainer}>
+        <Link href="/register" className={styles.registerBtn}>
+          Register Now
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.countdownContainer}>

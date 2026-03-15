@@ -103,23 +103,28 @@ export default function FileUpload({
               <span className="file-upload-filename">{file.name}</span>
               <span className="file-upload-filesize">{formatFileSize(file.size)}</span>
             </div>
-            <svg
-              className="file-upload-checkmark"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
+            <span
+              className="file-upload-remove"
+              role="button"
+              tabIndex={0}
+              aria-label="Remove file"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onFileSelect) onFileSelect(null);
+                if (inputRef.current) inputRef.current.value = '';
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.stopPropagation();
+                  if (onFileSelect) onFileSelect(null);
+                  if (inputRef.current) inputRef.current.value = '';
+                }
+              }}
             >
-              <circle cx="12" cy="12" r="12" fill="#c9a84c" />
-              <path
-                d="M7 12.5l3 3 7-7"
-                stroke="#0a0a0a"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1 1l12 12M13 1L1 13" stroke="#c9a84c" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            </span>
           </div>
         ) : (
           <div className="file-upload-empty">

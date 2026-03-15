@@ -108,6 +108,32 @@
   flex: 1;
 }
 
+.Countdown-module__UY-Ckq__registerBtn, .Countdown-module__UY-Ckq__registerBtn:link, .Countdown-module__UY-Ckq__registerBtn:visited {
+  pointer-events: auto;
+}
+
+.Countdown-module__UY-Ckq__registerBtn {
+  font-family: var(--font-oswald), sans-serif;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  cursor: pointer;
+  background: #d4af37;
+  border: 1px solid #d4af37;
+  padding: 16px 48px;
+  font-size: 1.1rem;
+  font-weight: 400;
+  text-decoration: none;
+  transition: all .3s;
+  display: inline-block;
+}
+
+.Countdown-module__UY-Ckq__registerBtn:hover {
+  color: #d4af37;
+  background: #0a0a0a;
+  border-color: #d4af37;
+}
+
 @media (max-width: 600px) {
   .Countdown-module__UY-Ckq__separator {
     padding: 0 .1em;

@@ -49,6 +49,34 @@
   text-align: center;
 }
 
+.registerBtn,
+.registerBtn:link,
+.registerBtn:visited {
+  pointer-events: auto;
+}
+
+.registerBtn {
+  display: inline-block;
+  font-family: var(--font-oswald), sans-serif;
+  font-size: 1.1rem;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #0a0a0a;
+  background: #D4AF37;
+  padding: 16px 48px;
+  border: 1px solid #D4AF37;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.registerBtn:hover {
+  background: #0a0a0a;
+  color: #D4AF37;
+  border-color: #D4AF37;
+}
+
 @media (max-width: 600px) {
   .separator {
     padding: 0 0.1em;

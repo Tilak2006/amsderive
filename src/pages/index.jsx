@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
@@ -17,6 +18,8 @@ const WireframeMesh = dynamic(
 );
 
 export default function LandingPage() {
+  const [expired, setExpired] = useState(false);
+
   return (
     <>
       <Head>
@@ -41,8 +44,10 @@ export default function LandingPage() {
               <p className={styles.subTitle}>Quantitative Trading & Mathematical Competition</p>
             </div>
 
-            <p className={styles.signupLabel}>REGISTRATIONS OPEN IN</p>
-            <Countdown />
+            <p className={styles.signupLabel}>
+              {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
+            </p>
+            <Countdown onExpiredChange={setExpired} />
           </div>
         </div>
         <span className={styles.heroTopoLabel}></span>

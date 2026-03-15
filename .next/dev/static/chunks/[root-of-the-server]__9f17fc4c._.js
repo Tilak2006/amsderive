@@ -484,14 +484,28 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$
 ;
 ;
 ;
+const REGISTRATION_OPENS = new Date('2026-04-19T18:30:00Z'); // April 20 2026, 00:00 IST
 function openGoogleCalendarInvite() {
-    const params = new URLSearchParams({
-        action: 'TEMPLATE',
-        text: 'AMS DERIVE — Registrations Open',
-        dates: '20260419T183000Z/20260419T193000Z',
-        details: 'Registrations for the AMS DERIVE Quantitative Trading & Mathematical Competition are now open. Visit the website to register.'
-    });
-    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+    const isRegistrationOpen = Date.now() >= REGISTRATION_OPENS.getTime();
+    if (isRegistrationOpen) {
+        // After April 20: remind for Round 1 "Prior" on May 23
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: 'AMS DERIVE — Round 1: Prior',
+            dates: '20260522T183000Z/20260522T193000Z',
+            details: 'Round 1 (Prior) of the AMS DERIVE Quantitative Trading & Mathematical Competition begins. Make sure you are prepared.'
+        });
+        window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+    } else {
+        // Before April 20: remind for registrations opening
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: 'AMS DERIVE — Registrations Open',
+            dates: '20260419T183000Z/20260419T193000Z',
+            details: 'Registrations for the AMS DERIVE Quantitative Trading & Mathematical Competition are now open. Visit the website to register.'
+        });
+        window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+    }
 }
 const Navbar = ()=>{
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
@@ -505,12 +519,12 @@ const Navbar = ()=>{
                     children: "AMS DERIVE"
                 }, void 0, false, {
                     fileName: "[project]/src/components/Navbar.jsx",
-                    lineNumber: 18,
+                    lineNumber: 34,
                     columnNumber: 9
                 }, ("TURBOPACK compile-time value", void 0))
             }, void 0, false, {
                 fileName: "[project]/src/components/Navbar.jsx",
-                lineNumber: 17,
+                lineNumber: 33,
                 columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -520,13 +534,13 @@ const Navbar = ()=>{
                 children: "Notify Me"
             }, void 0, false, {
                 fileName: "[project]/src/components/Navbar.jsx",
-                lineNumber: 22,
+                lineNumber: 38,
                 columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/Navbar.jsx",
-        lineNumber: 16,
+        lineNumber: 32,
         columnNumber: 5
     }, ("TURBOPACK compile-time value", void 0));
 };
@@ -546,6 +560,7 @@ __turbopack_context__.v({
   "labels": "Countdown-module__UY-Ckq__labels",
   "number": "Countdown-module__UY-Ckq__number",
   "numbers": "Countdown-module__UY-Ckq__numbers",
+  "registerBtn": "Countdown-module__UY-Ckq__registerBtn",
   "separator": "Countdown-module__UY-Ckq__separator",
 });
 }),
@@ -558,12 +573,14 @@ __turbopack_context__.s([
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/react/jsx-dev-runtime.js [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$index$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/react/index.js [client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$link$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/link.js [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__ = __turbopack_context__.i("[project]/src/components/Countdown.module.css [client] (css module)");
 ;
 var _s = __turbopack_context__.k.signature();
 ;
 ;
-const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // March 20 2026, 00:00 IST
+;
+const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // April 20 2026, 00:00 IST
 function pad(n) {
     return String(n).padStart(2, '0');
 }
@@ -584,16 +601,20 @@ function getTimeRemaining() {
         expired: false
     };
 }
-const Countdown = ()=>{
+const Countdown = ({ onExpiredChange })=>{
     _s();
     const [time, setTime] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$index$2e$js__$5b$client$5d$__$28$ecmascript$29$__["useState"])(getTimeRemaining);
     (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$index$2e$js__$5b$client$5d$__$28$ecmascript$29$__["useEffect"])({
         "Countdown.useEffect": ()=>{
+            if (time.expired && onExpiredChange) onExpiredChange(true);
             const interval = setInterval({
                 "Countdown.useEffect.interval": ()=>{
                     const remaining = getTimeRemaining();
                     setTime(remaining);
-                    if (remaining.expired) clearInterval(interval);
+                    if (remaining.expired) {
+                        clearInterval(interval);
+                        if (onExpiredChange) onExpiredChange(true);
+                    }
                 }
             }["Countdown.useEffect.interval"], 1000);
             return ({
@@ -601,6 +622,24 @@ const Countdown = ()=>{
             })["Countdown.useEffect"];
         }
     }["Countdown.useEffect"], []);
+    if (time.expired) {
+        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+            className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].countdownContainer,
+            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$link$2e$js__$5b$client$5d$__$28$ecmascript$29$__["default"], {
+                href: "/register",
+                className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].registerBtn,
+                children: "Register Now"
+            }, void 0, false, {
+                fileName: "[project]/src/components/Countdown.jsx",
+                lineNumber: 42,
+                columnNumber: 9
+            }, ("TURBOPACK compile-time value", void 0))
+        }, void 0, false, {
+            fileName: "[project]/src/components/Countdown.jsx",
+            lineNumber: 41,
+            columnNumber: 7
+        }, ("TURBOPACK compile-time value", void 0));
+    }
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].countdownContainer,
         children: [
@@ -612,7 +651,7 @@ const Countdown = ()=>{
                         children: pad(time.days)
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 37,
+                        lineNumber: 52,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -620,7 +659,7 @@ const Countdown = ()=>{
                         children: ":"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 38,
+                        lineNumber: 53,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -628,7 +667,7 @@ const Countdown = ()=>{
                         children: pad(time.hours)
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 39,
+                        lineNumber: 54,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -636,7 +675,7 @@ const Countdown = ()=>{
                         children: ":"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 40,
+                        lineNumber: 55,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -644,7 +683,7 @@ const Countdown = ()=>{
                         children: pad(time.minutes)
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 41,
+                        lineNumber: 56,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -652,7 +691,7 @@ const Countdown = ()=>{
                         children: ":"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 42,
+                        lineNumber: 57,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -660,13 +699,13 @@ const Countdown = ()=>{
                         children: pad(time.seconds)
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 43,
+                        lineNumber: 58,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0))
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Countdown.jsx",
-                lineNumber: 36,
+                lineNumber: 51,
                 columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0)),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -677,7 +716,7 @@ const Countdown = ()=>{
                         children: "DAYS"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 46,
+                        lineNumber: 61,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -685,7 +724,7 @@ const Countdown = ()=>{
                         children: "HOURS"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 47,
+                        lineNumber: 62,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -693,7 +732,7 @@ const Countdown = ()=>{
                         children: "MINUTES"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 48,
+                        lineNumber: 63,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0)),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -701,19 +740,19 @@ const Countdown = ()=>{
                         children: "SECONDS"
                     }, void 0, false, {
                         fileName: "[project]/src/components/Countdown.jsx",
-                        lineNumber: 49,
+                        lineNumber: 64,
                         columnNumber: 9
                     }, ("TURBOPACK compile-time value", void 0))
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/components/Countdown.jsx",
-                lineNumber: 45,
+                lineNumber: 60,
                 columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0))
         ]
     }, void 0, true, {
         fileName: "[project]/src/components/Countdown.jsx",
-        lineNumber: 35,
+        lineNumber: 50,
         columnNumber: 5
     }, ("TURBOPACK compile-time value", void 0));
 };
@@ -1558,6 +1597,7 @@ __turbopack_context__.s([
     ()=>LandingPage
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/react/jsx-dev-runtime.js [client] (ecmascript)");
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$index$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/react/index.js [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$head$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/head.js [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dynamic$2e$js__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dynamic.js [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/Navbar.jsx [client] (ecmascript)");
@@ -1570,6 +1610,8 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$section
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FadeInSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/src/components/FadeInSection.jsx [client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__ = __turbopack_context__.i("[project]/src/styles/hero.module.css [client] (css module)");
 ;
+;
+var _s = __turbopack_context__.k.signature();
 ;
 ;
 ;
@@ -1593,6 +1635,8 @@ const WireframeMesh = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_m
 });
 _c = WireframeMesh;
 function LandingPage() {
+    _s();
+    const [expired, setExpired] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$index$2e$js__$5b$client$5d$__$28$ecmascript$29$__["useState"])(false);
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Fragment"], {
         children: [
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$head$2e$js__$5b$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1601,7 +1645,7 @@ function LandingPage() {
                         children: "AMS-DERIVE — Quantitative Trading & Mathematical Competition"
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 23,
+                        lineNumber: 26,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("meta", {
@@ -1609,7 +1653,7 @@ function LandingPage() {
                         content: "AMS-DERIVE is a premium competitive programming and quantitative trading contest."
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 24,
+                        lineNumber: 27,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("meta", {
@@ -1617,18 +1661,18 @@ function LandingPage() {
                         content: "width=device-width, initial-scale=1"
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 28,
+                        lineNumber: 31,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/pages/index.jsx",
-                lineNumber: 22,
+                lineNumber: 25,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                 fileName: "[project]/src/pages/index.jsx",
-                lineNumber: 31,
+                lineNumber: 34,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -1636,12 +1680,12 @@ function LandingPage() {
                 children: [
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(WireframeMesh, {}, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 34,
+                        lineNumber: 37,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$hero$2f$BackgroundOverlay$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 35,
+                        lineNumber: 38,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1657,7 +1701,7 @@ function LandingPage() {
                                             children: "AMS DERIVE"
                                         }, void 0, false, {
                                             fileName: "[project]/src/pages/index.jsx",
-                                            lineNumber: 40,
+                                            lineNumber: 43,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1665,50 +1709,52 @@ function LandingPage() {
                                             children: "Quantitative Trading & Mathematical Competition"
                                         }, void 0, false, {
                                             fileName: "[project]/src/pages/index.jsx",
-                                            lineNumber: 41,
+                                            lineNumber: 44,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/src/pages/index.jsx",
-                                    lineNumber: 39,
+                                    lineNumber: 42,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].signupLabel,
-                                    children: "REGISTRATIONS OPEN IN"
+                                    children: expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'
                                 }, void 0, false, {
                                     fileName: "[project]/src/pages/index.jsx",
-                                    lineNumber: 44,
+                                    lineNumber: 47,
                                     columnNumber: 13
                                 }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdown$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {
+                                    onExpiredChange: setExpired
+                                }, void 0, false, {
                                     fileName: "[project]/src/pages/index.jsx",
-                                    lineNumber: 45,
+                                    lineNumber: 50,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/src/pages/index.jsx",
-                            lineNumber: 38,
+                            lineNumber: 41,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 37,
+                        lineNumber: 40,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].heroTopoLabel
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 48,
+                        lineNumber: 53,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/pages/index.jsx",
-                lineNumber: 33,
+                lineNumber: 36,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1717,56 +1763,57 @@ function LandingPage() {
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FadeInSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$sections$2f$AboutSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                             fileName: "[project]/src/pages/index.jsx",
-                            lineNumber: 53,
+                            lineNumber: 58,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 52,
+                        lineNumber: 57,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FadeInSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$sections$2f$CompetitionSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                             fileName: "[project]/src/pages/index.jsx",
-                            lineNumber: 56,
+                            lineNumber: 61,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 55,
+                        lineNumber: 60,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FadeInSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$sections$2f$TimelineSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                             fileName: "[project]/src/pages/index.jsx",
-                            lineNumber: 59,
+                            lineNumber: 64,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 58,
+                        lineNumber: 63,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$FadeInSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$sections$2f$WhoSection$2e$jsx__$5b$client$5d$__$28$ecmascript$29$__["default"], {}, void 0, false, {
                             fileName: "[project]/src/pages/index.jsx",
-                            lineNumber: 62,
+                            lineNumber: 67,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 61,
+                        lineNumber: 66,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/src/pages/index.jsx",
-                lineNumber: 51,
+                lineNumber: 56,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true);
 }
+_s(LandingPage, "Ck2/rRtS1R6VbwyvQQAQO85MenU=");
 _c1 = LandingPage;
 var _c, _c1;
 __turbopack_context__.k.register(_c, "WireframeMesh");

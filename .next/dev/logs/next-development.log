@@ -132,3 +132,17 @@ https://react.dev/link/hydration-mismatch
  {} The above error occurred in the <Navbar> component. React will try to recreate this component tree from scratch using the error boundary you provided, PagesDevOverlayErrorBoundary.
 [06:52:24.275] Server  LOG     ✓ Compiled in 19ms
 [06:53:55.505] Server  LOG     ✓ Compiled in 23ms
+[06:56:30.026] Server  LOG     ✓ Compiled in 170ms
+[06:56:39.532] Server  LOG     ✓ Compiled in 56ms
+[06:56:48.456] Server  LOG     ✓ Compiled in 51ms
+[06:56:56.495] Server  LOG     ✓ Compiled in 14ms
+[06:57:42.613] Server  LOG     ✓ Compiled in 21ms
+[06:57:51.887] Server  LOG     ✓ Compiled in 30ms
+[06:58:53.086] Server  LOG     ✓ Compiled in 29ms
+[07:00:26.240] Server  LOG     ✓ Compiled in 26ms
+[07:01:28.259] Server  LOG     ✓ Compiled in 22ms
+[07:04:18.162] Server  LOG     ✓ Compiled in 88ms
+[07:10:12.146] Server  LOG     ✓ Compiled in 177ms
+[07:10:21.315] Server  LOG     ✓ Compiled in 79ms
+[07:11:21.755] Server  LOG     ✓ Compiled in 149ms
+[07:11:26.052] Server  LOG     ✓ Compiled in 39ms
