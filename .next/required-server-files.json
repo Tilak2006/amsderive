@@ -88,13 +88,15 @@
     "productionBrowserSourceMaps": false,
     "excludeDefaultMomentLocales": true,
     "reactProductionProfiling": false,
-    "reactStrictMode": true,
+    "reactStrictMode": false,
     "reactMaxHeadersLength": 6000,
     "httpAgentOptions": {
       "keepAlive": true
     },
     "logging": {},
-    "compiler": {},
+    "compiler": {
+      "removeConsole": true
+    },
     "expireTime": 31536000,
     "staticPageGenerationTimeout": 60,
     "modularizeImports": {
@@ -105,7 +107,7 @@
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/Users/apple/Desktop/amsderive",
+    "outputFileTracingRoot": "/home/user/AMS Derive/amsderive",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -162,7 +164,7 @@
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 7,
+      "cpus": 11,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -298,11 +300,11 @@
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.js",
     "turbopack": {
-      "root": "/Users/apple/Desktop/amsderive"
+      "root": "/home/user/AMS Derive/amsderive"
     },
     "distDirRoot": ".next"
   },
-  "appDir": "/Users/apple/Desktop/amsderive",
+  "appDir": "/home/user/AMS Derive/amsderive",
   "relativeAppDir": "",
   "files": [
     ".next/routes-manifest.json",
