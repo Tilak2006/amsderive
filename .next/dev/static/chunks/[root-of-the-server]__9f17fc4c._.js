@@ -468,6 +468,7 @@ __turbopack_context__.v({
   "logo": "Navbar-module__cJzEcG__logo",
   "navLinks": "Navbar-module__cJzEcG__navLinks",
   "navbar": "Navbar-module__cJzEcG__navbar",
+  "notifyBtn": "Navbar-module__cJzEcG__notifyBtn",
 });
 }),
 "[project]/src/components/Navbar.jsx [client] (ecmascript)", ((__turbopack_context__) => {
@@ -486,23 +487,34 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$
 const Navbar = ()=>{
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("nav", {
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].navbar,
-        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].logoContainer,
-            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$link$2e$js__$5b$client$5d$__$28$ecmascript$29$__["default"], {
-                href: "/",
-                className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].logo,
-                children: "AMS DERIVE"
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].logoContainer,
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$link$2e$js__$5b$client$5d$__$28$ecmascript$29$__["default"], {
+                    href: "/",
+                    className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].logo,
+                    children: "AMS DERIVE"
+                }, void 0, false, {
+                    fileName: "[project]/src/components/Navbar.jsx",
+                    lineNumber: 8,
+                    columnNumber: 9
+                }, ("TURBOPACK compile-time value", void 0))
             }, void 0, false, {
                 fileName: "[project]/src/components/Navbar.jsx",
-                lineNumber: 8,
-                columnNumber: 9
+                lineNumber: 7,
+                columnNumber: 7
+            }, ("TURBOPACK compile-time value", void 0)),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
+                type: "button",
+                className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Navbar$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].notifyBtn,
+                children: "Notify Me"
+            }, void 0, false, {
+                fileName: "[project]/src/components/Navbar.jsx",
+                lineNumber: 12,
+                columnNumber: 7
             }, ("TURBOPACK compile-time value", void 0))
-        }, void 0, false, {
-            fileName: "[project]/src/components/Navbar.jsx",
-            lineNumber: 7,
-            columnNumber: 7
-        }, ("TURBOPACK compile-time value", void 0))
-    }, void 0, false, {
+        ]
+    }, void 0, true, {
         fileName: "[project]/src/components/Navbar.jsx",
         lineNumber: 6,
         columnNumber: 5
@@ -541,7 +553,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$components$2f$Countdo
 var _s = __turbopack_context__.k.signature();
 ;
 ;
-const REGISTRATION_DATE = new Date('2025-04-19T18:30:00Z'); // April 20, 00:00 IST
+const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // March 20 2026, 00:00 IST
 function pad(n) {
     return String(n).padStart(2, '0');
 }
@@ -944,7 +956,9 @@ __turbopack_context__.v({
   "cardText": "sections-module__6gzkAW__cardText",
   "cardTitle": "sections-module__6gzkAW__cardTitle",
   "container": "sections-module__6gzkAW__container",
+  "containerWide": "sections-module__6gzkAW__containerWide",
   "grid": "sections-module__6gzkAW__grid",
+  "gridFour": "sections-module__6gzkAW__gridFour",
   "section": "sections-module__6gzkAW__section",
   "sectionTitle": "sections-module__6gzkAW__sectionTitle",
   "timeline": "sections-module__6gzkAW__timeline",
@@ -1252,23 +1266,23 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e
 const TimelineSection = ()=>{
     const events = [
         {
-            date: 'MARCH 20, 2026',
+            date: 'APRIL 20, 2026',
             title: 'Registrations Open',
             desc: 'Early bird access and system on-boarding for all participants.'
         },
         {
-            date: 'APRIL 15, 2026',
-            title: 'Round 1: Mathematical Modeling',
+            date: 'MAY 23, 2026',
+            title: 'Round 1: PRIOR',
             desc: 'Online qualification round focused on derivatives and math.'
         },
         {
-            date: 'MAY 05, 2026',
-            title: 'Round 2: Algorithmic Trading',
+            date: 'JUNE 21, 2026',
+            title: 'Round 2: POSTERIOR',
             desc: 'Backtesting phase for algorithmic strategy implementation.'
         },
         {
-            date: 'MAY 25, 2026',
-            title: 'Finals: Market Simulation',
+            date: 'JULY 11, 2026',
+            title: 'Finals: CONVERGENCE',
             desc: 'Live trading battle between the top performing teams.'
         }
     ];
@@ -1380,7 +1394,7 @@ const WhoSection = ()=>{
         id: "who",
         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].section,
         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-            className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].container,
+            className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].containerWide,
             children: [
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h2", {
                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].sectionTitle,
@@ -1391,7 +1405,7 @@ const WhoSection = ()=>{
                     columnNumber: 9
                 }, ("TURBOPACK compile-time value", void 0)),
                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                    className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].grid,
+                    className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].gridFour,
                     children: categories.map((cat, index)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$sections$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].card,
                             children: [
@@ -1621,13 +1635,6 @@ function LandingPage() {
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                        className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].lightBeam
-                    }, void 0, false, {
-                        fileName: "[project]/src/pages/index.jsx",
-                        lineNumber: 36,
-                        columnNumber: 9
-                    }, this),
-                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                         className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].heroOverlay,
                         children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                             className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].heroContent,
@@ -1659,7 +1666,7 @@ function LandingPage() {
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                     className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].signupLabel,
-                                    children: "SIGNUPS OPEN IN"
+                                    children: "REGISTRATIONS OPEN IN"
                                 }, void 0, false, {
                                     fileName: "[project]/src/pages/index.jsx",
                                     lineNumber: 44,
@@ -1682,8 +1689,7 @@ function LandingPage() {
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
-                        className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].heroTopoLabel,
-                        children: "RISK_TOPOGRAPHY_VIEW"
+                        className: __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$styles$2f$hero$2e$module$2e$css__$5b$client$5d$__$28$css__module$29$__["default"].heroTopoLabel
                     }, void 0, false, {
                         fileName: "[project]/src/pages/index.jsx",
                         lineNumber: 48,

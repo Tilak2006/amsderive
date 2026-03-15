@@ -27,25 +27,25 @@ export default function LandingPage() {
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
-      
+
       <Navbar />
-      
+
       <main className={styles.heroMain}>
         <WireframeMesh />
         <BackgroundOverlay />
-        <div className={styles.lightBeam} />
+
         <div className={styles.heroOverlay}>
           <div className={styles.heroContent}>
             <div className={styles.titleGroup}>
               <h1 className={styles.mainTitle}>AMS DERIVE</h1>
               <p className={styles.subTitle}>Quantitative Trading & Mathematical Competition</p>
             </div>
-            
-            <p className={styles.signupLabel}>SIGNUPS OPEN IN</p>
+
+            <p className={styles.signupLabel}>REGISTRATIONS OPEN IN</p>
             <Countdown />
           </div>
         </div>
-        <span className={styles.heroTopoLabel}>RISK_TOPOGRAPHY_VIEW</span>
+        <span className={styles.heroTopoLabel}></span>
       </main>
 
       <div className="content-sections">

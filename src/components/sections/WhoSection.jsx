@@ -22,9 +22,9 @@ const WhoSection = () => {
 
   return (
     <section id="who" className={styles.section}>
-      <div className={styles.container}>
+      <div className={styles.containerWide}>
         <h2 className={styles.sectionTitle}>Who Should Participate</h2>
-        <div className={styles.grid}>
+        <div className={styles.gridFour}>
           {categories.map((cat, index) => (
             <div key={index} className={styles.card}>
               <div className={styles.cardTitle}>{cat.title}</div>

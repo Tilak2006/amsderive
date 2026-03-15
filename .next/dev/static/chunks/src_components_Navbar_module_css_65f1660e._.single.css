@@ -28,6 +28,24 @@
   transition: opacity .3s;
 }
 
+.Navbar-module__cJzEcG__notifyBtn {
+  font-family: var(--font-mono), monospace;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  cursor: pointer;
+  background: #d4af37;
+  border: none;
+  padding: 8px 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  transition: background .3s, opacity .3s;
+}
+
+.Navbar-module__cJzEcG__notifyBtn:hover {
+  background: #e0c050;
+}
+
 @media (max-width: 768px) {
   .Navbar-module__cJzEcG__navbar {
     padding: 0 20px;

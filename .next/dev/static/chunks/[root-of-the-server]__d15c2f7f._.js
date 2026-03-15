@@ -601,6 +601,16 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$fonts$2e$js__$
 var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$pt_serif_f44cd6b0$2e$js__$5b$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ptSerif$3e$__ = __turbopack_context__.i("[next]/internal/font/google/pt_serif_f44cd6b0.js [client] (ecmascript) <export default as ptSerif>");
 var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$ibm_plex_mono_c006d040$2e$js__$5b$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ibmPlexMono$3e$__ = __turbopack_context__.i("[next]/internal/font/google/ibm_plex_mono_c006d040.js [client] (ecmascript) <export default as ibmPlexMono>");
 var __TURBOPACK__imported__module__$5b$next$5d2f$internal$2f$font$2f$google$2f$oswald_80fec9a6$2e$js__$5b$client$5d$__$28$ecmascript$29$__$3c$export__default__as__oswald$3e$__ = __turbopack_context__.i("[next]/internal/font/google/oswald_80fec9a6.js [client] (ecmascript) <export default as oswald>");
+(()=>{
+    const e = new Error("Cannot find module '../components/hero/WireframeMesh.css'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+})();
+(()=>{
+    const e = new Error("Cannot find module './register.css'");
+    e.code = 'MODULE_NOT_FOUND';
+    throw e;
+})();
 ;
 ;
 ;

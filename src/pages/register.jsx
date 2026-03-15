@@ -8,8 +8,8 @@ import { uploadFile } from '../firebase/storageService';
 import { checkRateLimit } from '../utils/rateLimit';
 import { hashIp } from '../utils/hashIp';
 
-// April 20, 2025 00:00 IST = April 19, 2025 18:30 UTC
-const REGISTRATION_OPENS = new Date('2025-04-19T18:30:00Z');
+// March 20, 2026 00:00 IST = March 19, 2026 18:30 UTC
+const REGISTRATION_OPENS = new Date('2026-03-19T18:30:00Z');
 const TIMEOUT_MS = 50000;
 
 function withTimeout(promise, ms = TIMEOUT_MS) {

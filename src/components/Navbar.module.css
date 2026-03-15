@@ -26,6 +26,24 @@
   transition: opacity 0.3s ease;
 }
 
+.notifyBtn {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #D4AF37;
+  border: none;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: background 0.3s ease, opacity 0.3s ease;
+}
+
+.notifyBtn:hover {
+  background: #e0c050;
+}
+
 @media (max-width: 768px) {
   .navbar {
     padding: 0 20px;

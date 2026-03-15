@@ -9,6 +9,9 @@ const Navbar = () => {
           AMS DERIVE
         </Link>
       </div>
+      <button type="button" className={styles.notifyBtn}>
+        Notify Me
+      </button>
     </nav>
   );
 };

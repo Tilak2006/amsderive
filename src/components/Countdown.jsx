@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import styles from './Countdown.module.css';
 
-const REGISTRATION_DATE = new Date('2025-04-19T18:30:00Z'); // April 20, 00:00 IST
+const REGISTRATION_DATE = new Date('2026-04-19T18:30:00Z'); // March 20 2026, 00:00 IST
 
 function pad(n) {
   return String(n).padStart(2, '0');

@@ -36,7 +36,7 @@ function WireframeMesh() {
             if (!container) return;
             // ── Scene ────────────────────────────────────────────────────────────────
             const scene = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Scene"]();
-            scene.fog = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["FogExp2"](0x000000, 0.072); // atmospheric depth
+            scene.fog = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["FogExp2"](0x000000, 0.05); // atmospheric depth
             // ── Camera — initialized at EXACT base position so no lurch on frame 1 ──
             const baseCamX = 0;
             const baseCamY = 6;
@@ -79,7 +79,7 @@ function WireframeMesh() {
                     const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
                     tmp.copy(champagne).lerp(amber, t);
                     // Slightly gentler power so mid-slopes glow faintly too
-                    const brightness = 0.06 + 0.94 * Math.pow(Math.max(y, 0) / 4.5, 1.6);
+                    const brightness = 0.15 + 0.85 * Math.pow(Math.max(y, 0) / 4.5, 1.2);
                     colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
                 }
                 // Horizontal lines
@@ -109,7 +109,7 @@ function WireframeMesh() {
             const wireMaterial = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineBasicMaterial"]({
                 vertexColors: true,
                 transparent: true,
-                opacity: 0.55
+                opacity: 0.9
             });
             const wireframe = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["LineSegments"](wireGeometry, wireMaterial);
             scene.add(wireframe);
@@ -136,7 +136,7 @@ function WireframeMesh() {
             const stars = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["Points"](starGeo, starMaterial);
             scene.add(stars);
             // Warm ambient — dark ochre undertone instead of cold blue
-            scene.add(new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["AmbientLight"](0x1A1200, 0.6));
+            scene.add(new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$three$2f$build$2f$three$2e$core$2e$js__$5b$client$5d$__$28$ecmascript$29$__["AmbientLight"](0x1A1200, 1.0));
             // ── Mouse (via ref — no state, no re-renders) ─────────────────────────────
             const camTiltRange = 1.5;
             function handleMouseMove(e) {

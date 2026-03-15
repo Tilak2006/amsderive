@@ -3,23 +3,23 @@ import styles from '../../styles/sections.module.css';
 const TimelineSection = () => {
   const events = [
     {
-      date: 'MARCH 20, 2026',
+      date: 'APRIL 20, 2026',
       title: 'Registrations Open',
       desc: 'Early bird access and system on-boarding for all participants.'
     },
     {
-      date: 'APRIL 15, 2026',
-      title: 'Round 1: Mathematical Modeling',
+      date: 'MAY 23, 2026',
+      title: 'Round 1: PRIOR',
       desc: 'Online qualification round focused on derivatives and math.'
     },
     {
-      date: 'MAY 05, 2026',
-      title: 'Round 2: Algorithmic Trading',
+      date: 'JUNE 21, 2026',
+      title: 'Round 2: POSTERIOR',
       desc: 'Backtesting phase for algorithmic strategy implementation.'
     },
     {
-      date: 'MAY 25, 2026',
-      title: 'Finals: Market Simulation',
+      date: 'JULY 11, 2026',
+      title: 'Finals: CONVERGENCE',
       desc: 'Live trading battle between the top performing teams.'
     }
   ];
