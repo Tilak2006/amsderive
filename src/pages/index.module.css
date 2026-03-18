@@ -1,4 +1,4 @@
-.hero-main {
+.heroMain {
   position: relative;
   width: 100%;
   height: 100vh;
@@ -7,7 +7,7 @@
 }
 
 /* --- Content overlay --- */
-.hero-overlay {
+.heroOverlay {
   position: absolute;
   inset: 0;
   z-index: 10;
@@ -20,7 +20,7 @@
 }
 
 /* --- Heading --- */
-.hero-heading {
+.heroHeading {
   font-family: var(--font-oswald), 'Oswald', sans-serif;
   font-weight: 700;
   font-size: clamp(24px, 5vw, 48px);
@@ -34,14 +34,14 @@
 }
 
 /* --- Countdown numbers --- */
-.hero-countdown {
+.heroCountdown {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0;
 }
 
-.hero-countdown-numbers {
+.heroCountdownNumbers {
   display: flex;
   align-items: center;
   gap: 0;
@@ -55,20 +55,20 @@
     0 0 80px rgba(255, 255, 255, 0.1);
 }
 
-.hero-countdown-numbers span {
+.heroCountdownNumbers span {
   display: inline-block;
   min-width: 0.55em;
   text-align: center;
 }
 
-.hero-colon {
+.heroColon {
   opacity: 0.6;
   margin: 0 0.05em;
   font-weight: 400;
 }
 
 /* --- Divider line --- */
-.hero-countdown-divider {
+.heroCountdownDivider {
   width: 100%;
   max-width: 540px;
   height: 1px;
@@ -82,7 +82,7 @@
 }
 
 /* --- Labels --- */
-.hero-countdown-labels {
+.heroCountdownLabels {
   display: flex;
   justify-content: space-between;
   width: 100%;
@@ -95,13 +95,13 @@
   text-align: center;
 }
 
-.hero-countdown-labels span {
+.heroCountdownLabels span {
   flex: 1;
   text-align: center;
 }
 
 /* --- Bottom-right topo label --- */
-.hero-topo-label {
+.heroTopoLabel {
   position: absolute;
   bottom: 24px;
   right: 28px;
@@ -112,23 +112,28 @@
   letter-spacing: 0.15em;
 }
 
+/* --- Content sections below hero --- */
+.contentSections {
+  width: 100%;
+}
+
 /* --- Responsive --- */
 @media (max-width: 600px) {
-  .hero-countdown-numbers {
+  .heroCountdownNumbers {
     font-size: 48px;
     letter-spacing: 0.03em;
   }
 
-  .hero-heading {
+  .heroHeading {
     font-size: 20px;
   }
 
-  .hero-countdown-labels {
+  .heroCountdownLabels {
     font-size: 9px;
     max-width: 300px;
   }
 
-  .hero-countdown-divider {
+  .heroCountdownDivider {
     max-width: 300px;
   }
 }

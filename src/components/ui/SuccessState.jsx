@@ -1,3 +1,4 @@
+import styles from './SuccessState.module.css';
 
 /**
  * Displays a success confirmation after registration.
@@ -8,9 +9,9 @@ export default function SuccessState({
   message = 'You have been successfully registered for the contest.',
 }) {
   return (
-    <div className="success-state">
-      <h2 className="success-state-heading">{heading}</h2>
-      <p className="success-state-message">{message}</p>
+    <div className={styles.successState}>
+      <h2 className={styles.successStateHeading}>{heading}</h2>
+      <p className={styles.successStateMessage}>{message}</p>
     </div>
   );
 }

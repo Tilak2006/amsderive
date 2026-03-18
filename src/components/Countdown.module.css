@@ -17,6 +17,7 @@
     0 0 10px rgba(255, 255, 255, 0.25),
     0 0 30px rgba(212, 175, 55, 0.35),
     0 0 70px rgba(212, 175, 55, 0.18);
+  will-change: contents;
 }
 
 .separator {
@@ -36,13 +37,13 @@
   display: flex;
   justify-content: space-between;
   width: 100%;
-  max-width: 580px; /* Adjusted to align under the larger numbers */
-  font-family: var(--font-cinzel), serif;
+  max-width: 580px;
+  font-family: var(--font-mono), monospace;
   font-weight: 500;
-  font-size: 10px;
-  color: #FFFFFF;
-  opacity: 0.4;
-  letter-spacing: 0.4em;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   text-align: center;
   padding: 0 1.2rem;
 }
@@ -71,7 +72,7 @@
   padding: 16px 48px;
   border: 1px solid #D4AF37;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 .registerBtn:hover {

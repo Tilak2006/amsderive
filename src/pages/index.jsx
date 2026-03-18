@@ -6,6 +6,7 @@ import Countdown from '../components/Countdown';
 import FadeInSection from '../components/FadeInSection';
 import Footer from '../components/Footer';
 import styles from '../styles/hero.module.css';
+import pageStyles from './index.module.css';
 
 // ── Dynamic imports ────────────────────────────────────────────────────────
 // Three.js — must be client-only
@@ -23,19 +24,19 @@ const BackgroundOverlay = dynamic(
 // Below-the-fold sections — loaded only when needed
 const AboutSection = dynamic(() => import('../components/sections/AboutSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: true,
+  ssr: false,
 });
 const CompetitionSection = dynamic(() => import('../components/sections/CompetitionSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: true,
+  ssr: false,
 });
 const TimelineSection = dynamic(() => import('../components/sections/TimelineSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: true,
+  ssr: false,
 });
 const WhoSection = dynamic(() => import('../components/sections/WhoSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: true,
+  ssr: false,
 });
 
 // ── HeroContent ────────────────────────────────────────────────────────────
@@ -88,7 +89,7 @@ export default function LandingPage() {
         <span className={styles.heroTopoLabel} />
       </main>
 
-      <div className="content-sections">
+      <div className={pageStyles.contentSections}>
         <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
           <FadeInSection><AboutSection /></FadeInSection>
           <FadeInSection><CompetitionSection /></FadeInSection>

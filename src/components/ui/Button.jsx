@@ -1,7 +1,8 @@
+import styles from './Button.module.css';
 
 /**
- * Primary action button with accent styling.
- * @param {{ children: React.ReactNode, type?: string, disabled?: boolean, onClick?: Function, variant?: 'primary'|'secondary' }} props
+ * Button component with primary, secondary, and ghost variants.
+ * @param {{ children: React.ReactNode, type?: string, disabled?: boolean, onClick?: Function, variant?: 'primary'|'secondary'|'ghost' }} props
  */
 export default function Button({
   children,
@@ -10,12 +11,13 @@ export default function Button({
   onClick,
   variant = 'primary',
 }) {
+  const variantClass = variant === 'primary' ? 'btnPrimary' : variant === 'secondary' ? 'btnSecondary' : 'btnGhost';
   return (
     <button
       type={type}
       disabled={disabled}
       onClick={onClick}
-      className={`btn btn-${variant}`}
+      className={`${styles.btn} ${styles[variantClass]}`}
     >
       {children}
     </button>

@@ -15,8 +15,7 @@ import {
 // Maximum registrations accepted. Stops Firestore writes entirely once
 // this number is hit — protects your Blaze quota during a burst and
 // prevents runaway billing if registrations are flooded.
-// Set to a comfortable buffer above your expected 100–500 range.
-const MAX_REGISTRATIONS = 600;
+const MAX_REGISTRATIONS = 2500;
 
 /**
  * Check whether total registrations have hit the hard cap.
@@ -73,6 +72,38 @@ export async function checkDuplicateHandle(cfHandle, ccHandle) {
 }
 
 /**
+ * Check whether an email or Codeforces handle is already registered.
+ * Queries run in parallel to minimize latency.
+ *
+ * @param {string} email
+ * @param {string} cfHandle
+ * @returns {Promise<{duplicate: boolean, error?: string}>}
+ */
+export async function checkDuplicateRegistration(email, cfHandle) {
+  try {
+    const registrationsRef = collection(db, 'registrants');
+    const emailQuery = query(registrationsRef, where('email', '==', email.toLowerCase().trim()));
+    const cfQuery = query(registrationsRef, where('codeforcesHandle', '==', cfHandle));
+
+    const [emailSnapshot, cfSnapshot] = await Promise.all([
+      getDocs(emailQuery),
+      getDocs(cfQuery),
+    ]);
+
+    if (!emailSnapshot.empty) {
+      return { duplicate: true, error: 'This email is already registered.' };
+    }
+    if (!cfSnapshot.empty) {
+      return { duplicate: true, error: 'This Codeforces handle is already registered.' };
+    }
+
+    return { duplicate: false };
+  } catch (error) {
+    return { duplicate: false, error: error.message };
+  }
+}
+
+/**
  * Submit a registration entry to Firestore.
  * submittedAt uses serverTimestamp() — the Firestore rules enforce that
  * this equals request.time, so clients cannot fake a past/future timestamp.
@@ -83,14 +114,21 @@ export async function checkDuplicateHandle(cfHandle, ccHandle) {
 export async function submitRegistration(data) {
   try {
     const docRef = await addDoc(collection(db, 'registrants'), {
-      name: data.name,
-      institution: data.institution,
+      fullName: data.fullName,
+      email: data.email.toLowerCase().trim(),
+      university: data.university,
+      resumeUrl: data.resumeUrl,
+      resumeFileName: data.resumeFileName,
+      idCardUrl: data.idCardUrl,
+      idCardFileName: data.idCardFileName,
       codeforcesHandle: data.codeforcesHandle,
-      codechefHandle: data.codechefHandle,
-      idDocumentUrl: data.idDocumentUrl,
-      idDocumentFileName: data.idDocumentFileName,
+      codechefHandle: data.codechefHandle || null,
+      linkedIn: data.linkedIn || null,
+      gitHub: data.gitHub || null,
+      dataConsent: data.dataConsent,
       ipHash: data.ipHash,
-      submittedAt: serverTimestamp(), // rules enforce this == request.time
+      submittedAt: serverTimestamp(),
+      status: 'pending',
     });
     return { success: true, id: docRef.id };
   } catch (error) {

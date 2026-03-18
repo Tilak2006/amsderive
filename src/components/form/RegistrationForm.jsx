@@ -1,67 +1,188 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TextInput from './TextInput';
+import UniversitySelect from './UniversitySelect';
 import FileUpload from './FileUpload';
 import Button from '../ui/Button';
-import { validateName, validateInstitution, validateCodeforcesHandle, validateCodechefHandle } from '../../utils/validators';
+import styles from './RegistrationForm.module.css';
+import {
+  validateName,
+  validateEmail,
+  validateUniversity,
+  validateCodeforcesHandleFormat,
+  validateCodechefHandleOptional,
+  validateLinkedInOptional,
+  validateGitHubOptional,
+} from '../../utils/validators';
 import { validateFileType, validateFileSize } from '../../utils/fileValidation';
+import { debounceValidation, cancelValidation } from '../../utils/formOptimization';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const RESUME_ALLOWED_TYPES = ['application/pdf'];
+const ID_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
 
 /**
- * Registration form collecting name, institution, CF/CC handles, and ID upload.
+ * Registration form collecting participant information.
  * @param {{ onSubmit: Function, loading?: boolean }} props
  */
 export default function RegistrationForm({ onSubmit, loading = false }) {
   const [fields, setFields] = useState({
-    name: '',
-    institution: '',
-    cfHandle: '',
-    ccHandle: '',
+    fullName: '',
+    email: '',
+    university: '',
+    codeforcesHandle: '',
+    codechefHandle: '',
+    linkedIn: '',
+    gitHub: '',
+    dataConsent: false,
   });
-  const [file, setFile] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+  const [idCardFile, setIdCardFile] = useState(null);
   const [errors, setErrors] = useState({});
 
+  // Cleanup debounced validations on unmount
+  useEffect(() => {
+    return () => {
+      // Cancel all pending validations
+      ['fullName', 'email', 'university', 'codeforcesHandle', 'codechefHandle', 'linkedIn', 'gitHub'].forEach(
+        (key) => cancelValidation(key)
+      );
+    };
+  }, []);
+
+  function validateFieldDebounced(fieldName, value) {
+    // Debounce validation at 150ms to prevent excessive updates
+    debounceValidation(fieldName, () => {
+      let error = '';
+
+      if (fieldName === 'fullName') {
+        const result = validateName(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'email') {
+        const result = validateEmail(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'university') {
+        const result = validateUniversity(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'codeforcesHandle') {
+        const result = validateCodeforcesHandleFormat(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'codechefHandle') {
+        const result = validateCodechefHandleOptional(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'linkedIn') {
+        const result = validateLinkedInOptional(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'gitHub') {
+        const result = validateGitHubOptional(value);
+        if (!result.valid) error = result.error;
+      }
+
+      if (error) {
+        setErrors((prev) => ({ ...prev, [fieldName]: error }));
+      } else {
+        setErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[fieldName];
+          return updated;
+        });
+      }
+    }, 150); // 150ms debounce delay
+  }
+
   function handleChange(e) {
-    const { name, value } = e.target;
-    setFields((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    const newValue = type === 'checkbox' ? checked : value;
+    setFields((prev) => ({ ...prev, [name]: newValue }));
+
+    // Immediately clear error on input, validate with debounce
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
+
+    // Debounce field validation for non-checkbox fields
+    if (type !== 'checkbox') {
+      validateFieldDebounced(name, newValue);
     }
   }
 
-  function handleFileSelect(selected) {
-    setFile(selected);
-    if (errors.file) {
-      setErrors((prev) => ({ ...prev, file: '' }));
+  function handleResumeSelect(file) {
+    setResumeFile(file);
+    if (errors.resume) {
+      setErrors((prev) => ({ ...prev, resume: '' }));
+    }
+  }
+
+  function handleIdCardSelect(file) {
+    setIdCardFile(file);
+    if (errors.idCard) {
+      setErrors((prev) => ({ ...prev, idCard: '' }));
     }
   }
 
   function validateAll() {
     const newErrors = {};
 
-    const nameResult = validateName(fields.name);
-    if (!nameResult.valid) newErrors.name = nameResult.error;
+    // Full name validation
+    const nameResult = validateName(fields.fullName);
+    if (!nameResult.valid) newErrors.fullName = nameResult.error;
 
-    const instResult = validateInstitution(fields.institution);
-    if (!instResult.valid) newErrors.institution = instResult.error;
+    // Email validation
+    const emailResult = validateEmail(fields.email);
+    if (!emailResult.valid) newErrors.email = emailResult.error;
 
-    const cfResult = validateCodeforcesHandle(fields.cfHandle);
-    if (!cfResult.valid) newErrors.cfHandle = cfResult.error;
+    // University validation
+    const universityResult = validateUniversity(fields.university);
+    if (!universityResult.valid) newErrors.university = universityResult.error;
 
-    const ccResult = validateCodechefHandle(fields.ccHandle);
-    if (!ccResult.valid) newErrors.ccHandle = ccResult.error;
+    // Codeforces handle validation
+    const cfResult = validateCodeforcesHandleFormat(fields.codeforcesHandle);
+    if (!cfResult.valid) newErrors.codeforcesHandle = cfResult.error;
 
-    if (!file) {
-      newErrors.file = 'ID card is required';
+    // CodeChef handle validation (optional)
+    const ccResult = validateCodechefHandleOptional(fields.codechefHandle);
+    if (!ccResult.valid) newErrors.codechefHandle = ccResult.error;
+
+    // LinkedIn validation (optional)
+    const linkedInResult = validateLinkedInOptional(fields.linkedIn);
+    if (!linkedInResult.valid) newErrors.linkedIn = linkedInResult.error;
+
+    // GitHub validation (optional)
+    const gitHubResult = validateGitHubOptional(fields.gitHub);
+    if (!gitHubResult.valid) newErrors.gitHub = gitHubResult.error;
+
+    // Resume file validation
+    if (!resumeFile) {
+      newErrors.resume = 'Resume is required';
     } else {
-      const typeResult = validateFileType(file, ALLOWED_TYPES);
-      if (!typeResult.valid) {
-        newErrors.file = typeResult.error;
+      const resumeTypeResult = validateFileType(resumeFile, RESUME_ALLOWED_TYPES);
+      if (!resumeTypeResult.valid) {
+        newErrors.resume = 'Resume must be a PDF file';
       } else {
-        const sizeResult = validateFileSize(file, MAX_FILE_SIZE);
-        if (!sizeResult.valid) newErrors.file = sizeResult.error;
+        const resumeSizeResult = validateFileSize(resumeFile, MAX_FILE_SIZE);
+        if (!resumeSizeResult.valid) newErrors.resume = resumeSizeResult.error;
       }
+    }
+
+    // ID Card file validation
+    if (!idCardFile) {
+      newErrors.idCard = 'ID card is required';
+    } else {
+      const idTypeResult = validateFileType(idCardFile, ID_ALLOWED_TYPES);
+      if (!idTypeResult.valid) {
+        newErrors.idCard = 'ID card must be PDF, JPG, or PNG';
+      } else {
+        const idSizeResult = validateFileSize(idCardFile, MAX_FILE_SIZE);
+        if (!idSizeResult.valid) newErrors.idCard = idSizeResult.error;
+      }
+    }
+
+    // Data consent validation
+    if (!fields.dataConsent) {
+      newErrors.dataConsent = 'You must consent to data sharing';
     }
 
     return newErrors;
@@ -75,66 +196,157 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       return;
     }
     if (onSubmit) {
-      onSubmit({ ...fields, file }, setErrors);
+      onSubmit(
+        {
+          fullName: fields.fullName.trim(),
+          email: fields.email.trim(),
+          university: fields.university.trim(),
+          codeforcesHandle: fields.codeforcesHandle.trim(),
+          codechefHandle: fields.codechefHandle.trim(),
+          linkedIn: fields.linkedIn.trim(),
+          gitHub: fields.gitHub.trim(),
+          dataConsent: fields.dataConsent,
+          resumeFile,
+          idCardFile,
+        },
+        setErrors
+      );
     }
   }
 
   return (
-    <form className="registration-form" onSubmit={handleSubmit} noValidate>
-      <TextInput
-        label="Full Name"
-        name="name"
-        value={fields.name}
+    <form className={styles.registrationForm} onSubmit={handleSubmit} noValidate>
+      {/* Personal Details Section - 2 Column */}
+      <div className={styles.formGridRow}>
+        <TextInput
+          label="Full Name"
+          name="fullName"
+          value={fields.fullName}
+          onChange={handleChange}
+          error={errors.fullName}
+          placeholder="Your full name"
+          required
+        />
+        <TextInput
+          label="Email"
+          name="email"
+          type="email"
+          value={fields.email}
+          onChange={handleChange}
+          error={errors.email}
+          placeholder="your.email@example.com"
+          required
+        />
+      </div>
+
+      {/* University / Institution - Full Width */}
+      <UniversitySelect
+        label="University / Institution"
+        name="university"
+        value={fields.university}
         onChange={handleChange}
-        error={errors.name}
-        placeholder="Your full name"
+        error={errors.university}
         required
       />
-      <TextInput
-        label="Institution"
-        name="institution"
-        value={fields.institution}
-        onChange={handleChange}
-        error={errors.institution}
-        placeholder="College / University / School"
-        required
-      />
+
+      {/* Competitive Programming Handles - Single Column */}
       <TextInput
         label="Codeforces Handle"
-        name="cfHandle"
-        value={fields.cfHandle}
+        name="codeforcesHandle"
+        value={fields.codeforcesHandle}
         onChange={handleChange}
-        error={errors.cfHandle}
+        error={errors.codeforcesHandle}
         placeholder="cf_username"
-        hint="Max 24 characters, no dots"
+        hint="Alphanumeric and underscores only. Max 24 characters"
         required
       />
+
       <TextInput
         label="CodeChef Handle"
-        name="ccHandle"
-        value={fields.ccHandle}
+        name="codechefHandle"
+        value={fields.codechefHandle}
         onChange={handleChange}
-        error={errors.ccHandle}
+        error={errors.codechefHandle}
         placeholder="cc_username"
-        hint="Max 24 characters, no dots"
+        hint="Optional. Alphanumeric, underscores, and hyphens only."
+      />
+
+      {/* Social Media Links - 2 Column */}
+      <div className={styles.formGridRow}>
+        <TextInput
+          label="LinkedIn Profile"
+          name="linkedIn"
+          type="url"
+          value={fields.linkedIn}
+          onChange={handleChange}
+          error={errors.linkedIn}
+          placeholder="linkedin.com/in/yourprofile"
+          hint="Optional. Your LinkedIn profile URL"
+        />
+        <TextInput
+          label="GitHub Profile"
+          name="gitHub"
+          type="url"
+          value={fields.gitHub}
+          onChange={handleChange}
+          error={errors.gitHub}
+          placeholder="github.com/yourprofile"
+          hint="Optional. Your GitHub profile URL"
+        />
+      </div>
+
+      {/* Divider */}
+      <div className={styles.formDivider} />
+
+      {/* File Uploads - Single Column */}
+      <FileUpload
+        label="Resume"
+        name="resume"
+        accept="application/pdf"
+        onFileSelect={handleResumeSelect}
+        error={errors.resume}
+        file={resumeFile}
         required
       />
+
       <FileUpload
         label="ID Card"
-        name="file"
-        accept="image/jpeg,image/png,application/pdf"
-        onFileSelect={handleFileSelect}
-        error={errors.file}
-        file={file}
+        name="idCard"
+        accept="application/pdf,image/jpeg,image/png"
+        onFileSelect={handleIdCardSelect}
+        error={errors.idCard}
+        file={idCardFile}
         required
       />
+
+      {/* Data Consent Checkbox */}
+      <div className={styles.consentField}>
+        <label className={styles.consentCheckbox}>
+          <input
+            type="checkbox"
+            name="dataConsent"
+            checked={fields.dataConsent}
+            onChange={handleChange}
+            required
+          />
+          <span className={styles.checkboxLabel}>
+            I consent to my profile being shared with partner firms for recruitment purposes
+          </span>
+        </label>
+        {errors.dataConsent && (
+          <p className={styles.consentError} role="alert">
+            {errors.dataConsent}
+          </p>
+        )}
+      </div>
+
       <Button type="submit" disabled={loading}>
         {loading ? (
-          <span className="submit-loading">
-            Submitting
-            <span className="submit-dot submit-dot-1">&middot;</span>
-            <span className="submit-dot submit-dot-2">&middot;</span>
-            <span className="submit-dot submit-dot-3">&middot;</span>
+          <span className={styles.submitLoading}>
+            Registering
+            <span className={`${styles.submitDot} ${styles.submitDot1}`}>&middot;</span>
+            <span className={`${styles.submitDot} ${styles.submitDot2}`}>&middot;</span>
+            <span className={`${styles.submitDot} ${styles.submitDot3}`}>&middot;</span>
           </span>
         ) : (
           'Submit Registration'

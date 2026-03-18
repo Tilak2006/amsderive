@@ -8,27 +8,27 @@
   align-items: baseline;
 }
 
-.wordmark-prefix {
+.wordmarkPrefix {
   color: var(--color-accent);
 }
 
-.wordmark-separator {
+.wordmarkSeparator {
   color: var(--color-text-muted);
   margin: 0 var(--space-1);
 }
 
-.wordmark-suffix {
+.wordmarkSuffix {
   color: var(--color-text-primary);
 }
 
-.wordmark-sm {
+.wordmarkSm {
   font-size: var(--text-lg);
 }
 
-.wordmark-md {
+.wordmarkMd {
   font-size: var(--text-3xl);
 }
 
-.wordmark-lg {
+.wordmarkLg {
   font-size: var(--text-5xl);
 }

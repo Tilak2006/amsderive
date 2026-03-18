@@ -5,7 +5,7 @@
   gap: var(--space-1);
 }
 
-.timeblock-value {
+.timeblockValue {
   font-family: var(--font-mono);
   font-size: var(--text-4xl);
   font-weight: 600;
@@ -14,7 +14,7 @@
   letter-spacing: var(--tracking-tight);
 }
 
-.timeblock-label {
+.timeblockLabel {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   font-weight: 500;

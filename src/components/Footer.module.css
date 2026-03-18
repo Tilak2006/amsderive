@@ -52,10 +52,11 @@
 /* Link columns */
 .colTitle {
   font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: #D4AF37;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
   margin: 0 0 24px 0;
 }
 
@@ -89,10 +90,11 @@
 .contactLabel {
   display: block;
   font-family: var(--font-mono), monospace;
-  font-size: 0.65rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: #6b6560;
   letter-spacing: 0.15em;
+  text-transform: uppercase;
   margin-bottom: 6px;
 }
 

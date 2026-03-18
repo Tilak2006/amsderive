@@ -1,0 +1,123 @@
+.fileUploadField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fileUploadLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b6560;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fileUploadRequired {
+  color: #c0392b;
+  margin-left: 0.2em;
+}
+
+.fileUploadSubtext {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #6b6560;
+  margin: 0;
+  margin-top: 0.3rem;
+  letter-spacing: 0.05em;
+}
+
+.fileUploadDropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  padding: 0 1rem;
+  background: #080808;
+  border: 1px dashed rgba(212, 175, 55, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  width: 100%;
+}
+
+.fileUploadDropzone:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  background: #0a0a0a;
+}
+
+.fileUploadDropzoneDragging {
+  border-color: #D4AF37;
+  border-style: dashed;
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.fileUploadDropzoneSelected {
+  border-style: solid;
+  border-color: rgba(212, 175, 55, 0.6);
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.fileUploadDropzoneError {
+  border-color: #c0392b;
+}
+
+.fileUploadEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fileUploadPrompt {
+  font-size: 0.8rem;
+  color: #9a9390;
+  font-family: var(--font-mono);
+}
+
+.fileUploadFormats {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #6b6560;
+}
+
+.fileUploadSelected {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.fileUploadPreview {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.fileUploadInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+}
+
+.fileUploadFileName {
+  font-size: 0.85rem;
+  color: #f0ede6;
+  font-family: var(--font-mono);
+}
+
+.fileUploadFileSize {
+  font-size: 0.75rem;
+  color: #6b6560;
+  font-family: var(--font-mono);
+}
+
+.fileUploadErrorMsg {
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin: 0;
+  margin-top: 0.5rem;
+}

@@ -1,5 +1,6 @@
 import { useCountdown } from '../../hooks/useCountdown';
 import TimeBlock from './TimeBlock';
+import styles from './CountdownTimer.module.css';
 
 /**
  * Renders a countdown timer displaying days, hours, minutes, and seconds.
@@ -10,21 +11,21 @@ export default function CountdownTimer({ targetDate }) {
 
   if (isExpired) {
     return (
-      <div className="countdown-container">
-        <p className="countdown-expired">The contest has begun!</p>
+      <div className={styles.countdownContainer}>
+        <p className={styles.countdownExpired}>The contest has begun!</p>
       </div>
     );
   }
 
   return (
-    <div className="countdown-container">
-      <div className="countdown-blocks">
+    <div className={styles.countdownContainer}>
+      <div className={styles.countdownBlocks}>
         <TimeBlock value={days} label="Days" />
-        <span className="countdown-separator">:</span>
+        <span className={styles.countdownSeparator}>:</span>
         <TimeBlock value={hours} label="Hours" />
-        <span className="countdown-separator">:</span>
+        <span className={styles.countdownSeparator}>:</span>
         <TimeBlock value={minutes} label="Minutes" />
-        <span className="countdown-separator">:</span>
+        <span className={styles.countdownSeparator}>:</span>
         <TimeBlock value={seconds} label="Seconds" />
       </div>
     </div>

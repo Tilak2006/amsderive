@@ -1,16 +1,16 @@
-.countdown-container {
+.countdownContainer {
   display: flex;
   justify-content: center;
   padding: var(--space-8) 0;
 }
 
-.countdown-blocks {
+.countdownBlocks {
   display: flex;
   align-items: center;
   gap: var(--space-6);
 }
 
-.countdown-separator {
+.countdownSeparator {
   font-family: var(--font-mono);
   font-size: var(--text-3xl);
   font-weight: 600;
@@ -19,7 +19,7 @@
   padding-top: var(--space-1);
 }
 
-.countdown-expired {
+.countdownExpired {
   font-family: var(--font-serif);
   font-size: var(--text-2xl);
   color: var(--color-accent);

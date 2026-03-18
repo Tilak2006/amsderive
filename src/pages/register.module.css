@@ -1,0 +1,232 @@
+.registerMain {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: calc(100vh - 200px); /* Account for Navbar + Footer */
+  padding: 0;
+}
+
+/* Hero section */
+.registerHero {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0.02) 50%, rgba(212, 175, 55, 0) 100%);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  padding: 100px 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.registerHeroContent {
+  text-align: center;
+  max-width: 720px;
+}
+
+.registerHeroTitle {
+  font-family: var(--font-serif);
+  font-size: 64px;
+  font-weight: 700;
+  color: #f0ede6;
+  letter-spacing: 0.08em;
+  margin: 0 0 20px 0;
+  text-transform: uppercase;
+}
+
+.registerHeroSubtitle {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: #9a9390;
+  line-height: 1.7;
+  margin: 0;
+  letter-spacing: 0.01em;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Form container */
+.registerFormContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 80px 32px;
+}
+
+.registerCard {
+  width: 100%;
+  max-width: 840px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 2px;
+  background: #0e0e0e;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.05);
+}
+
+.registerHeader {
+  padding: 48px 48px 32px 48px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.registerFormTitle {
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 700;
+  color: #f0ede6;
+  margin: 0 0 12px 0;
+  letter-spacing: 0.03em;
+}
+
+.registerFormSubtitle {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #9a9390;
+  margin: 0;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+}
+
+/* Content area with form styling */
+.registerContent {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 2.5rem;
+}
+
+/* Closed registration message */
+.registerClosed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 300px;
+  text-align: center;
+}
+
+.registerClosedMessage {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: #9a9390;
+  margin: 0;
+}
+
+/* Error banner override */
+.registerMain :global(.error-banner) {
+  background: #1a0a0a;
+  border-color: #e05555;
+  width: 100%;
+}
+
+.registerMain :global(.error-banner-message) {
+  color: #e05555;
+}
+
+/* Success card */
+.registerSuccess {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8);
+  border: 1px solid #D4AF37;
+  border-radius: 2px;
+  width: 100%;
+  text-align: center;
+}
+
+.registerSuccessCheckmark {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.registerSuccessTitle {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: #f0ede6;
+  margin: 0;
+}
+
+.registerSuccessName {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.registerSuccessMessage {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: #6b6560;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .registerHero {
+    padding: 60px 32px;
+  }
+
+  .registerFormContainer {
+    padding: 60px 20px;
+  }
+
+  .registerCard {
+    max-width: 100%;
+  }
+
+  .registerHeader {
+    padding: 32px 24px 24px 24px;
+  }
+
+  .registerFormTitle {
+    font-size: 24px;
+  }
+
+  .registerContent {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .registerHeroTitle {
+    font-size: 36px;
+    margin: 0 0 12px 0;
+  }
+
+  .registerHeroSubtitle {
+    font-size: 14px;
+  }
+
+  .registerFormContainer {
+    padding: 40px 16px;
+  }
+
+  .registerCard {
+    box-shadow: none;
+    border: none;
+    background: transparent;
+  }
+
+  .registerHeader {
+    padding: 24px 0;
+    border-bottom: none;
+  }
+
+  .registerContent {
+    padding: 0;
+  }
+
+  .registerFormTitle {
+    font-size: 20px;
+    margin: 0 0 8px 0;
+  }
+}

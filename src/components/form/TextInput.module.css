@@ -1,0 +1,62 @@
+.textInputField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.textInputLabel {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b6560;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.textInputRequired {
+  color: #c0392b;
+  margin-left: 0.2em;
+}
+
+.textInput {
+  height: 44px;
+  padding: 0 0.875rem;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  color: #f0ede6;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease;
+}
+
+.textInput::placeholder {
+  color: #3a3a3a;
+}
+
+.textInput:focus {
+  outline: none;
+  background: #f0ede6;
+  color: #0a0a0a;
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.textInputError {
+  border-color: #c0392b;
+}
+
+.textInputHint {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #6b6560;
+  margin: 0;
+  margin-top: 0.3rem;
+  letter-spacing: 0.05em;
+}
+
+.textInputErrorMsg {
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin: 0;
+}

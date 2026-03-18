@@ -1,4 +1,4 @@
-.success-state {
+.successState {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -6,18 +6,18 @@
   padding: var(--space-12);
   background: var(--color-success-bg);
   border: 1px solid var(--color-success);
-  border-radius: var(--radius-lg);
+  border-radius: 2px;
   text-align: center;
 }
 
-.success-state-heading {
+.successStateHeading {
   font-family: var(--font-serif);
   font-size: var(--text-2xl);
   font-weight: 700;
   color: var(--color-success);
 }
 
-.success-state-message {
+.successStateMessage {
   font-size: var(--text-base);
   color: var(--color-text-secondary);
   max-width: 360px;

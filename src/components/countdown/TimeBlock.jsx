@@ -1,4 +1,5 @@
 import { padNumber } from '../../utils/countdownUtils';
+import styles from './TimeBlock.module.css';
 
 /**
  * Displays a single time unit (e.g. "05" / "DAYS") in a styled block.
@@ -6,9 +7,9 @@ import { padNumber } from '../../utils/countdownUtils';
  */
 export default function TimeBlock({ value = 0, label = '' }) {
   return (
-    <div className="timeblock">
-      <span className="timeblock-value">{padNumber(value)}</span>
-      <span className="timeblock-label">{label}</span>
+    <div className={styles.timeblock}>
+      <span className={styles.timeblockValue}>{padNumber(value)}</span>
+      <span className={styles.timeblockLabel}>{label}</span>
     </div>
   );
 }

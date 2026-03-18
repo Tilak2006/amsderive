@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import styles from './FileUpload.module.css';
 
 /**
  * File upload with drag-and-drop, image preview, and file info display.
@@ -65,25 +66,23 @@ export default function FileUpload({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
-  const dropzoneClasses = [
-    'file-upload-dropzone',
-    dragging ? 'file-upload-dropzone-dragging' : '',
-    file ? 'file-upload-dropzone-selected' : '',
-    error ? 'file-upload-dropzone-error' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  const dropzoneClassArray = [
+    styles.fileUploadDropzone,
+    dragging ? styles.fileUploadDropzoneDragging : '',
+    file ? styles.fileUploadDropzoneSelected : '',
+    error ? styles.fileUploadDropzoneError : '',
+  ].filter(Boolean);
 
   return (
-    <div className="file-upload-field">
-      <label className="file-upload-label">
+    <div className={styles.fileUploadField}>
+      <label className={styles.fileUploadLabel}>
         {label}
-        {required && <span className="file-upload-required"> *</span>}
+        {required && <span className={styles.fileUploadRequired}> *</span>}
       </label>
-      <p className="file-upload-subtext">to verify institution</p>
+      <p className={styles.fileUploadSubtext}>to verify institution</p>
       <button
         type="button"
-        className={dropzoneClasses}
+        className={dropzoneClassArray.join(' ')}
         onClick={handleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -91,20 +90,20 @@ export default function FileUpload({
         aria-describedby={error ? `${name}-error` : undefined}
       >
         {file ? (
-          <div className="file-upload-selected">
+          <div className={styles.fileUploadSelected}>
             {previewUrl && (
               <img
                 src={previewUrl}
                 alt="Preview"
-                className="file-upload-preview"
+                className={styles.fileUploadPreview}
               />
             )}
-            <div className="file-upload-info">
-              <span className="file-upload-filename">{file.name}</span>
-              <span className="file-upload-filesize">{formatFileSize(file.size)}</span>
+            <div className={styles.fileUploadInfo}>
+              <span className={styles.fileUploadFileName}>{file.name}</span>
+              <span className={styles.fileUploadFileSize}>{formatFileSize(file.size)}</span>
             </div>
             <span
-              className="file-upload-remove"
+              className={styles.fileUploadRemove}
               role="button"
               tabIndex={0}
               aria-label="Remove file"
@@ -127,9 +126,9 @@ export default function FileUpload({
             </span>
           </div>
         ) : (
-          <div className="file-upload-empty">
-            <span className="file-upload-prompt">Click to upload or drag and drop</span>
-            <span className="file-upload-formats">JPG, PNG or PDF &middot; Max 5MB</span>
+          <div className={styles.fileUploadEmpty}>
+            <span className={styles.fileUploadPrompt}>Click to upload or drag and drop</span>
+            <span className={styles.fileUploadFormats}>JPG, PNG or PDF &middot; Max 5MB</span>
           </div>
         )}
       </button>
@@ -140,12 +139,12 @@ export default function FileUpload({
         type="file"
         accept={accept}
         onChange={handleChange}
-        className="file-upload-hidden"
+        style={{ display: 'none' }}
         aria-hidden="true"
         tabIndex={-1}
       />
       {error && (
-        <p id={`${name}-error`} className="file-upload-error-msg" role="alert">
+        <p id={`${name}-error`} className={styles.fileUploadErrorMsg} role="alert">
           {error}
         </p>
       )}

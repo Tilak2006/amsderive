@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import { useState } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
@@ -22,8 +21,6 @@ const RegistrationForm = dynamic(
   { ssr: false }
 );
 
-// Registration opens at April 20, 2026 00:00 IST = April 19, 2026 18:30 UTC
-const REGISTRATION_OPENS = new Date('2026-04-19T18:30:00Z');
 const TIMEOUT_MS = 50000;
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
@@ -35,41 +32,11 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
   ]);
 }
 
-/**
- * Check if admin bypass cookie is present.
- * This allows testing before the registration date.
- */
-function hasAdminBypass() {
-  if (typeof document === 'undefined') return false;
-  return document.cookie.includes('admin_bypass=1');
-}
-
-export default function Register() {
-  const router = useRouter();
+export default function DevRegistrationCheckpoint() {
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
   const [registrationClosed, setRegistrationClosed] = useState(false);
-
-  // Check date gate on mount
-  useEffect(() => {
-    const now = Date.now();
-    const registrationTime = REGISTRATION_OPENS.getTime();
-    const isOpen = now >= registrationTime || hasAdminBypass();
-
-    if (!isOpen) {
-      // Redirect to home if registration not open and no admin bypass
-      router.replace('/');
-    } else {
-      // Check if registration cap has been hit
-      checkRegistrationCap().then((result) => {
-        if (!result.allowed) {
-          setRegistrationClosed(true);
-          setErrorMessage(result.error || 'Registrations are now closed.');
-        }
-      });
-    }
-  }, [router]);
 
   async function handleSubmit(data, setFieldErrors) {
     setStatus('submitting');

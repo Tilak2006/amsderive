@@ -1,3 +1,4 @@
+import styles from './ErrorBanner.module.css';
 
 /**
  * Displays an error message in a prominent banner.
@@ -7,8 +8,8 @@ export default function ErrorBanner({ message }) {
   if (!message) return null;
 
   return (
-    <div className="error-banner" role="alert">
-      <p className="error-banner-message">{message}</p>
+    <div className={styles.errorBanner} role="alert">
+      <p className={styles.errorBannerMessage}>{message}</p>
     </div>
   );
 }

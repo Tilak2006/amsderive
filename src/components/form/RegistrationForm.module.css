@@ -1,0 +1,106 @@
+.registrationForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+/* Two-column grid for field pairs */
+.formGridRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Section divider */
+.formDivider {
+  border: none;
+  border-top: 1px solid #1a1a1a;
+  margin: 1.5rem 0 1.25rem 0;
+}
+
+.submitLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.submitDot {
+  display: inline-block;
+  animation: dotFade 1.4s infinite ease-in-out;
+  opacity: 0;
+  font-size: 1.2em;
+  margin-left: 1px;
+}
+
+.submitDot1 {
+  animation-delay: 0s;
+}
+
+.submitDot2 {
+  animation-delay: 0.2s;
+}
+
+.submitDot3 {
+  animation-delay: 0.4s;
+}
+
+@keyframes dotFade {
+  0%, 80%, 100% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* Consent checkbox field */
+.consentField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: rgba(212, 175, 55, 0.03);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 2px;
+}
+
+.consentCheckbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.consentCheckbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  cursor: pointer;
+  accent-color: #D4AF37;
+  flex-shrink: 0;
+}
+
+.checkboxLabel {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #a09a8e;
+  line-height: 1.5;
+}
+
+.consentError {
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin: 0;
+}
+
+/* Mobile - single column layout */
+@media (max-width: 768px) {
+  .formGridRow {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
