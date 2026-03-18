@@ -1,10 +1,14 @@
-import { ptSerif, ibmPlexMono } from '../lib/fonts';
-import '../styles/globals.css';
+import "../styles/globals.css";
+import Head from "next/head";
 
 export default function App({ Component, pageProps }) {
   return (
-    <div className={`${ptSerif.variable} ${ibmPlexMono.variable}`}>
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
       <Component {...pageProps} />
-    </div>
+    </>
   );
 }

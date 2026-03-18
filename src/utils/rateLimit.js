@@ -7,8 +7,9 @@ import { checkRateLimit as firestoreCheckRateLimit } from '../firebase/firestore
  * @returns {Promise<{allowed: boolean, error?: string}>}
  */
 export async function checkRateLimit(hashedIp) {
-  if (!hashedIp) {
-    return { allowed: false, error: 'Missing IP hash' };
+  if (!hashedIp || hashedIp === 'unknown') {
+    console.warn('[rateLimit] fingerprint unavailable — skipping rate limit check');
+    return { allowed: true };
   }
 
   return firestoreCheckRateLimit(hashedIp);

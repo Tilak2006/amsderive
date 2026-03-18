@@ -15,24 +15,17 @@ export default function FileUpload({
   required = false,
 }) {
   const inputRef = useRef(null);
-  const objectUrlsRef = useRef([]);
   const [dragging, setDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
-      objectUrlsRef.current.push(url);
-      setPreviewUrl(url);
-    } else {
+    if (!file || !file.type.startsWith('image/')) {
       setPreviewUrl(null);
+      return;
     }
-
-    return () => {
-      // Revoke all tracked object URLs on unmount or file change
-      objectUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
-      objectUrlsRef.current = [];
-    };
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
   }, [file]);
 
   function handleClick() {

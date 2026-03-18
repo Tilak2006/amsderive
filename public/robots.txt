@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /api/
+Disallow: /_next/
+Disallow: /register
+
+Sitemap: https://amsociety.in/sitemap.xml

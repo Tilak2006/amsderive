@@ -26,7 +26,9 @@ export default function handler(req, res) {
   try {
     // Check for admin bypass cookie (httpOnly, set by /api/test-registration)
     const cookies = req.headers.cookie || '';
-    const hasAdminBypass = cookies.includes('admin_bypass=1');
+    const hasAdminBypass = cookies
+      .split(';')
+      .some(c => c.trim() === 'admin_bypass=1');
 
     // Get current server time
     const now = Date.now();

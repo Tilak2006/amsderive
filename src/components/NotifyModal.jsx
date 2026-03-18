@@ -7,6 +7,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const modalRef = useRef(null);
+  const abortRef = useRef(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -14,6 +15,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
       setEmail('');
       setSuccess(false);
       setError('');
+      setLoading(false);
     }
   }, [isOpen]);
 
@@ -23,6 +25,29 @@ const NotifyModal = ({ isOpen, onClose }) => {
       onClose();
     }
   };
+
+  // Abort fetch and close on Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        abortRef.current?.abort();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      abortRef.current?.abort();
+    };
+  }, [isOpen, onClose]);
+
+  // Abort fetch when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      abortRef.current?.abort();
+    }
+  }, [isOpen]);
 
   // Basic email validation
   const isValidEmail = (emailStr) => {
@@ -45,6 +70,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
       return;
     }
 
+    abortRef.current = new AbortController();
     setLoading(true);
 
     try {
@@ -53,20 +79,21 @@ const NotifyModal = ({ isOpen, onClose }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        signal: abortRef.current.signal,
       });
 
       if (!response.ok) {
         const data = await response.json();
         setError(data.error || 'Failed to subscribe. Please try again.');
-        setLoading(false);
-        return;
+      } else {
+        setSuccess(true);
       }
-
-      setSuccess(true);
-      setLoading(false);
     } catch (err) {
-      setError('Network error. Please try again.');
+      if (err.name !== 'AbortError') {
+        setError('Network error. Please try again.');
+      }
+    } finally {
       setLoading(false);
     }
   };

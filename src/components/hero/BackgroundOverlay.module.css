@@ -59,7 +59,6 @@
   fill: #D4AF37;
   opacity: 0;
   animation: dotAppear 6s ease-in-out infinite;
-  will-change: opacity;
 }
 
 /* ── Scan lines ──────────────────────────────────────────────────────────── */
@@ -69,7 +68,6 @@
   stroke-width: 0.4;
   opacity: 0.05;
   animation: scanDrift 9s ease-in-out infinite;
-  will-change: transform;
 }
 
 /* ── Path animations ─────────────────────────────────────────────────────── */
@@ -78,7 +76,7 @@
   stroke-dasharray: 1200;
   stroke-dashoffset: 1200;
   animation: draw 18s linear infinite;
-  opacity: 0.35 !important;
+  opacity: 0.35;
 }
 
 .animatePathSlow {
@@ -156,27 +154,22 @@
   0%,
   100% {
     opacity: 0;
-    r: 2.2;
   }
 
   20% {
     opacity: 0.40;
-    r: 2.5;
   }
 
   40% {
     opacity: 0.16;
-    r: 2.2;
   }
 
   60% {
     opacity: 0.22;
-    r: 2.4;
   }
 
   80% {
     opacity: 0.08;
-    r: 2.2;
   }
 }
 

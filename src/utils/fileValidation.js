@@ -1,5 +1,7 @@
 /**
  * Validate that a file's type is in the allowed list.
+ * ⚠️ CLIENT-SIDE ONLY — This check is trivially spoofable (file.type can be forged).
+ * Server-side MIME validation is REQUIRED before accepting any upload.
  * @param {File} file
  * @param {string[]} allowedTypes - e.g. ['image/png', 'image/jpeg', 'application/pdf']
  * @returns {{ valid: boolean, error?: string }}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { UNIVERSITIES } from '../../utils/universities';
 import styles from './UniversitySelect.module.css';
 
@@ -23,12 +23,15 @@ export default function UniversitySelect({
   const listRef = useRef(null);
 
   // Filter universities based on search term
-  const filteredUniversities = UNIVERSITIES.filter((u) =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUniversities = useMemo(
+    () => UNIVERSITIES.filter((u) =>
+      u.name.toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    [searchTerm]
   );
 
   // Get unique categories for grouping
-  const getGroupedUniversities = () => {
+  const groupedUniversities = useMemo(() => {
     const groups = {};
     filteredUniversities.forEach((u) => {
       if (!groups[u.category]) {
@@ -37,7 +40,7 @@ export default function UniversitySelect({
       groups[u.category].push(u);
     });
     return groups;
-  };
+  }, [filteredUniversities]);
 
   function handleInputChange(e) {
     setSearchTerm(e.target.value);
@@ -89,13 +92,15 @@ export default function UniversitySelect({
       return;
     }
 
-    const allOptions = filteredUniversities.filter((u) => u.category !== 'Other');
-    const totalOptions = allOptions.length + (filteredUniversities.some((u) => u.name === 'Other') ? 1 : 0);
+    // Build flat list in render order — same order as what's displayed
+    const flatOptions = categoryOrder
+      .filter((cat) => groupedUniversities[cat])
+      .flatMap((cat) => groupedUniversities[cat]);
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
-        setHighlightedIndex((prev) => (prev < totalOptions - 1 ? prev + 1 : prev));
+        setHighlightedIndex((prev) => (prev < flatOptions.length - 1 ? prev + 1 : prev));
         break;
       case 'ArrowUp':
         e.preventDefault();
@@ -103,13 +108,8 @@ export default function UniversitySelect({
         break;
       case 'Enter':
         e.preventDefault();
-        if (highlightedIndex >= 0 && highlightedIndex < totalOptions) {
-          const option = highlightedIndex < allOptions.length ? allOptions[highlightedIndex] : null;
-          if (option) {
-            handleSelect(option.name);
-          } else {
-            handleSelect('Other');
-          }
+        if (highlightedIndex >= 0 && highlightedIndex < flatOptions.length) {
+          handleSelect(flatOptions[highlightedIndex].name);
         }
         break;
       case 'Escape':
@@ -146,8 +146,12 @@ export default function UniversitySelect({
   }, []);
 
   const describedBy = error ? `${name}-error` : undefined;
-  const groupedUniversities = getGroupedUniversities();
   const categoryOrder = ['IIT', 'NIT', 'IIIT', 'Top Colleges', 'Other'];
+  
+  // Build flat list in render order for keyboard navigation
+  const flatOptions = categoryOrder
+    .filter((cat) => groupedUniversities[cat])
+    .flatMap((cat) => groupedUniversities[cat]);
 
   return (
     <div className={styles['university-select-field']} ref={containerRef}>
@@ -184,10 +188,8 @@ export default function UniversitySelect({
                     <li key={category}>
                       <ul className={styles['university-select-group']} role="presentation">
                         <li className={styles['university-select-category']}>{category}</li>
-                        {groupedUniversities[category].map((u, idx) => {
-                          const optionIndex = Object.values(groupedUniversities)
-                            .slice(0, categoryOrder.indexOf(category))
-                            .reduce((acc, group) => acc + group.length, 0) + idx;
+                        {groupedUniversities[category].map((u) => {
+                          const optionIndex = flatOptions.indexOf(u);
 
                           return (
                             <li

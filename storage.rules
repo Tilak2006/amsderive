@@ -1,0 +1,27 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    match /submissions/{weekId}/{fileName} {
+      allow write: if request.resource.size < 6 * 1024 * 1024
+                   && (request.resource.contentType.matches('application/pdf') ||
+                       request.resource.contentType.matches('text/.*') ||
+                       request.resource.contentType.matches('application/zip'));
+      // ⚠️ ST1 FIX: Restrict read to authenticated users only. URLs should be signed server-side.
+      allow read: if request.auth != null;
+    }
+
+    match /registrants/{fileName} {
+      allow write: if request.resource.size < 400 * 1024
+                   && request.resource.contentType.matches('application/pdf');
+      // ⚠️ ST1 FIX: Restrict read to authenticated users only. Identity documents (resumes, ID cards) must not be public.
+      // ✓ ST2 VERIFIED: Upload paths are flat (registrants/timestamp_name_resume.pdf), so {fileName} pattern matches correctly.
+      allow read: if request.auth != null;
+    }
+
+    // Block everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -25,7 +25,6 @@
     z-index: 0;
     overflow: hidden;
     contain: strict;
-    will-change: transform;
 }
 
 /*

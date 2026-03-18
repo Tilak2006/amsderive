@@ -17,8 +17,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
+  if (!emailRegex.test(normalizedEmail)) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
 
@@ -33,6 +35,8 @@ export default async function handler(req, res) {
 
   try {
     // Call Brevo API to add contact to list
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     const brevoResponse = await fetch('https://api.brevo.com/v3/contacts', {
       method: 'POST',
       headers: {
@@ -40,10 +44,12 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         listIds: [parseInt(brevoListId, 10)],
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     // Handle Brevo API response
     if (!brevoResponse.ok) {
@@ -69,6 +75,9 @@ export default async function handler(req, res) {
       message: 'Email subscribed successfully',
     });
   } catch (error) {
+    if (error.name === 'AbortError') {
+      return res.status(504).json({ error: 'Request timed out. Please try again.' });
+    }
     console.error('Error calling Brevo API:', error);
     return res.status(500).json({
       error: 'An unexpected error occurred. Please try again later.',

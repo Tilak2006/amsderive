@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import styles from './Vignette.module.css';
 
 /**
@@ -14,7 +15,10 @@ import styles from './Vignette.module.css';
  *   <Vignette />            z-index: 1
  *   <BackgroundOverlay />   z-index: 2
  *   <HeroContent />         z-index: 3
+ *
+ * Memoized because it renders a static div with pure CSS and zero props.
+ * Prevents unnecessary re-renders from parent updates (e.g., countdown ticker).
  */
-const Vignette = () => <div className={styles.vignette} />;
+const Vignette = memo(() => <div className={styles.vignette} />);
 
 export default Vignette;

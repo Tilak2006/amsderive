@@ -6,13 +6,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ErrorBanner from '../components/ui/ErrorBanner';
 import styles from './register.module.css';
-import {
-  checkRegistrationCap,
-  checkDuplicateRegistration,
-  submitRegistration,
-} from '../firebase/firestoreService';
 import { uploadRegistrationFiles } from '../firebase/storageService';
-import { checkRateLimit } from '../utils/rateLimit';
 import { hashIp, createRateLimitFingerprint } from '../utils/hashIp';
 import PerformanceLogger from '../utils/performanceLogger';
 import { TIMEOUT_MS } from '../lib/constants';
@@ -54,7 +48,8 @@ export default function Register() {
       const sanitizedName = data.fullName
         .trim()
         .replace(/[^a-zA-Z0-9]/g, '_')
-        .toLowerCase();
+        .toLowerCase()
+        .slice(0, 40); // cap storage path segment per security_rules.md
 
       // Step 2: Fetch IP and create device fingerprint for rate limiting
       // (Ref: firebase-upload-safety skill - Rule 6: IP + User-Agent fingerprinting)
@@ -81,7 +76,13 @@ export default function Register() {
       // (Ref: firebase-upload-safety skill - Rule 1)
       const rateResult = await PerformanceLogger.monitor(
         'Rate Limit Check (Before Upload)',
-        withTimeout(checkRateLimit(fingerprint))
+        withTimeout(
+          fetch('/api/check-rate-limit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fingerprint }),
+          }).then(r => r.json())
+        )
       );
 
       if (!rateResult.allowed) {
@@ -114,32 +115,25 @@ export default function Register() {
         return;
       }
 
-      // Step 5: Check cap and duplicates in parallel (safe, no file operations)
-      const [capResult, dupResult] = await PerformanceLogger.monitor(
-        'Registration Pre-checks (Parallel)',
-        Promise.all([
-          withTimeout(checkRegistrationCap()),
-          withTimeout(checkDuplicateRegistration(data.email, data.codeforcesHandle)),
-        ])
+      // Step 5: Check cap and duplicates in parallel (via server API)
+      const preCheckResult = await PerformanceLogger.monitor(
+        'Registration Pre-checks (Cap + Duplicate)',
+        withTimeout(
+          fetch('/api/check-registration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: data.email.toLowerCase().trim(),
+              codeforcesHandle: data.codeforcesHandle.trim(),
+            }),
+          }).then(r => r.json())
+        )
       );
 
-      // Check registration cap
-      if (!capResult.allowed) {
+      if (!preCheckResult.allowed) {
         setStatus('error');
-        setErrorMessage(capResult.error || 'Registrations are now closed.');
-        setRegistrationClosed(true);
-        return;
-      }
-
-      // Check for duplicates
-      if (dupResult.duplicate) {
-        setStatus('error');
-        setErrorMessage(dupResult.error || 'This email or Codeforces handle is already registered.');
-        return;
-      }
-      if (dupResult.error) {
-        setStatus('error');
-        setErrorMessage(dupResult.error);
+        setErrorMessage(preCheckResult.error || 'Registration check failed.');
+        if (preCheckResult.error?.includes('closed')) setRegistrationClosed(true);
         return;
       }
 
@@ -155,25 +149,29 @@ export default function Register() {
         return;
       }
 
-      // Step 7: Submit to Firestore
+      // Step 7: Submit to server API
       const regResult = await PerformanceLogger.monitor(
         'Firestore Submission',
         withTimeout(
-          submitRegistration({
-            fullName: data.fullName.trim(),
-            email: data.email.toLowerCase().trim(),
-            university: data.university.trim(),
-            resumeUrl: uploadResult.resumeUrl,
-            resumeFileName: uploadResult.resumeFileName,
-            idCardUrl: uploadResult.idCardUrl,
-            idCardFileName: uploadResult.idCardFileName,
-            codeforcesHandle: data.codeforcesHandle.trim(),
-            codechefHandle: data.codechefHandle.trim() || null,
-            linkedIn: data.linkedIn.trim() || null,
-            gitHub: data.gitHub.trim() || null,
-            dataConsent: data.dataConsent,
-            ipHash: fingerprint, // Device fingerprint (IP + User-Agent)
-          })
+          fetch('/api/submit-registration', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              fullName: data.fullName.trim(),
+              email: data.email.toLowerCase().trim(),
+              university: data.university.trim(),
+              resumeUrl: uploadResult.resumeUrl,
+              resumeFileName: uploadResult.resumeFileName,
+              idCardUrl: uploadResult.idCardUrl,
+              idCardFileName: uploadResult.idCardFileName,
+              codeforcesHandle: data.codeforcesHandle.trim(),
+              codechefHandle: data.codechefHandle.trim() || null,
+              linkedIn: data.linkedIn.trim() || null,
+              gitHub: data.gitHub.trim() || null,
+              dataConsent: data.dataConsent,
+              ipHash: fingerprint,
+            }),
+          }).then(r => r.json())
         )
       );
 

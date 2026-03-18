@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'crypto';
+
 /**
  * Admin-only endpoint to bypass date gate for testing.
  * Checks x-admin-key header against ADMIN_KEY environment variable.
@@ -23,7 +25,15 @@ export default function handler(req, res) {
     return res.status(404).json({ error: 'Not Found' });
   }
 
-  if (!adminKey || adminKey !== expectedKey) {
+  let authorized = false;
+  try {
+    authorized = adminKey
+      ? timingSafeEqual(Buffer.from(adminKey), Buffer.from(expectedKey))
+      : false;
+  } catch {
+    authorized = false;
+  }
+  if (!authorized) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 

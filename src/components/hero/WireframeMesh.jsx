@@ -398,12 +398,29 @@ function WireframeMesh() {
     // ── Opt 2: ResizeObserver ──────────────────────────────────────────────
     // Only fires when the container's layout box changes — far less frequent
     // than window 'resize' events on mobile (no toolbar-hide spam).
+    // 
+    // Mobile fix: debounce to ≥150ms and skip "resize" when only height
+    // changed by <100px (URL bar collapse pattern). This prevents layout
+    // recalculation mid-scroll that causes the "scroll up" glitch.
+    let resizeTimeout;
+    let lastResizeW = container.clientWidth, lastResizeH = container.clientHeight;
     const resizeObserver = new ResizeObserver(() => {
-      const w = container.clientWidth, h = container.clientHeight;
-      if (w === 0 || h === 0) return;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const w = container.clientWidth, h = container.clientHeight;
+        if (w === 0 || h === 0) return;
+        
+        // Skip resize if only height changed by <100px (URL bar pattern on mobile)
+        const dw = Math.abs(w - lastResizeW);
+        const dh = Math.abs(h - lastResizeH);
+        if (dw < 2 && dh > 0 && dh < 100) return;
+        
+        lastResizeW = w;
+        lastResizeH = h;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+      }, 150);
     });
     resizeObserver.observe(container);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import TextInput from './TextInput';
 import UniversitySelect from './UniversitySelect';
 import FileUpload from './FileUpload';
@@ -14,7 +14,7 @@ import {
   validateGitHubOptional,
 } from '../../utils/validators';
 import { validateFileType, validateFileSize } from '../../utils/fileValidation';
-import { debounceValidation, cancelValidation } from '../../utils/formOptimization';
+import { createValidationDebouncer } from '../../utils/formOptimization';
 
 const RESUME_ALLOWED_TYPES = ['application/pdf'];
 const RESUME_MAX_SIZE = 400 * 1024; // 400KB
@@ -40,19 +40,25 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
   const [idCardFile, setIdCardFile] = useState(null);
   const [errors, setErrors] = useState({});
 
+  // Create isolated debouncer instance for this component
+  const debouncerRef = useRef(null);
+  if (!debouncerRef.current) {
+    debouncerRef.current = createValidationDebouncer();
+  }
+
   // Cleanup debounced validations on unmount
   useEffect(() => {
     return () => {
       // Cancel all pending validations
-      ['fullName', 'email', 'university', 'codeforcesHandle', 'codechefHandle', 'linkedIn', 'gitHub'].forEach(
-        (key) => cancelValidation(key)
-      );
+      if (debouncerRef.current) {
+        debouncerRef.current.cancelAll();
+      }
     };
   }, []);
 
   function validateFieldDebounced(fieldName, value) {
     // Debounce validation at 150ms to prevent excessive updates
-    debounceValidation(fieldName, () => {
+    debouncerRef.current.debounce(fieldName, () => {
       let error = '';
 
       if (fieldName === 'fullName') {
@@ -191,6 +197,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
 
   function handleSubmit(e) {
     e.preventDefault();
+    const snapshot = { ...fields };
     const newErrors = validateAll();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -199,14 +206,14 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     if (onSubmit) {
       onSubmit(
         {
-          fullName: fields.fullName.trim(),
-          email: fields.email.trim(),
-          university: fields.university.trim(),
-          codeforcesHandle: fields.codeforcesHandle.trim(),
-          codechefHandle: fields.codechefHandle.trim(),
-          linkedIn: fields.linkedIn.trim(),
-          gitHub: fields.gitHub.trim(),
-          dataConsent: fields.dataConsent,
+          fullName: snapshot.fullName.trim(),
+          email: snapshot.email.trim(),
+          university: snapshot.university.trim(),
+          codeforcesHandle: snapshot.codeforcesHandle.trim(),
+          codechefHandle: snapshot.codechefHandle.trim(),
+          linkedIn: snapshot.linkedIn.trim(),
+          gitHub: snapshot.gitHub.trim(),
+          dataConsent: snapshot.dataConsent,
           resumeFile,
           idCardFile,
         },

@@ -1,5 +1,5 @@
 import { storage } from './firebaseConfig';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 /**
  * Validate storage URL before using or storing in Firestore.
@@ -109,6 +109,7 @@ export async function uploadRegistrationFiles(resumeFile, idCardFile, sanitizedN
       return { success: false, error: resumeResult.error || 'Failed to upload resume.' };
     }
     if (!idResult.success) {
+      try { await deleteObject(ref(storage, resumePath)); } catch {}
       return { success: false, error: idResult.error || 'Failed to upload ID card.' };
     }
 

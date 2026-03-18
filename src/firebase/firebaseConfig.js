@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, memoryLocalCache } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 
@@ -17,7 +17,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 let db;
 try {
   db = initializeFirestore(app, {
-    cache: persistentLocalCache(),
+    cache: memoryLocalCache(),
   });
 } catch (err) {
   db = getFirestore(app);

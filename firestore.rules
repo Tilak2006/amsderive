@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // amsociety.in — submissions
+    match /submissions/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // amsderive.in — registrants
+    match /registrants/{docId} {
+      allow create: if false;
+      allow read: if false;
+      // Admin only: update status field only
+      allow update: if request.auth != null
+                    && request.resource.data.keys().hasOnly(['status']);
+      allow delete: if false;
+    }
+
+    // amsderive.in — rate limiting
+    // ⚠️ CRITICAL: Only Admin SDK can write. Clients have zero write access to prevent rate limit bypass.
+    // Rule: allow read, write: if false blocks all clients. Admin SDK bypasses rules entirely.
+    match /_rate_limits/{docId} {
+      allow read, write: if false;
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
