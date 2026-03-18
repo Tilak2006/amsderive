@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import * as THREE from 'three';
 import styles from './WireframeMesh.module.css';
 
@@ -28,26 +28,24 @@ import styles from './WireframeMesh.module.css';
 
 const baseCamX = 0;
 const baseCamY = 6;
-const baseCamZ = 12;
+const baseCamZ = 15;
 
-function gaussianPeak(x, z, cx, cz, height, spread) {
-  const dx = x - cx, dz = z - cz;
-  return height * Math.exp(-(dx * dx + dz * dz) / (2 * spread * spread));
-}
-
-function getHeight(x, z) {
+function getHeight(x, z, volatility = 1.0, phase = 0) {
+  // Asymmetric peaks using overlapping sine waves at different frequencies/amplitudes
+  const amplitude = 2.0;
+  const vol = volatility || 1.0;
+  const p = phase || 0;
+  
   return (
-    gaussianPeak(x, z, -1.5, -0.5, 4.2, 0.8) +
-    gaussianPeak(x, z, 1.8, 0.5, 1.8, 0.9) +
-    gaussianPeak(x, z, 0.3, -2.5, 1.8, 0.7) +
-    gaussianPeak(x, z, -0.5, 1.5, 1.2, 0.6) +
-    gaussianPeak(x, z, 2.5, -1.5, 1.0, 0.5) +
-    gaussianPeak(x, z, -1.0, 2.5, 1.5, 0.7) +
-    gaussianPeak(x, z, 2.0, 3.8, 2.0, 0.5)
+    vol * amplitude * 0.9  * Math.sin(x * 1.0  + p)
+    + vol * amplitude * 0.55 * Math.sin(x * 1.7  + p * 1.3)
+    + vol * amplitude * 0.35 * Math.sin(x * 2.8  + p * 0.7)
+    + vol * amplitude * 0.15 * Math.sin(x * 4.3  + p * 1.8)
+    + vol * amplitude * 0.10 * Math.sin(x * 0.5  + p * 0.4)
   );
 }
 
-function buildWireframeLines(gridSize, gridExtent) {
+function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
   const step = (gridExtent * 2) / gridSize;
   const positions = [];
   const colors = [];
@@ -57,11 +55,11 @@ function buildWireframeLines(gridSize, gridExtent) {
   const tmp = new THREE.Color();
 
   function addVertex(x, y, z) {
-    positions.push(x, y, z);
+    positions.push(x, y - meshYOffset, z);
     const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
     tmp.copy(amber).lerp(champagne, 1 - t);
     if (y > 3.0) tmp.lerp(ivory, Math.min((y - 3.0) / 2.5, 1.0));
-    const brightness = 0.08 + 0.92 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
+    const brightness = 0.25 + 0.75 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
     colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
   }
 
@@ -103,7 +101,7 @@ function initParticles(count, gridExtent) {
   return { pos, vel, drift };
 }
 
-export default function WireframeMesh() {
+function WireframeMesh() {
   const containerRef = useRef(null);
   const mouseRef = useRef({ x: 0, y: 0 });
   const frameRef = useRef(null);
@@ -121,8 +119,9 @@ export default function WireframeMesh() {
 
     const isMobile = window.innerWidth < 768;
     const isLowEnd = isMobile && window.innerWidth < 420;
-    const gridSize = isLowEnd ? 28 : isMobile ? 36 : 55;
-    const gridExtent = 5;
+    const gridSize = 128;
+    const gridExtent = 10;
+    const meshYOffset = 1.0;
     const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
 
     // ── Scene ────────────────────────────────────────────────────────────
@@ -142,12 +141,12 @@ export default function WireframeMesh() {
 
     // ── Renderer ─────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({
-      antialias: !isLowEnd,
+      antialias: false,
       alpha: true,
       powerPreference: 'high-performance',
     });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isLowEnd ? 1.0 : isMobile ? 1.2 : 1.5));
     renderer.setClearColor(0x000000, 0);
 
     // Opt 4: own GPU compositing layer — isolates canvas from DOM repaints
@@ -156,14 +155,40 @@ export default function WireframeMesh() {
     container.appendChild(renderer.domElement);
 
     // ── Wireframe ─────────────────────────────────────────────────────────
-    const wireGeometry = buildWireframeLines(gridSize, gridExtent);
+    const wireGeometry = buildWireframeLines(gridSize, gridExtent, meshYOffset);
     const wireMaterial = new THREE.LineBasicMaterial({
+      color: 0xD4AF37,
       vertexColors: true,
       transparent: true,
-      opacity: 0.82,
+      opacity: 1.0,
     });
     const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
+    const initialPositions = wireGeometry.attributes.position.array.slice();
     scene.add(wireframe);
+
+    // ── Axis scale tick marks ───────────────────────────────────────────
+    const tickGroup = new THREE.Group();
+    const tickCount = 8;
+    const tickHeight = 0.08;
+    const tickColor = new THREE.Color(0xD4AF37);
+    
+    for (let i = 0; i < tickCount; i++) {
+      const xPos = -gridExtent + (i / (tickCount - 1)) * (gridExtent * 2);
+      const tickGeom = new THREE.BufferGeometry();
+      const tickPositions = new Float32Array([
+        xPos, 0, 0,
+        xPos, tickHeight, 0
+      ]);
+      tickGeom.setAttribute('position', new THREE.BufferAttribute(tickPositions, 3));
+      const tickMat = new THREE.LineBasicMaterial({
+        color: tickColor,
+        transparent: true,
+        opacity: 0.15
+      });
+      const tick = new THREE.LineSegments(tickGeom, tickMat);
+      tickGroup.add(tick);
+    }
+    scene.add(tickGroup);
 
     // ── Horizon ring glow ─────────────────────────────────────────────────
     const ringGeo = new THREE.RingGeometry(1.5, 9, 80);
@@ -216,7 +241,15 @@ export default function WireframeMesh() {
     const stars = new THREE.Points(starGeo, starMaterial);
     scene.add(stars);
 
-    scene.add(new THREE.AmbientLight(0x1A1200, 1.0));
+    scene.add(new THREE.AmbientLight(0x1A1200, 0.8));
+    
+    // ── Directional light for glow distribution ────────────────────────────
+    // Positioned above and behind to highlight peaks in the mesh surface
+    const dirLight = new THREE.DirectionalLight(0xD4A017, 0.35);
+    dirLight.position.set(-2, 6, 3);
+    dirLight.target.position.set(0, 0.5, 0);
+    scene.add(dirLight);
+    scene.add(dirLight.target);
 
     // ── Input: mouse + touch parallax ─────────────────────────────────────
     const handleMouseMove = (e) => {
@@ -248,6 +281,43 @@ export default function WireframeMesh() {
       lastTime = now;
       time += delta;
 
+      // Volatility clustering — sharp spikes that decay fast
+      const baseVol = 1.0;
+      const volSpike = 0.4 * Math.pow(Math.sin(time * 0.3), 8);
+      const volatility = baseVol + volSpike;
+      const phase = time * 0.5;
+
+      // Update wireframe vertex positions with wave animation
+      const posAttr = wireGeometry.attributes.position;
+      const posArray = posAttr.array;
+      const step = (gridExtent * 2) / gridSize;
+      let vertexIndex = 0;
+
+      // Update horizontal lines
+      for (let j = 0; j <= gridSize; j++) {
+        const z = -gridExtent + j * step;
+        for (let i = 0; i < gridSize; i++) {
+          const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
+          posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
+          vertexIndex++;
+          posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
+          vertexIndex++;
+        }
+      }
+
+      // Update vertical lines
+      for (let i = 0; i <= gridSize; i++) {
+        const x = -gridExtent + i * step;
+        for (let j = 0; j < gridSize; j++) {
+          const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
+          posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
+          vertexIndex++;
+          posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
+          vertexIndex++;
+        }
+      }
+      posAttr.needsUpdate = true;
+
       // Camera parallax (every frame — math only, no GPU writes)
       const lerpK = 1 - Math.pow(0.97, delta * 60);
       const targetX = baseCamX + mouseRef.current.x * camTiltRange;
@@ -257,9 +327,10 @@ export default function WireframeMesh() {
       camera.lookAt(0, 1, 0);
 
       // Mesh + star rotation (every frame — cheap uniform updates, no buffer write)
-      wireframe.rotation.y += delta * 0.035;
-      stars.rotation.y = time * 0.016;
-      stars.rotation.x = time * 0.009;
+      // Reduced rotation speed by 30% for premium, deliberate feel: 0.035 → 0.0245
+      wireframe.rotation.y += delta * 0.0245;
+      stars.rotation.y = time * 0.0112;
+      stars.rotation.x = time * 0.0063;
       starMaterial.opacity = 0.30 + 0.18 * Math.sin(time * 1.2);
 
       // Opt 3: Particle position writes throttled to every 2nd frame.
@@ -356,6 +427,11 @@ export default function WireframeMesh() {
       particles.material.dispose();
       ringGeo.dispose();
       ringMat.dispose();
+      dirLight.dispose();
+      tickGroup.children.forEach(tick => {
+        tick.geometry.dispose();
+        tick.material.dispose();
+      });
       scene.clear();
 
       if (container.contains(renderer.domElement)) {
@@ -366,3 +442,6 @@ export default function WireframeMesh() {
 
   return <div ref={containerRef} className={styles.wireframeMeshContainer} />;
 }
+
+// Memoized to prevent re-renders from parent (e.g., countdown ticker)
+export default memo(WireframeMesh);

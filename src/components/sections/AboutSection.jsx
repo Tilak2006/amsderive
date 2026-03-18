@@ -4,27 +4,24 @@ const AboutSection = () => {
   return (
     <section id="about" className={styles.section}>
       <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>About AMS Derive</h2>
+        <h2 className={styles.sectionTitle}>About AMS DERIVE</h2>
         <div className={styles.grid}>
           <div className={styles.card}>
-            <div className={styles.cardTitle}>Quantitative Trading</div>
+            <div className={styles.cardTitle}>First Principles Thinking</div>
             <p className={styles.cardText}>
-              Experience the fast-paced world of high-frequency trading and derivatives. 
-              Develop strategies that survive market volatility.
+              Problems derived from probability theory, Bayesian inference, and market microstructure. No standard DSA templates applicable.
             </p>
           </div>
           <div className={styles.card}>
-            <div className={styles.cardTitle}>Mathematics</div>
+            <div className={styles.cardTitle}>Structured Problem Solving</div>
             <p className={styles.cardText}>
-              Apply advanced mathematical modeling to solve complex financial problems. 
-              From stochastic calculus to linear algebra.
+              Stochastic processes, options pricing, and reasoning under uncertainty. Build strategies that survive market constraints.
             </p>
           </div>
           <div className={styles.card}>
-            <div className={styles.cardTitle}>Algorithmic Thinking</div>
+            <div className={styles.cardTitle}>Derivation, Not Pattern Recognition</div>
             <p className={styles.cardText}>
-              Optimize your code for speed and efficiency. Every microsecond counts 
-              when competing in a simulated market environment.
+              AMS evaluates how you think, not just what you produce. Process matters. Reasoning ability. Communication.
             </p>
           </div>
         </div>

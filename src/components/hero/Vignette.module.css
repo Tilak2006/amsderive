@@ -19,12 +19,12 @@
 
     background:
         /* ── Layer 1: Primary radial vignette ── */
-        radial-gradient(ellipse 68% 58% at 50% 50%,
+        radial-gradient(ellipse 75% 65% at 50% 50%,
             transparent 0%,
             rgba(0, 0, 0, 0.08) 35%,
             rgba(0, 0, 0, 0.30) 62%,
             rgba(0, 0, 0, 0.62) 82%,
-            rgba(0, 0, 0, 0.82) 100%),
+            rgba(0, 0, 0, 0.70) 100%),
         /* ── Layer 2: Warm amber floor bloom (connects to Three.js ring) ── */
         radial-gradient(ellipse 55% 22% at 50% 92%,
             rgba(180, 100, 10, 0.09) 0%,
@@ -32,9 +32,9 @@
             transparent 100%),
         /* ── Layer 3: Top letterbox bar ── */
         linear-gradient(to bottom,
-            rgba(0, 0, 0, 0.45) 0%,
+            rgba(0, 0, 0, 0.25) 0%,
             rgba(0, 0, 0, 0.10) 8%,
-            transparent 22%),
+            transparent 30%),
         /* ── Layer 4: Bottom ground bar ── */
         linear-gradient(to top,
             rgba(0, 0, 0, 0.55) 0%,

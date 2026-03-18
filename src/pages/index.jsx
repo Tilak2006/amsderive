@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, Suspense } from 'react';
+import { memo, useCallback, useState, Suspense, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
@@ -12,7 +12,7 @@ import pageStyles from './index.module.css';
 // Three.js — must be client-only
 const WireframeMesh = dynamic(
   () => import('../components/hero/WireframeMesh'),
-  { ssr: false }
+  { ssr: false, loading: () => null }
 );
 
 // Pure decoration — no SSR value, keep out of initial bundle
@@ -55,7 +55,7 @@ const HeroContent = memo(function HeroContent() {
       <div className={styles.heroContent}>
         <div className={styles.titleGroup}>
           <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-          <p className={styles.subTitle}>Quantitative Trading &amp; Mathematical Competition</p>
+          <p className={styles.subTitle}>QUANTITATIVE FINANCE × COMPETITIVE PROGRAMMING</p>
         </div>
 
         <p className={styles.signupLabel}>
@@ -69,13 +69,19 @@ const HeroContent = memo(function HeroContent() {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   return (
     <>
       <Head>
-        <title>AMS-DERIVE — Quantitative Trading &amp; Mathematical Competition</title>
+        <title>AMS-DERIVE — Selecting Quantitative Thinkers</title>
         <meta
           name="description"
-          content="AMS-DERIVE is a premium competitive programming and quantitative trading contest."
+          content="AMS DERIVE identifies first-principles thinkers in quantitative finance and algorithmic problem solving through a 3-round competition."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
@@ -89,14 +95,16 @@ export default function LandingPage() {
         <span className={styles.heroTopoLabel} />
       </main>
 
-      <div className={pageStyles.contentSections}>
-        <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
-          <FadeInSection><AboutSection /></FadeInSection>
-          <FadeInSection><CompetitionSection /></FadeInSection>
-          <FadeInSection><TimelineSection /></FadeInSection>
-          <FadeInSection><WhoSection /></FadeInSection>
-        </Suspense>
-      </div>
+      {isHydrated && (
+        <div className={pageStyles.contentSections}>
+          <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
+            <FadeInSection><AboutSection /></FadeInSection>
+            <FadeInSection><CompetitionSection /></FadeInSection>
+            <FadeInSection><TimelineSection /></FadeInSection>
+            <FadeInSection><WhoSection /></FadeInSection>
+          </Suspense>
+        </div>
+      )}
 
       <Footer />
     </>

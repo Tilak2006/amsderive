@@ -13,18 +13,15 @@ import {
 } from '../firebase/firestoreService';
 import { uploadRegistrationFiles } from '../firebase/storageService';
 import { checkRateLimit } from '../utils/rateLimit';
-import { hashIp } from '../utils/hashIp';
+import { hashIp, createRateLimitFingerprint } from '../utils/hashIp';
 import PerformanceLogger from '../utils/performanceLogger';
+import { TIMEOUT_MS } from '../lib/constants';
 
 // Lazy load registration form to defer loading until page is rendered
 const RegistrationForm = dynamic(
   () => import('../components/form/RegistrationForm'),
   { ssr: false }
 );
-
-// Registration opens at April 20, 2026 00:00 IST = April 19, 2026 18:30 UTC
-const REGISTRATION_OPENS = new Date('2026-04-19T18:30:00Z');
-const TIMEOUT_MS = 50000;
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
@@ -35,41 +32,18 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
   ]);
 }
 
-/**
- * Check if admin bypass cookie is present.
- * This allows testing before the registration date.
- */
-function hasAdminBypass() {
-  if (typeof document === 'undefined') return false;
-  return document.cookie.includes('admin_bypass=1');
-}
-
 export default function Register() {
   const router = useRouter();
+  const [isHydrated, setIsHydrated] = useState(false);
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
   const [registrationClosed, setRegistrationClosed] = useState(false);
 
-  // Check date gate on mount
+  // Ensure hydration matches between server and client
   useEffect(() => {
-    const now = Date.now();
-    const registrationTime = REGISTRATION_OPENS.getTime();
-    const isOpen = now >= registrationTime || hasAdminBypass();
-
-    if (!isOpen) {
-      // Redirect to home if registration not open and no admin bypass
-      router.replace('/');
-    } else {
-      // Check if registration cap has been hit
-      checkRegistrationCap().then((result) => {
-        if (!result.allowed) {
-          setRegistrationClosed(true);
-          setErrorMessage(result.error || 'Registrations are now closed.');
-        }
-      });
-    }
-  }, [router]);
+    setIsHydrated(true);
+  }, []);
 
   async function handleSubmit(data, setFieldErrors) {
     setStatus('submitting');
@@ -82,24 +56,70 @@ export default function Register() {
         .replace(/[^a-zA-Z0-9]/g, '_')
         .toLowerCase();
 
-      // Step 2: Run independent checks in parallel (cap, duplicates, IP fetch)
-      const [capResult, dupResult, ipHash] = await PerformanceLogger.monitor(
+      // Step 2: Fetch IP and create device fingerprint for rate limiting
+      // (Ref: firebase-upload-safety skill - Rule 6: IP + User-Agent fingerprinting)
+      const fingerprint = await PerformanceLogger.monitor(
+        'IP Fetch & Fingerprint for Rate Limit',
+        (async () => {
+          try {
+            const ipRes = await fetch('/api/get-ip');
+            const ipData = await ipRes.json();
+            if (ipData.ip) {
+              // Get User-Agent from browser
+              const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown';
+              // Create fingerprint from IP + User-Agent (not just IP)
+              return await createRateLimitFingerprint(ipData.ip, userAgent);
+            }
+          } catch {
+            return 'unknown';
+          }
+          return 'unknown';
+        })()
+      );
+
+      // Step 3: CHECK RATE LIMIT FIRST - BEFORE any file operations
+      // (Ref: firebase-upload-safety skill - Rule 1)
+      const rateResult = await PerformanceLogger.monitor(
+        'Rate Limit Check (Before Upload)',
+        withTimeout(checkRateLimit(fingerprint))
+      );
+
+      if (!rateResult.allowed) {
+        setStatus('error');
+        setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
+        return;
+      }
+
+      // Step 4: CHECK REGISTRATION DATE GATE (server-side)
+      // (Ref: firebase-upload-safety skill - admin bypass moved to server)
+      // Gate check skips date if admin bypass cookie is active
+      const gateResult = await PerformanceLogger.monitor(
+        'Registration Gate Check',
+        withTimeout(
+          fetch('/api/check-registration-gate', { method: 'POST' }).then(r => {
+            if (r.status === 403) {
+              return { allowed: false, error: 'Registration has not opened yet.' };
+            }
+            if (r.status !== 200) {
+              return { allowed: false, error: 'Failed to verify registration status.' };
+            }
+            return r.json();
+          })
+        )
+      );
+
+      if (!gateResult.allowed) {
+        setStatus('error');
+        setErrorMessage(gateResult.error || 'Registration is not available.');
+        return;
+      }
+
+      // Step 5: Check cap and duplicates in parallel (safe, no file operations)
+      const [capResult, dupResult] = await PerformanceLogger.monitor(
         'Registration Pre-checks (Parallel)',
         Promise.all([
           withTimeout(checkRegistrationCap()),
           withTimeout(checkDuplicateRegistration(data.email, data.codeforcesHandle)),
-          (async () => {
-            try {
-              const ipRes = await fetch('/api/get-ip');
-              const ipData = await ipRes.json();
-              if (ipData.ip) {
-                return await hashIp(ipData.ip);
-              }
-            } catch {
-              return 'unknown';
-            }
-            return 'unknown';
-          })(),
         ])
       );
 
@@ -123,7 +143,7 @@ export default function Register() {
         return;
       }
 
-      // Step 3: Upload files
+      // Step 6: NOW upload files (rate limit already passed)
       const uploadResult = await PerformanceLogger.monitor(
         'File Upload',
         withTimeout(uploadRegistrationFiles(data.resumeFile, data.idCardFile, sanitizedName))
@@ -135,19 +155,7 @@ export default function Register() {
         return;
       }
 
-      // Step 4: Check rate limit
-      const rateResult = await PerformanceLogger.monitor(
-        'Rate Limit Check',
-        withTimeout(checkRateLimit(ipHash))
-      );
-
-      if (!rateResult.allowed) {
-        setStatus('error');
-        setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
-        return;
-      }
-
-      // Step 5: Submit to Firestore
+      // Step 7: Submit to Firestore
       const regResult = await PerformanceLogger.monitor(
         'Firestore Submission',
         withTimeout(
@@ -164,7 +172,7 @@ export default function Register() {
             linkedIn: data.linkedIn.trim() || null,
             gitHub: data.gitHub.trim() || null,
             dataConsent: data.dataConsent,
-            ipHash,
+            ipHash: fingerprint, // Device fingerprint (IP + User-Agent)
           })
         )
       );
@@ -190,6 +198,9 @@ export default function Register() {
         <title>Register — AMS-DERIVE</title>
         <meta name="description" content="Register for the AMS-DERIVE competitive programming contest." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Prevent search engine indexing (security: user data collection form) */}
+        {/* Ref: firebase-upload-safety skill - prevent public exposure of registration flow */}
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       
       <Navbar />
@@ -199,7 +210,7 @@ export default function Register() {
           <div className={styles.registerHeroContent}>
             <h1 className={styles.registerHeroTitle}>REGISTRATION</h1>
             <p className={styles.registerHeroSubtitle}>
-              Join AMS DERIVE
+              Signal-Generation System for First-Principles Thinkers
             </p>
           </div>
         </div>
@@ -229,14 +240,22 @@ export default function Register() {
                       fill="none"
                       aria-hidden="true"
                     >
-                      <circle cx="16" cy="16" r="16" fill="#D4AF37" />
-                      <path
-                        d="M9 16.5l5 5 9-9"
-                        stroke="#0a0a0a"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
+                      {/* Candlestick chart with 3 bars */}
+                      {/* Left bar - down */}
+                      <g>
+                        <line x1="6" y1="8" x2="6" y2="20" stroke="#D4AF37" strokeWidth="2" />
+                        <rect x="4" y="16" width="4" height="4" fill="#D4AF37" />
+                      </g>
+                      {/* Middle bar - up */}
+                      <g>
+                        <line x1="14" y1="12" x2="14" y2="24" stroke="#D4AF37" strokeWidth="2" />
+                        <rect x="12" y="12" width="4" height="12" fill="#D4AF37" />
+                      </g>
+                      {/* Right bar - up */}
+                      <g>
+                        <line x1="22" y1="10" x2="22" y2="22" stroke="#D4AF37" strokeWidth="2" />
+                        <rect x="20" y="10" width="4" height="12" fill="#D4AF37" />
+                      </g>
                     </svg>
                   </div>
                   <h3 className={styles.registerSuccessTitle}>Registration Received</h3>
@@ -246,10 +265,12 @@ export default function Register() {
                   </p>
                 </div>
               ) : (
-                <RegistrationForm
-                  onSubmit={handleSubmit}
-                  loading={status === 'submitting'}
-                />
+                isHydrated && (
+                  <RegistrationForm
+                    onSubmit={handleSubmit}
+                    loading={status === 'submitting'}
+                  />
+                )
               )}
             </div>
           </div>

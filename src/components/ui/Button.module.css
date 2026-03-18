@@ -13,7 +13,6 @@
   transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
   border: none;
-  will-change: transform;
 }
 
 .btn:disabled {
@@ -31,6 +30,7 @@
   background: #c9a84c;
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
+  will-change: transform;
 }
 
 .btnPrimary:active:not(:disabled) {

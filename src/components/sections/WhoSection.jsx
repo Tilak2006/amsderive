@@ -3,20 +3,20 @@ import styles from '../../styles/sections.module.css';
 const WhoSection = () => {
   const categories = [
     {
+      title: 'First-Principles Thinkers',
+      desc: 'Anyone who derives solutions from fundamentals rather than templates. Probability, Bayesian reasoning, market microstructure.'
+    },
+    {
       title: 'Competitive Programmers',
-      desc: 'Top-tier coders who thrive under pressure and enjoy solving algorithmic puzzles.'
+      desc: 'Top-tier algorithmic problem solvers. ICPC, IOI, or Codeforces experience. Ready for novel problem structures.'
     },
     {
       title: 'Mathematics Students',
-      desc: 'Analytical minds with a strong foundation in probability, statistics, and calculus.'
+      desc: 'Strong foundation in probability, stochastic processes, statistics. Analytical minds who think in first principles.'
     },
     {
-      title: 'Quant Enthusiasts',
-      desc: 'Aspiring quantitative researchers and traders interested in financial markets.'
-    },
-    {
-      title: 'Finance Engineers',
-      desc: 'Engineers who want to build the next generation of financial technology and systems.'
+      title: 'Quant Researchers',
+      desc: 'Aspiring quantitative researchers and traders. Interested in signal generation, not just pattern recognition.'
     }
   ];
 

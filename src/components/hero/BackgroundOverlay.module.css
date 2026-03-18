@@ -20,7 +20,8 @@
   z-index: 2;
   pointer-events: none;
   overflow: hidden;
-  opacity: 0.60;
+  opacity: 0.72;
+  contain: strict;
 }
 
 .svg {
@@ -58,6 +59,7 @@
   fill: #D4AF37;
   opacity: 0;
   animation: dotAppear 6s ease-in-out infinite;
+  will-change: opacity;
 }
 
 /* ── Scan lines ──────────────────────────────────────────────────────────── */
@@ -67,6 +69,7 @@
   stroke-width: 0.4;
   opacity: 0.05;
   animation: scanDrift 9s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* ── Path animations ─────────────────────────────────────────────────────── */
@@ -75,6 +78,7 @@
   stroke-dasharray: 1200;
   stroke-dashoffset: 1200;
   animation: draw 18s linear infinite;
+  opacity: 0.35 !important;
 }
 
 .animatePathSlow {
@@ -156,7 +160,7 @@
   }
 
   20% {
-    opacity: 0.28;
+    opacity: 0.40;
     r: 2.5;
   }
 
@@ -181,7 +185,7 @@
 @media (max-width: 768px) {
   .overlayContainer {
     /* Slightly lower opacity on mobile; the vignette is stronger there */
-    opacity: 0.45;
+    opacity: 0.55;
   }
 
   /* Hide complex equations on mobile for clarity */

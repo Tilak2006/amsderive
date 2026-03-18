@@ -30,8 +30,9 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 32px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  align-items: stretch;
 }
 
 .gridFour {
@@ -43,13 +44,14 @@
 .card {
   background: #0e0e0e;
   border: 1px solid rgba(212, 175, 55, 0.15);
-  padding: 48px 40px;
+  padding: 28px 28px;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   border-radius: 2px;
   will-change: transform;
+  height: 100%;
 }
 
 .card:hover {
@@ -77,9 +79,18 @@
   text-transform: uppercase;
 }
 
+.cardSubtitle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #f0ede6;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
+  margin-top: -4px;
+}
+
 .cardText {
   font-family: var(--font-sans);
-  font-size: 1rem;
+  font-size: 0.85rem;
   color: #a0a0a0;
   line-height: 1.625;
 }

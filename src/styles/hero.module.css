@@ -79,17 +79,6 @@
   display: inline-block;
 }
 
-.subTitle::after {
-  content: '';
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: clamp(40px, 15vw, 60px);
-  height: 1px;
-  background: #D4AF37;
-}
-
 .signupLabel {
   font-family: var(--font-mono), monospace;
   font-size: clamp(0.65rem, 2vw, 0.875rem);

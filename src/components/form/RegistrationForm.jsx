@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TextInput from './TextInput';
 import UniversitySelect from './UniversitySelect';
 import FileUpload from './FileUpload';
@@ -17,8 +17,9 @@ import { validateFileType, validateFileSize } from '../../utils/fileValidation';
 import { debounceValidation, cancelValidation } from '../../utils/formOptimization';
 
 const RESUME_ALLOWED_TYPES = ['application/pdf'];
-const ID_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4MB
+const RESUME_MAX_SIZE = 400 * 1024; // 400KB
+const ID_ALLOWED_TYPES = ['application/pdf'];
+const ID_MAX_SIZE = 100 * 1024; // 100KB
 
 /**
  * Registration form collecting participant information.
@@ -123,7 +124,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     }
   }
 
-  function validateAll() {
+  const validateAll = useCallback(() => {
     const newErrors = {};
 
     // Full name validation
@@ -160,10 +161,10 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     } else {
       const resumeTypeResult = validateFileType(resumeFile, RESUME_ALLOWED_TYPES);
       if (!resumeTypeResult.valid) {
-        newErrors.resume = 'Resume must be a PDF file';
+        newErrors.resume = 'Resume must be a PDF';
       } else {
-        const resumeSizeResult = validateFileSize(resumeFile, MAX_FILE_SIZE);
-        if (!resumeSizeResult.valid) newErrors.resume = resumeSizeResult.error;
+        const resumeSizeResult = validateFileSize(resumeFile, RESUME_MAX_SIZE);
+        if (!resumeSizeResult.valid) newErrors.resume = 'Resume must be under 400KB';
       }
     }
 
@@ -173,10 +174,10 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     } else {
       const idTypeResult = validateFileType(idCardFile, ID_ALLOWED_TYPES);
       if (!idTypeResult.valid) {
-        newErrors.idCard = 'ID card must be PDF, JPG, or PNG';
+        newErrors.idCard = 'ID card must be a PDF';
       } else {
-        const idSizeResult = validateFileSize(idCardFile, MAX_FILE_SIZE);
-        if (!idSizeResult.valid) newErrors.idCard = idSizeResult.error;
+        const idSizeResult = validateFileSize(idCardFile, ID_MAX_SIZE);
+        if (!idSizeResult.valid) newErrors.idCard = 'ID card must be under 100KB';
       }
     }
 
@@ -186,7 +187,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     }
 
     return newErrors;
-  }
+  }, [fields, resumeFile, idCardFile]);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -216,6 +217,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
 
   return (
     <form className={styles.registrationForm} onSubmit={handleSubmit} noValidate>
+      <div className={styles.terminalLabel}>$ ams-derive-register</div>
+      <div className={styles.terminalForm}>
       {/* Personal Details Section - 2 Column */}
       <div className={styles.formGridRow}>
         <TextInput
@@ -306,16 +309,18 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         onFileSelect={handleResumeSelect}
         error={errors.resume}
         file={resumeFile}
+        hint="PDF only, max 400KB"
         required
       />
 
       <FileUpload
         label="ID Card"
         name="idCard"
-        accept="application/pdf,image/jpeg,image/png"
+        accept="application/pdf"
         onFileSelect={handleIdCardSelect}
         error={errors.idCard}
         file={idCardFile}
+        hint="PDF only, max 100KB"
         required
       />
 
@@ -352,6 +357,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           'Submit Registration'
         )}
       </Button>
+      </div>
     </form>
   );
 }

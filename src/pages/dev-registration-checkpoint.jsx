@@ -12,16 +12,15 @@ import {
 } from '../firebase/firestoreService';
 import { uploadRegistrationFiles } from '../firebase/storageService';
 import { checkRateLimit } from '../utils/rateLimit';
-import { hashIp } from '../utils/hashIp';
+import { hashIp, createRateLimitFingerprint } from '../utils/hashIp';
 import PerformanceLogger from '../utils/performanceLogger';
+import { TIMEOUT_MS } from '../lib/constants';
 
 // Lazy load registration form to defer loading until page is rendered
 const RegistrationForm = dynamic(
   () => import('../components/form/RegistrationForm'),
   { ssr: false }
 );
-
-const TIMEOUT_MS = 50000;
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
@@ -49,24 +48,70 @@ export default function DevRegistrationCheckpoint() {
         .replace(/[^a-zA-Z0-9]/g, '_')
         .toLowerCase();
 
-      // Step 2: Run independent checks in parallel (cap, duplicates, IP fetch)
-      const [capResult, dupResult, ipHash] = await PerformanceLogger.monitor(
+      // Step 2: Fetch IP and create device fingerprint for rate limiting
+      // (Ref: firebase-upload-safety skill - Rule 6: IP + User-Agent fingerprinting)
+      const fingerprint = await PerformanceLogger.monitor(
+        'IP Fetch & Fingerprint for Rate Limit',
+        (async () => {
+          try {
+            const ipRes = await fetch('/api/get-ip');
+            const ipData = await ipRes.json();
+            if (ipData.ip) {
+              // Get User-Agent from browser
+              const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown';
+              // Create fingerprint from IP + User-Agent (not just IP)
+              return await createRateLimitFingerprint(ipData.ip, userAgent);
+            }
+          } catch {
+            return 'unknown';
+          }
+          return 'unknown';
+        })()
+      );
+
+      // Step 3: CHECK RATE LIMIT FIRST - BEFORE any file operations
+      // (Ref: firebase-upload-safety skill - Rule 1)
+      const rateResult = await PerformanceLogger.monitor(
+        'Rate Limit Check (Before Upload)',
+        withTimeout(checkRateLimit(fingerprint))
+      );
+
+      if (!rateResult.allowed) {
+        setStatus('error');
+        setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
+        return;
+      }
+
+      // Step 4: CHECK REGISTRATION DATE GATE (server-side)
+      // (Ref: firebase-upload-safety skill - admin bypass moved to server)
+      // Gate check skips date if admin bypass cookie is active
+      const gateResult = await PerformanceLogger.monitor(
+        'Registration Gate Check',
+        withTimeout(
+          fetch('/api/check-registration-gate', { method: 'POST' }).then(r => {
+            if (r.status === 403) {
+              return { allowed: false, error: 'Registration has not opened yet.' };
+            }
+            if (r.status !== 200) {
+              return { allowed: false, error: 'Failed to verify registration status.' };
+            }
+            return r.json();
+          })
+        )
+      );
+
+      if (!gateResult.allowed) {
+        setStatus('error');
+        setErrorMessage(gateResult.error || 'Registration is not available.');
+        return;
+      }
+
+      // Step 5: Check cap and duplicates in parallel (safe, no file operations)
+      const [capResult, dupResult] = await PerformanceLogger.monitor(
         'Registration Pre-checks (Parallel)',
         Promise.all([
           withTimeout(checkRegistrationCap()),
           withTimeout(checkDuplicateRegistration(data.email, data.codeforcesHandle)),
-          (async () => {
-            try {
-              const ipRes = await fetch('/api/get-ip');
-              const ipData = await ipRes.json();
-              if (ipData.ip) {
-                return await hashIp(ipData.ip);
-              }
-            } catch {
-              return 'unknown';
-            }
-            return 'unknown';
-          })(),
         ])
       );
 
@@ -90,7 +135,7 @@ export default function DevRegistrationCheckpoint() {
         return;
       }
 
-      // Step 3: Upload files
+      // Step 6: NOW upload files (rate limit already passed)
       const uploadResult = await PerformanceLogger.monitor(
         'File Upload',
         withTimeout(uploadRegistrationFiles(data.resumeFile, data.idCardFile, sanitizedName))
@@ -102,19 +147,7 @@ export default function DevRegistrationCheckpoint() {
         return;
       }
 
-      // Step 4: Check rate limit
-      const rateResult = await PerformanceLogger.monitor(
-        'Rate Limit Check',
-        withTimeout(checkRateLimit(ipHash))
-      );
-
-      if (!rateResult.allowed) {
-        setStatus('error');
-        setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
-        return;
-      }
-
-      // Step 5: Submit to Firestore
+      // Step 7: Submit to Firestore
       const regResult = await PerformanceLogger.monitor(
         'Firestore Submission',
         withTimeout(
@@ -131,7 +164,7 @@ export default function DevRegistrationCheckpoint() {
             linkedIn: data.linkedIn.trim() || null,
             gitHub: data.gitHub.trim() || null,
             dataConsent: data.dataConsent,
-            ipHash,
+            ipHash: fingerprint, // Device fingerprint (IP + User-Agent)
           })
         )
       );

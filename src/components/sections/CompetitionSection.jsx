@@ -4,30 +4,30 @@ const CompetitionSection = () => {
   return (
     <section id="competition" className={styles.section}>
       <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>Competition Format</h2>
+        <h2 className={styles.sectionTitle}>3-Round Structure</h2>
         <div className={styles.grid}>
           <div className={styles.card}>
             <div className={styles.cardIcon}>01</div>
-            <div className={styles.cardTitle}>Mathematical Modeling</div>
+            <div className={styles.cardTitle}>PRIOR</div>
+            <div className={styles.cardSubtitle}>Online Qualifier · May 23, 2026</div>
             <p className={styles.cardText}>
-              A rigorous round focused on derivatives pricing, risk management, and 
-              statistical arbitrage theory.
+              ICPC format on Codeforces Gym. Individual participation. Problems derived from first principles in probability theory, Bayesian inference, and market microstructure.
             </p>
           </div>
           <div className={styles.card}>
             <div className={styles.cardIcon}>02</div>
-            <div className={styles.cardTitle}>Algorithmic Trading</div>
+            <div className={styles.cardTitle}>POSTERIOR</div>
+            <div className={styles.cardSubtitle}>Online Prelims · June 21, 2026</div>
             <p className={styles.cardText}>
-              Implement and backtest high-frequency strategies on historical 
-              market data using our proprietary engine.
+              Harder problem set by external problem-setters. Stochastic processes, options pricing, probability under market constraints. Filters verified Round 1 performers.
             </p>
           </div>
           <div className={styles.card}>
             <div className={styles.cardIcon}>03</div>
-            <div className={styles.cardTitle}>Market Simulation</div>
+            <div className={styles.cardTitle}>CONVERGENCE</div>
+            <div className={styles.cardSubtitle}>Offline Finals · July 11, 2026</div>
             <p className={styles.cardText}>
-              The final round where your algorithms compete in real-time against 
-              other participants in a live simulated exchange.
+              Two components: Chess and Poker under evaluation conditions, then a quant build challenge with real market data under p99 latency constraints. Teams of 3. Problem co-designed with Apex Partner.
             </p>
           </div>
         </div>

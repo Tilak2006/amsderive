@@ -1,6 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, initializeFirestore, persistentLocalCache } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -13,17 +14,15 @@ const firebaseConfig = {
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
-// Initialize Firestore with modern cache settings (replaces deprecated enableIndexedDbPersistence)
-// Persistent cache provides offline support with IndexedDB fallback
 let db;
 try {
   db = initializeFirestore(app, {
     cache: persistentLocalCache(),
   });
 } catch (err) {
-  // Already initialized in another context, get existing instance
   db = getFirestore(app);
 }
 
 export { db };
 export const storage = getStorage(app);
+export const auth = getAuth(app);

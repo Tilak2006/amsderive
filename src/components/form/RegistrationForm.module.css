@@ -5,6 +5,27 @@
   width: 100%;
   max-width: 720px;
   margin: 0 auto;
+  font-family: var(--font-mono), monospace;
+  border-left: 4px solid #D4AF37;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(212, 175, 55, 0.02));
+  padding: 0;
+}
+
+.terminalLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #D4AF37;
+  letter-spacing: 0.15em;
+  padding: 1rem 1.25rem 0 1.25rem;
+  text-transform: lowercase;
+}
+
+.terminalForm {
+  padding: 1rem 1.25rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
 /* Two-column grid for field pairs */

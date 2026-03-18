@@ -14,13 +14,11 @@ import styles from './BackgroundOverlay.module.css';
  *  - Memoized: zero re-renders during countdown updates
  */
 const BackgroundOverlay = memo(() => {
-  // Pre-generated scatter: 28 faint data points suggesting a price cloud
+  // Pre-generated scatter: 16 faint data points (reduced from 28 for performance)
   const scatter = [
     [80, 480], [145, 510], [210, 465], [275, 530], [340, 490], [400, 555],
     [460, 470], [520, 540], [580, 500], [640, 560], [700, 480], [755, 525],
     [820, 490], [880, 545], [935, 510], [970, 480],
-    [100, 430], [190, 595], [310, 415], [430, 620], [560, 440], [670, 610],
-    [790, 430], [900, 600], [250, 640], [480, 390], [720, 650], [850, 375],
   ];
 
   return (

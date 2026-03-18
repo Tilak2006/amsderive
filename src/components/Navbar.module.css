@@ -45,7 +45,14 @@
   letter-spacing: 0.15em;
   text-decoration: none;
   cursor: pointer;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.3s ease, filter 0.3s ease, text-shadow 0.3s ease;
+}
+
+@media (hover: hover) {
+  .logo:hover {
+    text-decoration: none;
+    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4));
+  }
 }
 
 .notifyBtn {
@@ -72,6 +79,7 @@
     background: #0a0a0a;
     color: #D4AF37;
     border: 1px solid #D4AF37;
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
   }
 }
 
@@ -79,12 +87,6 @@
   .notifyBtn {
     transition: none;
   }
-}
-
-.notifyBtn:hover {
-  background: #e0c050;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
-  transform: translateY(-1px);
 }
 
 @media (max-width: 768px) {

@@ -9,7 +9,7 @@ const Footer = () => {
           <div className={styles.brandCol}>
             <h2 className={styles.brandName}>AMS</h2>
             <p className={styles.brandDesc}>
-              Exploring the space where deep algorithmic thinking meets quantitative finance.
+              A signal-generation system identifying first-principles thinkers in quantitative finance, research, and algorithmic problem solving.
             </p>
             <div className={styles.socials}>
               {/* GitHub */}

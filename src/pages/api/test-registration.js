@@ -16,8 +16,11 @@ export default function handler(req, res) {
   const adminKey = req.headers['x-admin-key'];
   const expectedKey = process.env.ADMIN_KEY;
 
+  // Ref: firebase-upload-safety skill (Rule 3: Admin 404, not 500)
+  // If admin key is not configured, return 404 (endpoint not available)
+  // not 500 (internal error) — prevents information disclosure
   if (!expectedKey) {
-    return res.status(500).json({ error: 'Admin key not configured' });
+    return res.status(404).json({ error: 'Not Found' });
   }
 
   if (!adminKey || adminKey !== expectedKey) {

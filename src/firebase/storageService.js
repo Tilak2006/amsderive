@@ -1,9 +1,38 @@
 import { storage } from './firebaseConfig';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { compressFile } from '../utils/fileCompression';
 
 /**
- * Upload a file to Firebase Storage with compression.
+ * Validate storage URL before using or storing in Firestore.
+ * Ref: firebase-upload-safety skill (Rule 5)
+ * @throws {Error} if URL is invalid or malicious
+ */
+function validateStorageUrl(url) {
+  // Must be HTTPS
+  if (!url.startsWith('https://')) {
+    throw new Error('Storage URL must use HTTPS.');
+  }
+
+  // Must contain Firebase storage domain
+  const validDomains = [
+    'firebasestorage.googleapis.com',
+    'storage.googleapis.com',
+  ];
+  if (!validDomains.some(domain => url.includes(domain))) {
+    throw new Error('Invalid storage URL domain.');
+  }
+
+  // No path traversal
+  if (url.includes('..') || url.includes('\\')) {
+    throw new Error('URL contains invalid path characters.');
+  }
+
+  return true;
+}
+
+/**
+ * Upload a file to Firebase Storage WITHOUT compression.
+ * Always upload raw files to preserve MIME type validation.
+ * Ref: firebase-upload-safety skill (Rule 2: no compression)
  * @param {File} file - The file to upload.
  * @param {string} path - The storage path (e.g. "registrations/filename.pdf").
  * @param {Function} onProgress - Optional progress callback.
@@ -11,23 +40,26 @@ import { compressFile } from '../utils/fileCompression';
  */
 export async function uploadFile(file, path, onProgress) {
   try {
-    // Compress file for faster transmission (70-80% smaller)
-    const compressedFile = await compressFile(file);
-    
+    // Upload raw file (no compression)
+    // MIME type must be preserved for validation
     const storageRef = ref(storage, path);
     
     // uploadBytes returns immediately after queuing
-    const snapshot = await uploadBytes(storageRef, compressedFile, {
+    const snapshot = await uploadBytes(storageRef, file, {
+      contentType: file.type, // Explicitly set MIME type
       customMetadata: {
         original_name: file.name,
         original_size: file.size.toString(),
-        compressed_size: compressedFile.size.toString(),
       },
     });
 
     if (onProgress) onProgress({ loaded: 1, total: 1 });
 
     const url = await getDownloadURL(storageRef);
+    
+    // Validate URL before returning (Rule 5: Validate URLs)
+    validateStorageUrl(url);
+    
     return { success: true, url };
   } catch (error) {
     return { success: false, error: error.message };
@@ -50,10 +82,11 @@ export async function getFileUrl(path) {
 }
 
 /**
- * Upload registration files (resume and ID card) in parallel with compression.
- * Ultra-fast with 70-80% smaller payloads.
+ * Upload registration files (resume and ID card) in parallel.
+ * Always uploads raw files (no compression) to preserve MIME types.
+ * Ref: firebase-upload-safety skill (implemented rules 1-6)
  * @param {File} resumeFile - PDF file
- * @param {File} idCardFile - PDF, JPG, or PNG file
+ * @param {File} idCardFile - PDF file
  * @param {string} sanitizedName - Sanitized participant name for path
  * @returns {Promise<{success: boolean, resumeUrl?: string, idCardUrl?: string, resumeFileName?: string, idCardFileName?: string, error?: string}>}
  */
@@ -62,13 +95,11 @@ export async function uploadRegistrationFiles(resumeFile, idCardFile, sanitizedN
     const timestamp = Date.now();
     const resumePath = `registrants/${timestamp}_${sanitizedName}_resume.pdf`;
     
-    // Get file extension for ID card
-    const idExtension = idCardFile.type === 'application/pdf' ? '.pdf' : 
-                       idCardFile.type === 'image/jpeg' ? '.jpg' : '.png';
-    const idPath = `registrants/${timestamp}_${sanitizedName}_id${idExtension}`;
+    // ID card must be PDF per file-safety rules
+    const idPath = `registrants/${timestamp}_${sanitizedName}_id.pdf`;
 
-    // Upload both files in parallel with compression
-    // This reduces file sizes by 70-80%, making uploads 3-5x faster
+    // Upload both files in parallel (raw, no compression)
+    // MIME type preserved for client and server-side validation
     const [resumeResult, idResult] = await Promise.all([
       uploadFile(resumeFile, resumePath),
       uploadFile(idCardFile, idPath),

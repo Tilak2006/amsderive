@@ -3,27 +3,22 @@ import {
   collection,
   addDoc,
   doc,
+  updateDoc,
   query,
   where,
   getDocs,
   getCountFromServer,
+  orderBy,
+  limit,
+  startAfter,
   runTransaction,
   serverTimestamp,
+  Timestamp,
 } from 'firebase/firestore';
 
 // ── Hard cap ───────────────────────────────────────────────────────────────
-// Maximum registrations accepted. Stops Firestore writes entirely once
-// this number is hit — protects your Blaze quota during a burst and
-// prevents runaway billing if registrations are flooded.
 const MAX_REGISTRATIONS = 2500;
 
-/**
- * Check whether total registrations have hit the hard cap.
- * Uses getCountFromServer() — a single aggregation read (not a full scan),
- * costs 1 Firestore read regardless of collection size.
- *
- * @returns {Promise<{allowed: boolean, error?: string}>}
- */
 export async function checkRegistrationCap() {
   try {
     const snapshot = await getCountFromServer(collection(db, 'registrants'));
@@ -33,20 +28,10 @@ export async function checkRegistrationCap() {
     }
     return { allowed: true };
   } catch (error) {
-    // Fail open — if the count check errors, don't block the user.
-    // The Firestore rules are the real enforcement layer.
     return { allowed: true };
   }
 }
 
-/**
- * Check whether a Codeforces or CodeChef handle is already registered.
- * Queries run in parallel to minimize latency.
- *
- * @param {string} cfHandle
- * @param {string} ccHandle
- * @returns {Promise<{duplicate: boolean, error?: string}>}
- */
 export async function checkDuplicateHandle(cfHandle, ccHandle) {
   try {
     const registrationsRef = collection(db, 'registrants');
@@ -71,18 +56,15 @@ export async function checkDuplicateHandle(cfHandle, ccHandle) {
   }
 }
 
-/**
- * Check whether an email or Codeforces handle is already registered.
- * Queries run in parallel to minimize latency.
- *
- * @param {string} email
- * @param {string} cfHandle
- * @returns {Promise<{duplicate: boolean, error?: string}>}
- */
 export async function checkDuplicateRegistration(email, cfHandle) {
   try {
+    // Ref: firebase-upload-safety skill (Rule 4: Email case-insensitive)
+    // Normalize email to lowercase for consistent comparison
+    const normalizedEmail = email.toLowerCase().trim();
+    
     const registrationsRef = collection(db, 'registrants');
-    const emailQuery = query(registrationsRef, where('email', '==', email.toLowerCase().trim()));
+    // Query against emailLower field to ensure case-insensitive matching
+    const emailQuery = query(registrationsRef, where('emailLower', '==', normalizedEmail));
     const cfQuery = query(registrationsRef, where('codeforcesHandle', '==', cfHandle));
 
     const [emailSnapshot, cfSnapshot] = await Promise.all([
@@ -103,19 +85,15 @@ export async function checkDuplicateRegistration(email, cfHandle) {
   }
 }
 
-/**
- * Submit a registration entry to Firestore.
- * submittedAt uses serverTimestamp() — the Firestore rules enforce that
- * this equals request.time, so clients cannot fake a past/future timestamp.
- *
- * @param {Object} data
- * @returns {Promise<{success: boolean, id?: string, error?: string}>}
- */
 export async function submitRegistration(data) {
   try {
+    // Ref: firebase-upload-safety skill (Rule 4: Email case-insensitive)
+    const normalizedEmail = data.email.toLowerCase().trim();
+    
     const docRef = await addDoc(collection(db, 'registrants'), {
       fullName: data.fullName,
-      email: data.email.toLowerCase().trim(),
+      email: normalizedEmail,                    // Primary email field
+      emailLower: normalizedEmail,               // Index copy for case-insensitive queries
       university: data.university,
       resumeUrl: data.resumeUrl,
       resumeFileName: data.resumeFileName,
@@ -136,29 +114,7 @@ export async function submitRegistration(data) {
   }
 }
 
-/**
- * Check whether the given hashed IP has exceeded the rate limit.
- * Allows max 3 submissions per hour per IP hash.
- *
- * Security note:
- *   This runs as a client SDK transaction, which means a determined attacker
- *   who reads the Firestore rules could attempt to manipulate _rate_limits
- *   directly. The rules now prevent deletes and validate structure, making
- *   this significantly harder to bypass.
- *
- *   For bulletproof rate limiting, enable Firebase App Check:
- *   https://firebase.google.com/docs/app-check
- *   App Check uses reCAPTCHA v3 to verify requests come from your actual
- *   web app — not from bots, scripts, or direct API calls. It requires
- *   zero auth from the user and works transparently in the background.
- *   Setup takes ~30 minutes and is free on all Firebase plans.
- *
- * @param {string} hashedIp - SHA-256 hex hash of the client IP
- * @returns {Promise<{allowed: boolean, error?: string}>}
- */
 export async function checkRateLimit(hashedIp) {
-  // Client-side pre-check: if the hash doesn't look valid, reject immediately
-  // without touching Firestore. Prevents garbage doc IDs in _rate_limits.
   if (!hashedIp || !/^[a-f0-9]{64}$/.test(hashedIp)) {
     return { allowed: false, error: 'Invalid request.' };
   }
@@ -176,15 +132,12 @@ export async function checkRateLimit(hashedIp) {
         timestamps = rateLimitDoc.data().timestamps || [];
       }
 
-      // Only keep timestamps from the last hour
       const recent = timestamps.filter((ts) => ts > oneHourAgo);
 
       if (recent.length >= MAX_PER_HOUR) {
         return { allowed: false };
       }
 
-      // Append current timestamp — the rules enforce max 10 entries
-      // and only allow the 'timestamps' field, so this is the only valid write.
       recent.push(Date.now());
       transaction.set(rateLimitRef, { timestamps: recent });
 
@@ -193,8 +146,115 @@ export async function checkRateLimit(hashedIp) {
 
     return result;
   } catch (error) {
-    // If the transaction fails (e.g. rules block a malformed write),
-    // fail closed — don't allow the submission.
     return { allowed: false, error: 'Rate limit check failed. Please try again.' };
+  }
+}
+
+// ── Admin Functions ────────────────────────────────────────────────────────
+
+/**
+ * Fetch paginated registrants ordered by submittedAt desc.
+ * Costs 1 read per document returned.
+ *
+ * @param {DocumentSnapshot|null} lastDoc - cursor for pagination
+ * @returns {Promise<{registrants: Array, lastDoc: DocumentSnapshot|null, hasMore: boolean}>}
+ */
+export async function getAllRegistrants(lastDoc = null) {
+  try {
+    const PAGE_SIZE = 50;
+    const registrantsRef = collection(db, 'registrants');
+
+    let q = query(registrantsRef, orderBy('submittedAt', 'desc'), limit(PAGE_SIZE + 1));
+    if (lastDoc) {
+      q = query(registrantsRef, orderBy('submittedAt', 'desc'), startAfter(lastDoc), limit(PAGE_SIZE + 1));
+    }
+
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs;
+    const hasMore = docs.length > PAGE_SIZE;
+    const pageDocs = hasMore ? docs.slice(0, PAGE_SIZE) : docs;
+
+    const registrants = pageDocs.map((d) => {
+      const data = d.data();
+      return {
+        id: d.id,
+        fullName: data.fullName || '',
+        email: data.email || '',
+        university: data.university || '',
+        codeforcesHandle: data.codeforcesHandle || '',
+        codechefHandle: data.codechefHandle || null,
+        dataConsent: data.dataConsent || false,
+        submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : null,
+        status: data.status || 'pending',
+        resumeUrl: data.resumeUrl || null,
+        resumeFileName: data.resumeFileName || null,
+        idCardUrl: data.idCardUrl || null,
+        idCardFileName: data.idCardFileName || null,
+        // Mask IP hash — last 8 chars only
+        ipHash: data.ipHash ? '••••••••' + data.ipHash.slice(-8) : '—',
+      };
+    });
+
+    return {
+      registrants,
+      lastDoc: hasMore ? pageDocs[pageDocs.length - 1] : null,
+      hasMore,
+    };
+  } catch (error) {
+    return { registrants: [], lastDoc: null, hasMore: false, error: error.message };
+  }
+}
+
+/**
+ * Update only the status field of a registrant.
+ * Firestore rules enforce that only 'status' can be updated by auth users.
+ *
+ * @param {string} docId
+ * @param {'pending'|'approved'|'rejected'} status
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function updateRegistrantStatus(docId, status) {
+  try {
+    const docRef = doc(db, 'registrants', docId);
+    await updateDoc(docRef, { status });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Get aggregate stats for the admin dashboard.
+ * Uses getCountFromServer() — 1 read per query, never a full scan.
+ *
+ * @returns {Promise<{total: number, consentGiven: number, pending: number, today: number}>}
+ */
+export async function getRegistrantStats() {
+  try {
+    const registrantsRef = collection(db, 'registrants');
+
+    // Today at 00:00 IST = UTC+5:30 = subtract 5.5 hours from midnight IST
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const todayIST = new Date(now.getTime() + istOffset);
+    todayIST.setUTCHours(0, 0, 0, 0);
+    const todayUTC = new Date(todayIST.getTime() - istOffset);
+    const todayTimestamp = Timestamp.fromDate(todayUTC);
+
+    const [totalSnap, consentSnap, pendingSnap, todaySnap] = await Promise.all([
+      getCountFromServer(registrantsRef),
+      getCountFromServer(query(registrantsRef, where('dataConsent', '==', true))),
+      getCountFromServer(query(registrantsRef, where('status', '==', 'pending'))),
+      getCountFromServer(query(registrantsRef, where('submittedAt', '>=', todayTimestamp))),
+    ]);
+
+    return {
+      total: totalSnap.data().count,
+      consentGiven: consentSnap.data().count,
+      pending: pendingSnap.data().count,
+      today: todaySnap.data().count,
+    };
+  } catch (error) {
+    return { total: 0, consentGiven: 0, pending: 0, today: 0 };
   }
 }

@@ -5,22 +5,22 @@ const TimelineSection = () => {
     {
       date: 'APRIL 20, 2026',
       title: 'Registrations Open',
-      desc: 'Participant registrations begin.'
+      desc: 'Free to participate. Open to all.'
     },
     {
       date: 'MAY 23, 2026',
       title: 'Round 1: PRIOR',
-      desc: 'Online qualification round focused on derivatives and math.'
+      desc: 'Online qualification. Probability theory, Bayesian inference, market microstructure.'
     },
     {
       date: 'JUNE 21, 2026',
       title: 'Round 2: POSTERIOR',
-      desc: 'Advanced round for top performers.'
+      desc: 'Advanced round. Stochastic processes, options pricing. Filters verified Round 1 performers.'
     },
     {
       date: 'JULY 11, 2026',
-      title: 'Finals: CONVERGENCE',
-      desc: 'Onsite coding round for the top competitors.'
+      title: 'Round 3: CONVERGENCE',
+      desc: 'Finals. Teams of 3. Chess, Poker, quant build challenge. Quant firm evaluation.'
     }
   ];
 

@@ -1,9 +1,9 @@
 import { Html, Head, Main, NextScript } from 'next/document';
-import { ptSerif, ibmPlexMono, inter, jetBrainsMono } from '../lib/fonts';
+import { ptSerif, ibmPlexMono } from '../lib/fonts';
 
 export default function Document() {
   return (
-    <Html lang="en" className={`${ptSerif.variable} ${ibmPlexMono.variable} ${inter.variable} ${jetBrainsMono.variable}`}>
+    <Html lang="en" className={`${ptSerif.variable} ${ibmPlexMono.variable}`}>
       <Head>
         <meta name="theme-color" content="#0a0a0a" />
         
