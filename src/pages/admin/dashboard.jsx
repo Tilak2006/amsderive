@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import {
-  getAllRegistrants,
-  getRegistrantStats,
   updateRegistrantStatus,
 } from '../../firebase/firestoreService';
 import styles from '../../styles/admin.module.css';
@@ -47,6 +45,11 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
+async function getAuthHeader() {
+  const token = await auth.currentUser?.getIdToken();
+  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -78,32 +81,50 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [router]);
 
+  const loadInitial = useCallback(async () => {
+    setLoadingData(true);
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/admin/get-registrants', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ lastDocId: null }),
+    });
+    const result = await res.json();
+    setRegistrants(result.registrants || []);
+    setLastDoc(result.lastDocId);
+    setHasMore(result.hasMore);
+    setLoadingData(false);
+  }, []);
+
+  const loadStats = useCallback(async () => {
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/admin/get-stats', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({}),
+    });
+    const s = await res.json();
+    setStats(s);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     loadInitial();
     loadStats();
-  }, [user]);
-
-  async function loadInitial() {
-    setLoadingData(true);
-    const result = await getAllRegistrants(null);
-    setRegistrants(result.registrants || []);
-    setLastDoc(result.lastDoc);
-    setHasMore(result.hasMore);
-    setLoadingData(false);
-  }
-
-  async function loadStats() {
-    const s = await getRegistrantStats();
-    setStats(s);
-  }
+  }, [user, loadInitial, loadStats]);
 
   async function loadMore() {
     if (!lastDoc || loadingMore) return;
     setLoadingMore(true);
-    const result = await getAllRegistrants(lastDoc);
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/admin/get-registrants', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ lastDocId: lastDoc }),
+    });
+    const result = await res.json();
     setRegistrants((prev) => [...prev, ...(result.registrants || [])]);
-    setLastDoc(result.lastDoc);
+    setLastDoc(result.lastDocId);
     setHasMore(result.hasMore);
     setLoadingMore(false);
   }
@@ -115,10 +136,6 @@ export default function AdminDashboard() {
       setRegistrants((prev) =>
         prev.map((r) => (r.id === docId ? { ...r, status: newStatus } : r))
       );
-      if (expandedRow === docId) {
-        setExpandedRow(null);
-        setTimeout(() => setExpandedRow(docId), 10);
-      }
     }
     setUpdatingStatus(null);
   }
@@ -128,24 +145,40 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   }
 
-  const filtered = registrants
-    .filter((r) => {
-      const q = search.toLowerCase();
-      if (q && !(
-        r.fullName.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.codeforcesHandle.toLowerCase().includes(q)
-      )) return false;
-      if (filterConsent === 'yes' && !r.dataConsent) return false;
-      if (filterConsent === 'no' && r.dataConsent) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (sortOrder === 'newest') return new Date(b.submittedAt) - new Date(a.submittedAt);
-      if (sortOrder === 'oldest') return new Date(a.submittedAt) - new Date(b.submittedAt);
-      if (sortOrder === 'name') return a.fullName.localeCompare(b.fullName);
-      return 0;
+  async function handleViewFile(fileUrl) {
+    const headers = await getAuthHeader();
+    const res = await fetch('/api/admin/get-signed-url', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fileUrl }),
     });
+    const data = await res.json();
+    if (data.signedUrl) {
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    }
+  }
+
+  const filtered = useMemo(() =>
+    registrants
+      .filter((r) => {
+        const q = search.toLowerCase();
+        if (q && !(
+          r.fullName.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          r.codeforcesHandle.toLowerCase().includes(q)
+        )) return false;
+        if (filterConsent === 'yes' && !r.dataConsent) return false;
+        if (filterConsent === 'no' && r.dataConsent) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOrder === 'newest') return new Date(b.submittedAt) - new Date(a.submittedAt);
+        if (sortOrder === 'oldest') return new Date(a.submittedAt) - new Date(b.submittedAt);
+        if (sortOrder === 'name') return a.fullName.localeCompare(b.fullName);
+        return 0;
+      }),
+    [registrants, search, filterConsent, sortOrder]
+  );
 
   if (checking) {
     return (
@@ -173,8 +206,16 @@ export default function AdminDashboard() {
             <span className={styles.topBarEmail}>{user?.email}</span>
             <button
               className={styles.exportBtn}
-              onClick={() => exportCSV(filtered)}
-              title="Export current view to CSV"
+              onClick={() => {
+                if (hasMore) {
+                  const confirmed = window.confirm(
+                    `Only ${filtered.length} of ${stats.total} registrants are loaded. Export current page only?`
+                  );
+                  if (!confirmed) return;
+                }
+                exportCSV(filtered);
+              }}
+              title={hasMore ? `Exporting ${filtered.length} of ${stats.total} registrants` : 'Export all registrants to CSV'}
             >
               EXPORT CSV
             </button>
@@ -251,9 +292,8 @@ export default function AdminDashboard() {
                       <td colSpan={11} className={styles.emptyRow}>No registrants found.</td>
                     </tr>
                   ) : filtered.map((r, i) => (
-                    <>
+                    <React.Fragment key={r.id}>
                       <tr
-                        key={r.id}
                         className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${expandedRow === r.id ? styles.trExpanded : ''}`}
                         onClick={() => setExpandedRow(expandedRow === r.id ? null : r.id)}
                       >
@@ -281,24 +321,18 @@ export default function AdminDashboard() {
                         <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(r.submittedAt)}</td>
                         <td className={styles.td}>
                           {r.resumeUrl ? (
-                            <a
-                              href={r.resumeUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
                               className={styles.viewBtn}
-                              onClick={(e) => e.stopPropagation()}
-                            >VIEW</a>
+                              onClick={(e) => { e.stopPropagation(); handleViewFile(r.resumeUrl); }}
+                            >VIEW</button>
                           ) : '—'}
                         </td>
                         <td className={styles.td}>
                           {r.idCardUrl ? (
-                            <a
-                              href={r.idCardUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                            <button
                               className={styles.viewBtn}
-                              onClick={(e) => e.stopPropagation()}
-                            >VIEW</a>
+                              onClick={(e) => { e.stopPropagation(); handleViewFile(r.idCardUrl); }}
+                            >VIEW</button>
                           ) : '—'}
                         </td>
                         <td className={styles.td}>
@@ -358,17 +392,17 @@ export default function AdminDashboard() {
                               <div className={styles.expandedSection}>
                                 <p className={styles.expandedLabel}>Resume</p>
                                 {r.resumeUrl ? (
-                                  <a href={r.resumeUrl} target="_blank" rel="noopener noreferrer" className={styles.viewBtn}>
+                                  <button className={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleViewFile(r.resumeUrl); }}>
                                     VIEW PDF
-                                  </a>
+                                  </button>
                                 ) : <p className={styles.expandedValue}>—</p>}
                               </div>
                               <div className={styles.expandedSection}>
                                 <p className={styles.expandedLabel}>ID Card</p>
                                 {r.idCardUrl ? (
-                                  <a href={r.idCardUrl} target="_blank" rel="noopener noreferrer" className={styles.viewBtn}>
+                                  <button className={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleViewFile(r.idCardUrl); }}>
                                     VIEW
-                                  </a>
+                                  </button>
                                 ) : <p className={styles.expandedValue}>—</p>}
                               </div>
                               <div className={styles.expandedSection}>
@@ -394,7 +428,7 @@ export default function AdminDashboard() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>

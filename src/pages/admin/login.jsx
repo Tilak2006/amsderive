@@ -12,6 +12,8 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
   const emailRef = useRef(null);
+  const failedAttemptsRef = useRef(0);
+  const lockoutUntilRef = useRef(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -20,14 +22,24 @@ export default function AdminLogin() {
         router.replace('/admin/dashboard');
       } else {
         setChecking(false);
-        setTimeout(() => emailRef.current?.focus(), 100);
       }
     });
     return () => unsubscribe();
   }, [router]);
 
+  useEffect(() => {
+    if (!checking) emailRef.current?.focus();
+  }, [checking]);
+
   async function handleLogin(e) {
     e.preventDefault();
+    
+    if (Date.now() < lockoutUntilRef.current) {
+      const secsLeft = Math.ceil((lockoutUntilRef.current - Date.now()) / 1000);
+      setError(`Too many attempts. Try again in ${secsLeft}s.`);
+      return;
+    }
+    
     if (!email.trim() || !password.trim()) {
       setError('Both fields are required.');
       return;
@@ -39,6 +51,12 @@ export default function AdminLogin() {
       router.push('/admin/dashboard');
     } catch {
       setError('Invalid credentials.');
+      failedAttemptsRef.current += 1;
+      if (failedAttemptsRef.current >= 5) {
+        lockoutUntilRef.current = Date.now() + 30 * 1000;
+        failedAttemptsRef.current = 0;
+        setError('Too many failed attempts. Try again in 30s.');
+      }
       setLoading(false);
     }
   }
