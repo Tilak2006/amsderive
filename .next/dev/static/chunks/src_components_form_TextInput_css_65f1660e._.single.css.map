@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/src/components/form/TextInput.css"],"sourcesContent":[".text-input-field {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-2);\n}\n\n.text-input-label {\n  font-family: var(--font-mono);\n  font-size: var(--text-sm);\n  font-weight: 500;\n  color: var(--color-text-secondary);\n  letter-spacing: var(--tracking-wide);\n}\n\n.text-input-required {\n  color: var(--color-error);\n}\n\n.text-input {\n  padding: var(--space-3) var(--space-4);\n  background: var(--color-surface);\n  border: 1px solid var(--color-border);\n  border-radius: var(--radius-md);\n  color: var(--color-text-primary);\n  font-size: var(--text-base);\n  transition: border-color var(--transition-fast);\n}\n\n.text-input::placeholder {\n  color: var(--color-text-muted);\n}\n\n.text-input:focus {\n  outline: none;\n  border-color: var(--color-accent);\n}\n\n.text-input-error {\n  border-color: var(--color-error);\n}\n\n.text-input-hint {\n  font-family: var(--font-mono);\n  font-size: 12px;\n  color: #6b6560;\n  margin: 0;\n}\n\n.text-input-error-msg {\n  font-size: var(--text-sm);\n  color: var(--color-error);\n}\n"],"names":[],"mappings":"AAAA;;;;;;AAMA;;;;;;;;AAQA;;;;AAIA;;;;;;;;;;AAUA;;;;AAIA;;;;;AAKA;;;;AAIA;;;;;;;AAOA"}}]
-}

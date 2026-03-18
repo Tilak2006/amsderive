@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/src/components/layout/Wordmark.css"],"sourcesContent":[".wordmark {\n  font-family: var(--font-mono);\n  font-weight: 600;\n  letter-spacing: var(--tracking-widest);\n  text-transform: uppercase;\n  color: var(--color-text-primary);\n  display: inline-flex;\n  align-items: baseline;\n}\n\n.wordmark-prefix {\n  color: var(--color-accent);\n}\n\n.wordmark-separator {\n  color: var(--color-text-muted);\n  margin: 0 var(--space-1);\n}\n\n.wordmark-suffix {\n  color: var(--color-text-primary);\n}\n\n.wordmark-sm {\n  font-size: var(--text-lg);\n}\n\n.wordmark-md {\n  font-size: var(--text-3xl);\n}\n\n.wordmark-lg {\n  font-size: var(--text-5xl);\n}\n"],"names":[],"mappings":"AAAA;;;;;;;;;;AAUA;;;;AAIA;;;;;AAKA;;;;AAIA;;;;AAIA;;;;AAIA"}}]
-}

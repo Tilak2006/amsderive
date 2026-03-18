@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 16, "column": 0}, "map": {"version":3,"sources":["file:///Users/apple/Desktop/amsderive/src/pages/api/get-ip.js"],"sourcesContent":["/**\n * API route that returns the client's IP address.\n * GET /api/get-ip → { ip: string }\n */\nexport default function handler(req, res) {\n  if (req.method !== 'GET') {\n    return res.status(405).json({ error: 'Method not allowed' });\n  }\n\n  const forwarded = req.headers['x-forwarded-for'];\n  const ip = forwarded\n    ? forwarded.split(',')[0].trim()\n    : req.socket.remoteAddress;\n\n  res.status(200).json({ ip });\n}\n"],"names":[],"mappings":"AAAA;;;CAGC;;;;AACc,SAAS,QAAQ,GAAG,EAAE,GAAG;IACtC,IAAI,IAAI,MAAM,KAAK,OAAO;QACxB,OAAO,IAAI,MAAM,CAAC,KAAK,IAAI,CAAC;YAAE,OAAO;QAAqB;IAC5D;IAEA,MAAM,YAAY,IAAI,OAAO,CAAC,kBAAkB;IAChD,MAAM,KAAK,YACP,UAAU,KAAK,CAAC,IAAI,CAAC,EAAE,CAAC,IAAI,KAC5B,IAAI,MAAM,CAAC,aAAa;IAE5B,IAAI,MAAM,CAAC,KAAK,IAAI,CAAC;QAAE;IAAG;AAC5B"}}]
-}
