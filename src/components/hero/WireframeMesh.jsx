@@ -112,6 +112,13 @@ export default function WireframeMesh() {
     const container = containerRef.current;
     if (!container) return;
 
+    // Respect prefers-reduced-motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      // Apply static background gradient instead of animation
+      container.style.background = 'radial-gradient(ellipse at 50% 60%, rgba(212, 160, 23, 0.15) 0%, rgba(0, 0, 0, 0) 70%), linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 1) 100%)';
+      return;
+    }
+
     const isMobile = window.innerWidth < 768;
     const isLowEnd = isMobile && window.innerWidth < 420;
     const gridSize = isLowEnd ? 28 : isMobile ? 36 : 55;

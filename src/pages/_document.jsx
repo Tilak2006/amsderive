@@ -16,18 +16,6 @@ export default function Document() {
         
         {/* Prefetch registration page for instant navigation */}
         <link rel="prefetch" href="/register" as="document" />
-        
-        {/* Preload critical Firebase SDK bundles */}
-        <link 
-          rel="preload" 
-          href="https://www.gstatic.com/firebasejs/12.10.0/firebase-app-compat.js"
-          as="script"
-        />
-        <link 
-          rel="preload" 
-          href="https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore-compat.js"
-          as="script"
-        />
       </Head>
       <body>
         <Main />

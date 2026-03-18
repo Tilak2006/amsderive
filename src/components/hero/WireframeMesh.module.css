@@ -51,6 +51,8 @@
     display: block;
     width: 100% !important;
     height: 100% !important;
+    pointer-events: none;
+    touch-action: none;
     /* will-change set in JS on renderer.domElement for better timing */
 }
 

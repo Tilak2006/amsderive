@@ -10,7 +10,7 @@
   padding: 0 60px;
   background: transparent;
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.05);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
   z-index: 1000;
   transition: height 0.3s ease, border-bottom-color 0.3s ease;
 }
@@ -20,6 +20,21 @@
   backdrop-filter: blur(12px);
   height: 70px;
   border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    height: 52px;
+    padding: 0 16px;
+  }
+
+  .scrolled {
+    height: 52px;
+  }
+
+  .logo {
+    font-size: 0.9rem;
+  }
 }
 
 .logo {
@@ -35,18 +50,35 @@
 
 .notifyBtn {
   font-family: var(--font-mono), monospace;
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 2vw, 0.8rem);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #050505;
   background: #D4AF37;
+  color: #0a0a0a;
+  padding: clamp(5px, 2vw, 10px) clamp(12px, 3vw, 16px);
   border: none;
-  padding: 10px 24px;
   border-radius: 2px;
   cursor: pointer;
-  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
-  will-change: transform;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .notifyBtn:hover {
+    background: #0a0a0a;
+    color: #D4AF37;
+    border: 1px solid #D4AF37;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notifyBtn {
+    transition: none;
+  }
 }
 
 .notifyBtn:hover {

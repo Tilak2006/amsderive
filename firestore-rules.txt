@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // amsociety.in — submissions
+    match /submissions/{docId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+
+    // amsderive.in — registrants
+    match /registrants/{docId} {
+      allow create: if true;
+      allow read: if true; // needed for client-side duplicate check via email/handle queries
+      allow list, collectionGroup, query: if true; // needed for aggregation queries (count)
+      allow update, delete: if false;
+    }
+
+    // amsderive.in — rate limiting
+    match /_rate_limits/{docId} {
+      allow read, write: if true;
+    }
+
+    // Block everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

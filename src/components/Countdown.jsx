@@ -100,6 +100,12 @@ const Countdown = memo(function Countdown({ onExpiredChange }) {
         <span className={styles.label}>MINUTES</span>
         <span className={styles.label}>SECONDS</span>
       </div>
+      <div className={styles.eventDetails}>
+        ROUND 1 · PRIOR · MAY 23, 2026 · CODEFORCES GYM
+      </div>
+      <div className={styles.stats}>
+        600+ REGISTRANTS · 20+ INSTITUTIONS · 6 FULL SOLVES
+      </div>
     </div>
   );
 });
