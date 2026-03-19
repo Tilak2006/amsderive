@@ -55,8 +55,7 @@ const HeroContent = memo(function HeroContent() {
       <div className={styles.heroContent}>
         <div className={styles.titleGroup}>
           <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-          <p className={styles.subTitle}>QUANTITATIVE FINANCE × COMPETITIVE PROGRAMMING</p>
-        </div>
+<p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
 
         <p className={styles.signupLabel}>
           {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
@@ -78,25 +77,24 @@ export default function LandingPage() {
   return (
     <>
       <Head>
-        <title>AMS Derive — India's Hardest Quant Contest | IIT Bombay Finals</title>
-        <meta name="description" content="Only 6/200 solved the hardest problem. Quant competition with IIT Bombay finals. Compete in derivatives pricing, stochastic calculus, and algorithmic trading under live pressure." />
-        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
+        <title>AMS Derive — High-Signal Evaluation of Quantitative Thinking</title>
+<meta name="description" content="A three-round evaluation system identifying first-principles thinkers through structured reasoning, probabilistic thinking, and real-world problem-solving. Final round at IIT Bombay." />        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
         <link rel="canonical" href="https://amsociety.in" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="AMS Derive" />
         <meta property="og:url" content="https://amsociety.in" />
-        <meta property="og:title" content="AMS Derive — India's Hardest Quant Contest | IIT Bombay Finals" />
-        <meta property="og:description" content="Only 6/200 solved the hardest problem. Quant competition with IIT Bombay finals. ₹15L+ prize pool. Open to IITs, BITS, and top engineering colleges." />
+        <meta property="og:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
+        <meta property="og:description" content="Identifying first-principles thinkers through rigorous evaluation. Three rounds. Structured reasoning. Probabilistic thinking. Real-world problem-solving. IIT Bombay finals." />
         <meta property="og:image" content="https://amsociety.in/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:image:alt" content="AMS Derive — Quant Contest with IIT Bombay Finals" />
+        <meta property="og:image:alt" content="AMS Derive — High-Signal Evaluation System" />
         <meta property="og:locale" content="en_IN" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:site" content="@amsderive" />
         <meta name="twitter:creator" content="@amsderive" />
-        <meta name="twitter:title" content="AMS Derive — India's Hardest Quant Contest | IIT Bombay Finals" />
-        <meta name="twitter:description" content="Only 6/200 solved the hardest problem. Quant competition with IIT Bombay finals. ₹15L+ prize pool." />
+        <meta name="twitter:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
+        <meta name="twitter:description" content="Identifying first-principles thinkers. Rigorous evaluation of structured reasoning and probabilistic thinking. IIT Bombay finals." />
         <meta name="twitter:image" content="https://amsociety.in/og-image.png" />
         <script
           type="application/ld+json"
@@ -105,7 +103,7 @@ export default function LandingPage() {
               "@context": "https://schema.org",
               "@type": "Event",
               "name": "AMS Derive 2026",
-              "description": "Three-round quant contest ending at IIT Bombay. Problems span derivatives pricing, stochastic calculus, Bayesian inference, and algorithmic trading. Only 6/200 solved the hardest problem in 2025.",
+              "description": "A high-signal evaluation system identifying first-principles thinkers through three rounds of rigorous problem-solving. Final round at IIT Bombay.",
               "startDate": "2026-05-23",
               "endDate": "2026-07-11",
               "eventStatus": "https://schema.org/EventScheduled",
