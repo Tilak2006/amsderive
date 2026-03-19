@@ -26,7 +26,7 @@ export default async function handler(req, res) {
 
   // Server-side validation — never trust client
   if (!fullName || !email || !university || !codeforcesHandle ||
-      !resumeUrl || !idCardUrl || dataConsent !== true) {
+      !resumeUrl || !idCardUrl || !linkedIn || !gitHub || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 

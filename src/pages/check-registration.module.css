@@ -1,0 +1,321 @@
+/* check-registration.module.css */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  min-height: calc(100vh - 200px);
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+
+.hero {
+  width: 100%;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.05) 0%, rgba(212, 175, 55, 0.02) 50%, rgba(212, 175, 55, 0) 100%);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  padding: 100px 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.heroTitle {
+  font-family: var(--font-serif);
+  font-size: 64px;
+  font-weight: 700;
+  color: #f0ede6;
+  letter-spacing: 0.08em;
+  margin: 0 0 20px 0;
+  text-transform: uppercase;
+}
+
+.heroSubtitle {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  color: #9a9390;
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ── Container ────────────────────────────────────────────────────────── */
+
+.container {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding: 80px 32px;
+}
+
+.card {
+  width: 100%;
+  max-width: 640px;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 2px;
+  background: #0e0e0e;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(212, 175, 55, 0.05);
+}
+
+.cardHeader {
+  padding: 48px 48px 32px 48px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: #f0ede6;
+  margin: 0 0 8px 0;
+  letter-spacing: 0.03em;
+}
+
+.cardSubtitle {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: #9a9390;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cardBody {
+  padding: 40px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────────── */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border-left: 4px solid #D4AF37;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.06), rgba(212, 175, 55, 0.02));
+  padding: 20px;
+}
+
+.terminalLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #D4AF37;
+  letter-spacing: 0.15em;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #6b6560;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.input {
+  height: 44px;
+  padding: 0 0.875rem;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  color: #f0ede6;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input::placeholder {
+  color: #3a3a3a;
+}
+
+.input:focus {
+  outline: none;
+  background: #f0ede6;
+  color: #0a0a0a;
+  border-color: #D4AF37;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorText {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #c0392b;
+  margin: 0;
+}
+
+.submitBtn {
+  padding: 12px 24px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #D4AF37;
+  color: #0a0a0a;
+  border: 1px solid #D4AF37;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  min-height: 44px;
+  align-self: flex-start;
+}
+
+@media (hover: hover) {
+  .submitBtn:hover:not(:disabled) {
+    background: #0a0a0a;
+    color: #D4AF37;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+  }
+}
+
+.submitBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ── Not Found ────────────────────────────────────────────────────────── */
+
+.notFound {
+  padding: 24px;
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: 2px;
+  background: rgba(192, 57, 43, 0.05);
+}
+
+.notFoundText {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: #c0392b;
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Result Card ──────────────────────────────────────────────────────── */
+
+.resultCard {
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 2px;
+  background: rgba(212, 175, 55, 0.03);
+  overflow: hidden;
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.resultCheck {
+  font-size: 18px;
+  color: #4ade80;
+  font-weight: 700;
+}
+
+.resultTitle {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f0ede6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.resultGrid {
+  display: flex;
+  flex-direction: column;
+}
+
+.resultRow {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.resultRow:last-child {
+  border-bottom: none;
+}
+
+.resultLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b6560;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.resultValue {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: #f0ede6;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.mono {
+  font-family: var(--font-mono), monospace;
+}
+
+.cfLink {
+  color: #D4AF37;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.cfLink:hover {
+  color: #f0ede6;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .hero { padding: 60px 32px; }
+  .heroTitle { font-size: 36px; }
+  .container { padding: 40px 20px; }
+  .cardHeader { padding: 28px 24px 20px 24px; }
+  .cardBody { padding: 24px; }
+  .cardTitle { font-size: 22px; }
+  .resultLabel { min-width: 90px; }
+}
+
+@media (max-width: 420px) {
+  .heroTitle { font-size: 28px; }
+  .container { padding: 24px 16px; }
+  .card {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  .cardHeader {
+    padding: 16px 0;
+    border-bottom: none;
+  }
+  .cardBody { padding: 0; }
+  .resultRow { flex-direction: column; gap: 4px; }
+  .resultLabel { min-width: unset; }
+}

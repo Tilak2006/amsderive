@@ -128,3 +128,41 @@
 .logoDerive {
   color: #D4AF37;
 }
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  justify-content: flex-end;
+  margin-right: 24px;
+}
+
+.navLink {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(0.65rem, 2vw, 0.8rem);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.3s ease, filter 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}
+
+@media (hover: hover) {
+  .navLink:hover {
+    color: #f0ede6;
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navLink {
+    transition: none;
+  }
+}

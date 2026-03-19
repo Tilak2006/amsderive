@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './Navbar.module.css';
 import NotifyModal from './NotifyModal';
+import { REGISTRATION_OPENS } from '../lib/constants';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -22,6 +23,13 @@ const Navbar = () => {
           <Link href="/" className={styles.logo}>
             <span>AMS </span><span className={styles.logoDerive}>DERIVE</span>
           </Link>
+        </div>
+        <div className={styles.navLinks}>
+          {Date.now() >= REGISTRATION_OPENS.getTime() && (
+            <Link href="/check-registration" className={styles.navLink}>
+              CHECK STATUS
+            </Link>
+          )}
         </div>
         <button
           type="button"

@@ -77,11 +77,19 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         const result = validateCodechefHandleOptional(value);
         if (!result.valid) error = result.error;
       } else if (fieldName === 'linkedIn') {
-        const result = validateLinkedInOptional(value);
-        if (!result.valid) error = result.error;
+        if (!value.trim()) {
+          error = 'LinkedIn profile is required';
+        } else {
+          const result = validateLinkedInOptional(value);
+          if (!result.valid) error = result.error;
+        }
       } else if (fieldName === 'gitHub') {
-        const result = validateGitHubOptional(value);
-        if (!result.valid) error = result.error;
+        if (!value.trim()) {
+          error = 'GitHub profile is required';
+        } else {
+          const result = validateGitHubOptional(value);
+          if (!result.valid) error = result.error;
+        }
       }
 
       if (error) {
@@ -153,13 +161,21 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     const ccResult = validateCodechefHandleOptional(fields.codechefHandle);
     if (!ccResult.valid) newErrors.codechefHandle = ccResult.error;
 
-    // LinkedIn validation (optional)
-    const linkedInResult = validateLinkedInOptional(fields.linkedIn);
-    if (!linkedInResult.valid) newErrors.linkedIn = linkedInResult.error;
+    // LinkedIn validation (required)
+    if (!fields.linkedIn.trim()) {
+      newErrors.linkedIn = 'LinkedIn profile is required';
+    } else {
+      const linkedInResult = validateLinkedInOptional(fields.linkedIn);
+      if (!linkedInResult.valid) newErrors.linkedIn = linkedInResult.error;
+    }
 
-    // GitHub validation (optional)
-    const gitHubResult = validateGitHubOptional(fields.gitHub);
-    if (!gitHubResult.valid) newErrors.gitHub = gitHubResult.error;
+    // GitHub validation (required)
+    if (!fields.gitHub.trim()) {
+      newErrors.gitHub = 'GitHub profile is required';
+    } else {
+      const gitHubResult = validateGitHubOptional(fields.gitHub);
+      if (!gitHubResult.valid) newErrors.gitHub = gitHubResult.error;
+    }
 
     // Resume file validation
     if (!resumeFile) {
@@ -281,7 +297,6 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         hint="Optional. Alphanumeric, underscores, and hyphens only."
       />
 
-      {/* Social Media Links - 2 Column */}
       <div className={styles.formGridRow}>
         <TextInput
           label="LinkedIn Profile"
@@ -291,7 +306,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           onChange={handleChange}
           error={errors.linkedIn}
           placeholder="linkedin.com/in/yourprofile"
-          hint="Optional. Your LinkedIn profile URL"
+          hint="Your LinkedIn profile URL"
+          required
         />
         <TextInput
           label="GitHub Profile"
@@ -301,7 +317,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           onChange={handleChange}
           error={errors.gitHub}
           placeholder="github.com/yourprofile"
-          hint="Optional. Your GitHub profile URL"
+          hint="Your GitHub profile URL"
+          required
         />
       </div>
 
