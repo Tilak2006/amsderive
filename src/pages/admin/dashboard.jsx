@@ -62,6 +62,7 @@ export default function AdminDashboard() {
 
   const [search, setSearch] = useState('');
   const [filterConsent, setFilterConsent] = useState('all');
+  const [filterUniversity, setFilterUniversity] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [expandedRow, setExpandedRow] = useState(null);
 
@@ -109,6 +110,14 @@ export default function AdminDashboard() {
     loadStats();
   }, [user, loadInitial, loadStats]);
 
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      loadStats();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user, loadStats]);
+
   async function loadMore() {
     if (!lastDoc || loadingMore) return;
     setLoadingMore(true);
@@ -150,10 +159,12 @@ export default function AdminDashboard() {
         if (q && !(
           r.fullName.toLowerCase().includes(q) ||
           r.email.toLowerCase().includes(q) ||
-          r.codeforcesHandle.toLowerCase().includes(q)
+          r.codeforcesHandle.toLowerCase().includes(q) ||
+          (r.university || '').toLowerCase().includes(q)
         )) return false;
         if (filterConsent === 'yes' && !r.dataConsent) return false;
         if (filterConsent === 'no' && r.dataConsent) return false;
+        if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
         return true;
       })
       .sort((a, b) => {
@@ -162,7 +173,7 @@ export default function AdminDashboard() {
         if (sortOrder === 'name') return a.fullName.localeCompare(b.fullName);
         return 0;
       }),
-    [registrants, search, filterConsent, sortOrder]
+    [registrants, search, filterConsent, filterUniversity, sortOrder]
   );
 
   if (checking) {
@@ -191,16 +202,23 @@ export default function AdminDashboard() {
             <span className={styles.topBarEmail}>{user?.email}</span>
             <button
               className={styles.exportBtn}
-              onClick={() => {
+              onClick={async () => {
                 if (hasMore) {
-                  const confirmed = window.confirm(
-                    `Only ${filtered.length} of ${stats.total} registrants are loaded. Export current page only?`
-                  );
-                  if (!confirmed) return;
+                  // Fetch all from server for complete export
+                  const headers = await getAuthHeader(user);
+                  const res = await fetch('/api/admin/export-registrants', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({}),
+                  });
+                  const data = await res.json();
+                  if (data.registrants) exportCSV(data.registrants);
+                } else {
+                  // All data loaded — export filtered view
+                  exportCSV(filtered);
                 }
-                exportCSV(filtered);
               }}
-              title={hasMore ? `Exporting ${filtered.length} of ${stats.total} registrants` : 'Export all registrants to CSV'}
+              title={hasMore ? 'Export all registrants to CSV' : `Export ${filtered.length} filtered registrants to CSV`}
             >
               EXPORT CSV
             </button>
@@ -242,6 +260,19 @@ export default function AdminDashboard() {
               <option value="all">All</option>
               <option value="yes">Consent Given</option>
               <option value="no">Consent Not Given</option>
+            </select>
+            <select
+              className={styles.filterSelect}
+              value={filterUniversity}
+              onChange={(e) => setFilterUniversity(e.target.value)}
+            >
+              <option value="all">All Universities</option>
+              <option value="iit">IIT</option>
+              <option value="nit">NIT</option>
+              <option value="iiit">IIIT</option>
+              <option value="bits">BITS</option>
+              <option value="vit">VIT</option>
+              <option value="thadomal">Thadomal</option>
             </select>
             <select
               className={styles.filterSelect}
@@ -352,6 +383,32 @@ export default function AdminDashboard() {
                               <div className={styles.expandedSection}>
                                 <p className={styles.expandedLabel}>CC Handle</p>
                                 <p className={`${styles.expandedValue} ${styles.mono}`}>{r.codechefHandle || '—'}</p>
+                              </div>
+                              <div className={styles.expandedSection}>
+                                <p className={styles.expandedLabel}>LinkedIn</p>
+                                {r.linkedIn ? (
+                                  <a
+                                    href={r.linkedIn.startsWith('http') ? r.linkedIn : `https://${r.linkedIn}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${styles.expandedValue} ${styles.mono} ${styles.cfLink}`}
+                                  >
+                                    {r.linkedIn}
+                                  </a>
+                                ) : <p className={styles.expandedValue}>—</p>}
+                              </div>
+                              <div className={styles.expandedSection}>
+                                <p className={styles.expandedLabel}>GitHub</p>
+                                {r.gitHub ? (
+                                  <a
+                                    href={r.gitHub.startsWith('http') ? r.gitHub : `https://${r.gitHub}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`${styles.expandedValue} ${styles.mono} ${styles.cfLink}`}
+                                  >
+                                    {r.gitHub}
+                                  </a>
+                                ) : <p className={styles.expandedValue}>—</p>}
                               </div>
                               <div className={styles.expandedSection}>
                                 <p className={styles.expandedLabel}>Data Consent</p>
