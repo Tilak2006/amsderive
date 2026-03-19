@@ -40,6 +40,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
   const [idCardFile, setIdCardFile] = useState(null);
   const [errors, setErrors] = useState({});
 
+  const [cfVerifying, setCfVerifying] = useState(false);
+
   // Create isolated debouncer instance for this component
   const debouncerRef = useRef(null);
   if (!debouncerRef.current) {
@@ -57,6 +59,11 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
   }, []);
 
   function validateFieldDebounced(fieldName, value) {
+    // Immediately show verifying state for CF handle
+    if (fieldName === 'codeforcesHandle' && value.trim()) {
+      setCfVerifying(true);
+    }
+
     // Debounce validation at 150ms to prevent excessive updates
     debouncerRef.current.debounce(fieldName, () => {
       let error = '';
@@ -73,6 +80,10 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       } else if (fieldName === 'codeforcesHandle') {
         const result = validateCodeforcesHandleFormat(value);
         if (!result.valid) error = result.error;
+        
+        // UX: clear verifying state since validation is done
+        // Add a slight delay just so the user sees the "Verifying..." hint briefly
+        setTimeout(() => setCfVerifying(false), 800);
       } else if (fieldName === 'codechefHandle') {
         const result = validateCodechefHandleOptional(value);
         if (!result.valid) error = result.error;
@@ -276,16 +287,21 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       />
 
       {/* Competitive Programming Handles - Single Column */}
-      <TextInput
-        label="Codeforces Handle"
-        name="codeforcesHandle"
-        value={fields.codeforcesHandle}
-        onChange={handleChange}
-        error={errors.codeforcesHandle}
-        placeholder="cf_username"
-        hint="Alphanumeric and underscores only. Max 24 characters"
-        required
-      />
+      <div className={styles.cfInputWrap}>
+        <TextInput
+          label="Codeforces Handle"
+          name="codeforcesHandle"
+          value={fields.codeforcesHandle}
+          onChange={handleChange}
+          error={errors.codeforcesHandle}
+          placeholder="cf_username"
+          hint="Alphanumeric and underscores only. Max 24 characters"
+          required
+        />
+        {cfVerifying && !errors.codeforcesHandle && (
+          <span className={styles.verifyingHint}>Verifying...</span>
+        )}
+      </div>
 
       <TextInput
         label="CodeChef Handle"

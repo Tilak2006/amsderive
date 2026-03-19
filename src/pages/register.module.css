@@ -45,6 +45,29 @@
   margin-right: auto;
 }
 
+.warningBanner {
+  width: 100%;
+  max-width: 840px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: #f0ede6;
+  margin-bottom: 0;
+  margin-top: -40px;
+  z-index: 10;
+}
+
+.warningIcon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
 /* Form container */
 .registerFormContainer {
   flex: 1;

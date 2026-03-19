@@ -43,6 +43,33 @@
   margin: 1.5rem 0 1.25rem 0;
 }
 
+/* CF Handle Verifying UX */
+.cfInputWrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.verifyingHint {
+  position: absolute;
+  right: 12px;
+  top: 36px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #D4AF37;
+  animation: pulseVerifying 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pulseVerifying {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
 .submitLoading {
   display: inline-flex;
   align-items: center;

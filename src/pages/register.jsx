@@ -33,6 +33,24 @@ export default function Register() {
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
   const [registrationClosed, setRegistrationClosed] = useState(false);
+  const [countData, setCountData] = useState(null);
+
+  // Fetch registration count on load
+  useEffect(() => {
+    fetch('/api/registration-count')
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data) {
+          setCountData(data);
+          if (data.full) {
+            setRegistrationClosed(true);
+          }
+        }
+      })
+      .catch(() => {
+        // Fail silently if the API fails
+      });
+  }, []);
 
   // Ensure hydration matches between server and client
   useEffect(() => {
@@ -212,6 +230,13 @@ export default function Register() {
             </p>
           </div>
         </div>
+
+        {countData?.warning && !countData?.full && (
+          <div className={styles.warningBanner}>
+            <span className={styles.warningIcon}>⚡</span>
+            <span>Only <strong>{3000 - countData.count} spots remaining</strong>. Registration closes at 3,000 participants.</span>
+          </div>
+        )}
 
         <div className={styles.registerFormContainer}>
           <div className={styles.registerCard}>

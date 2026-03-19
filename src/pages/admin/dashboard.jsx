@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
   const [filterConsent, setFilterConsent] = useState('all');
   const [filterUniversity, setFilterUniversity] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
-  const [expandedRow, setExpandedRow] = useState(null);
+  const [selectedRegistrant, setSelectedRegistrant] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -77,6 +78,15 @@ export default function AdminDashboard() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // Close side panel on Escape key
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setSelectedRegistrant(null);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const loadInitial = useCallback(async () => {
     setLoadingData(true);
@@ -184,6 +194,8 @@ export default function AdminDashboard() {
     );
   }
 
+  const r = selectedRegistrant;
+
   return (
     <>
       <Head>
@@ -204,7 +216,6 @@ export default function AdminDashboard() {
               className={styles.exportBtn}
               onClick={async () => {
                 if (hasMore) {
-                  // Fetch all from server for complete export
                   const headers = await getAuthHeader(user);
                   const res = await fetch('/api/admin/export-registrants', {
                     method: 'POST',
@@ -214,7 +225,6 @@ export default function AdminDashboard() {
                   const data = await res.json();
                   if (data.registrants) exportCSV(data.registrants);
                 } else {
-                  // All data loaded — export filtered view
                   exportCSV(filtered);
                 }
               }}
@@ -241,6 +251,12 @@ export default function AdminDashboard() {
                 <span className={styles.statValue}>{s.value}</span>
               </div>
             ))}
+          </div>
+
+          {/* Tabs */}
+          <div className={styles.tabBar}>
+            <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
+            <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
           </div>
 
           {/* Filters */}
@@ -297,7 +313,7 @@ export default function AdminDashboard() {
                 <table className={styles.table}>
                 <thead>
                   <tr>
-                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'CC Handle', 'Consent', 'Submitted At', 'Resume', 'ID Card'].map((h) => (
+                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'CC Handle', 'Consent', 'Submitted At'].map((h) => (
                       <th key={h} className={styles.th}>{h}</th>
                     ))}
                   </tr>
@@ -305,150 +321,37 @@ export default function AdminDashboard() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className={styles.emptyRow}>No registrants found.</td>
+                      <td colSpan={8} className={styles.emptyRow}>No registrants found.</td>
                     </tr>
-                  ) : filtered.map((r, i) => (
-                    <React.Fragment key={r.id}>
-                      <tr
-                        className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${expandedRow === r.id ? styles.trExpanded : ''}`}
-                        onClick={() => setExpandedRow(expandedRow === r.id ? null : r.id)}
-                      >
-                        <td className={styles.td}>{i + 1}</td>
-                        <td className={styles.td}>{r.fullName}</td>
-                        <td className={`${styles.td} ${styles.mono}`}>{r.email}</td>
-                        <td className={styles.td}>{r.university}</td>
-                        <td className={`${styles.td} ${styles.mono}`}>
-                          <a
-                            href={`https://codeforces.com/profile/${r.codeforcesHandle}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.cfLink}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {r.codeforcesHandle}
-                          </a>
-                        </td>
-                        <td className={`${styles.td} ${styles.mono}`}>{r.codechefHandle || '—'}</td>
-                        <td className={styles.td}>
-                          <span className={r.dataConsent ? styles.badgeGreen : styles.badgeRed}>
-                            {r.dataConsent ? 'YES' : 'NO'}
-                          </span>
-                        </td>
-                        <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(r.submittedAt)}</td>
-                        <td className={styles.td}>
-                          {r.resumeUrl ? (
-                            <button
-                              className={styles.viewBtn}
-                              onClick={(e) => { e.stopPropagation(); handleViewFile(r.resumeUrl); }}
-                            >VIEW</button>
-                          ) : '—'}
-                        </td>
-                        <td className={styles.td}>
-                          {r.idCardUrl ? (
-                            <button
-                              className={styles.viewBtn}
-                              onClick={(e) => { e.stopPropagation(); handleViewFile(r.idCardUrl); }}
-                            >VIEW</button>
-                          ) : '—'}
-                        </td>
-                      </tr>
-
-                      {expandedRow === r.id && (
-                        <tr key={`${r.id}-expanded`} className={styles.expandedPanel}>
-                          <td colSpan={10} className={styles.expandedCell}>
-                            <div className={styles.expandedGrid}>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Full Name</p>
-                                <p className={styles.expandedValue}>{r.fullName}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Email</p>
-                                <p className={`${styles.expandedValue} ${styles.mono}`}>{r.email}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>University</p>
-                                <p className={styles.expandedValue}>{r.university}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>CF Handle</p>
-                                <a
-                                  href={`https://codeforces.com/profile/${r.codeforcesHandle}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`${styles.expandedValue} ${styles.mono} ${styles.cfLink}`}
-                                >
-                                  {r.codeforcesHandle}
-                                </a>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>CC Handle</p>
-                                <p className={`${styles.expandedValue} ${styles.mono}`}>{r.codechefHandle || '—'}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>LinkedIn</p>
-                                {r.linkedIn ? (
-                                  <a
-                                    href={r.linkedIn.startsWith('http') ? r.linkedIn : `https://${r.linkedIn}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`${styles.expandedValue} ${styles.mono} ${styles.cfLink}`}
-                                  >
-                                    {r.linkedIn}
-                                  </a>
-                                ) : <p className={styles.expandedValue}>—</p>}
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>GitHub</p>
-                                {r.gitHub ? (
-                                  <a
-                                    href={r.gitHub.startsWith('http') ? r.gitHub : `https://${r.gitHub}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={`${styles.expandedValue} ${styles.mono} ${styles.cfLink}`}
-                                  >
-                                    {r.gitHub}
-                                  </a>
-                                ) : <p className={styles.expandedValue}>—</p>}
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Data Consent</p>
-                                <p className={styles.expandedValue}>{r.dataConsent ? 'Yes' : 'No'}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>IP Hash</p>
-                                <p className={`${styles.expandedValue} ${styles.mono}`}>{r.ipHash}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Submitted At</p>
-                                <p className={`${styles.expandedValue} ${styles.mono}`}>{formatDate(r.submittedAt)}</p>
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Resume</p>
-                                {r.resumeUrl ? (
-                                  <button className={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleViewFile(r.resumeUrl); }}>
-                                    VIEW PDF
-                                  </button>
-                                ) : <p className={styles.expandedValue}>—</p>}
-                              </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>ID Card</p>
-                                {r.idCardUrl ? (
-                                  <button className={styles.viewBtn} onClick={(e) => { e.stopPropagation(); handleViewFile(r.idCardUrl); }}>
-                                    VIEW
-                                  </button>
-                                ) : <p className={styles.expandedValue}>—</p>}
-                              </div>
-                            </div>
-                            <button
-                              className={styles.closeExpanded}
-                              onClick={() => setExpandedRow(null)}
-                            >
-                              CLOSE ✕
-                            </button>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
+                  ) : filtered.map((reg, i) => (
+                    <tr
+                      key={reg.id}
+                      className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''}`}
+                      onClick={() => setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg)}
+                    >
+                      <td className={styles.td}>{i + 1}</td>
+                      <td className={styles.td}>{reg.fullName}</td>
+                      <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
+                      <td className={styles.td}>{reg.university}</td>
+                      <td className={`${styles.td} ${styles.mono}`}>
+                        <a
+                          href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.cfLink}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {reg.codeforcesHandle}
+                        </a>
+                      </td>
+                      <td className={`${styles.td} ${styles.mono}`}>{reg.codechefHandle || '—'}</td>
+                      <td className={styles.td}>
+                        <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
+                          {reg.dataConsent ? 'YES' : 'NO'}
+                        </span>
+                      </td>
+                      <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(reg.submittedAt)}</td>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -469,6 +372,127 @@ export default function AdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* Side panel backdrop + panel */}
+      {r && (
+        <>
+          <div
+            className={styles.panelBackdrop}
+            onClick={() => setSelectedRegistrant(null)}
+          />
+          <aside className={styles.sidePanel}>
+            <div className={styles.panelHeader}>
+              <span className={styles.panelName}>{r.fullName}</span>
+              <button
+                className={styles.panelClose}
+                onClick={() => setSelectedRegistrant(null)}
+              >
+                CLOSE ✕
+              </button>
+            </div>
+
+            <div className={styles.panelBody}>
+              {/* Contact */}
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Email</p>
+                <p className={`${styles.panelValue} ${styles.mono}`}>{r.email}</p>
+              </div>
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>University</p>
+                <p className={styles.panelValue}>{r.university}</p>
+              </div>
+
+              <div className={styles.panelDivider} />
+
+              {/* Competitive handles */}
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Codeforces Handle</p>
+                <a
+                  href={`https://codeforces.com/profile/${r.codeforcesHandle}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${styles.panelValue} ${styles.mono} ${styles.cfLink}`}
+                >
+                  {r.codeforcesHandle}
+                </a>
+              </div>
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>CodeChef Handle</p>
+                <p className={`${styles.panelValue} ${styles.mono}`}>{r.codechefHandle || '—'}</p>
+              </div>
+
+              {/* LinkedIn / GitHub — only if present */}
+              {(r.linkedIn || r.gitHub) && (
+                <>
+                  <div className={styles.panelDivider} />
+                  {r.linkedIn && (
+                    <div className={styles.panelSection}>
+                      <p className={styles.panelLabel}>LinkedIn</p>
+                      <a
+                        href={r.linkedIn.startsWith('http') ? r.linkedIn : `https://${r.linkedIn}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${styles.panelValue} ${styles.mono} ${styles.cfLink}`}
+                      >
+                        {r.linkedIn}
+                      </a>
+                    </div>
+                  )}
+                  {r.gitHub && (
+                    <div className={styles.panelSection}>
+                      <p className={styles.panelLabel}>GitHub</p>
+                      <a
+                        href={r.gitHub.startsWith('http') ? r.gitHub : `https://${r.gitHub}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`${styles.panelValue} ${styles.mono} ${styles.cfLink}`}
+                      >
+                        {r.gitHub}
+                      </a>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className={styles.panelDivider} />
+
+              {/* Meta */}
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Data Consent</p>
+                <span className={r.dataConsent ? styles.badgeGreen : styles.badgeRed}>
+                  {r.dataConsent ? 'YES' : 'NO'}
+                </span>
+              </div>
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Submitted At</p>
+                <p className={`${styles.panelValue} ${styles.mono}`}>{formatDate(r.submittedAt)}</p>
+              </div>
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>IP Hash</p>
+                <p className={`${styles.panelValue} ${styles.mono}`}>{r.ipHash}</p>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className={styles.panelActions}>
+              <button
+                className={styles.panelActionBtn}
+                disabled={!r.resumeUrl}
+                onClick={() => r.resumeUrl && handleViewFile(r.resumeUrl)}
+              >
+                VIEW RESUME
+              </button>
+              <button
+                className={styles.panelActionBtn}
+                disabled={!r.idCardUrl}
+                onClick={() => r.idCardUrl && handleViewFile(r.idCardUrl)}
+              >
+                VIEW ID CARD
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
     </>
   );
 }
