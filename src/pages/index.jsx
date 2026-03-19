@@ -77,7 +77,7 @@ export default function LandingPage() {
   return (
     <>
       <Head>
-        <title>AMS Derive — High-Signal Evaluation of Quantitative Thinking</title>
+        <title>AMS Derive | High-Signal Evaluation of Quantitative Thinking</title>
 <meta name="description" content="A three-round evaluation system identifying first-principles thinkers through structured reasoning, probabilistic thinking, and real-world problem-solving. Final round at IIT Bombay." />        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
         <link rel="canonical" href="https://amsociety.in" />
         <meta property="og:type" content="website" />
