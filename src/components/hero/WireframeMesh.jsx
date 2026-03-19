@@ -59,7 +59,7 @@ function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
     const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
     tmp.copy(amber).lerp(champagne, 1 - t);
     if (y > 3.0) tmp.lerp(ivory, Math.min((y - 3.0) / 2.5, 1.0));
-    const brightness = 0.25 + 0.75 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
+    const brightness = 0.55 + 0.45 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
     colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
   }
 
@@ -127,7 +127,7 @@ function WireframeMesh() {
 
     // ── Scene ────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, isMobile ? 0.07 : 0.072);
+    scene.fog = new THREE.FogExp2(0x000000, isMobile ? 0.055 : 0.058);
 
     // ── Camera ───────────────────────────────────────────────────────────
     const fov = isMobile ? 52 : 40;
