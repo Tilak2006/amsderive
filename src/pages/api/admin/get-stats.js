@@ -37,21 +37,19 @@ export default async function handler(req, res) {
     todayIST.setUTCHours(0, 0, 0, 0);
     const todayUTC = new Date(todayIST.getTime() - istOffset);
 
-    const [totalSnap, consentSnap, pendingSnap, todaySnap] = await Promise.all([
+    const [totalSnap, consentSnap, todaySnap] = await Promise.all([
       ref.count().get(),
       ref.where('dataConsent', '==', true).count().get(),
-      ref.where('status', '==', 'pending').count().get(),
       ref.where('submittedAt', '>=', admin.firestore.Timestamp.fromDate(todayUTC)).count().get(),
     ]);
 
     return res.status(200).json({
       total: totalSnap.data().count,
       consentGiven: consentSnap.data().count,
-      pending: pendingSnap.data().count,
       today: todaySnap.data().count,
     });
   } catch (error) {
     console.error('[get-stats] Error:', error);
-    return res.status(500).json({ total: 0, consentGiven: 0, pending: 0, today: 0 });
+      return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });
   }
 }

@@ -373,9 +373,13 @@
 
 /* Table */
 .tableWrap {
-  overflow-x: auto;
   border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 2px;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  width: 100%;
 }
 
 .table {
@@ -409,7 +413,7 @@
 }
 
 .trAlt {
-  background: #0e0e0e;
+  background: #111111;
 }
 
 .trExpanded {
@@ -692,7 +696,7 @@
     min-width: 100%;
   }
 
-  .tableWrap {
+  .tableScroll {
     overflow-x: scroll;
   }
 

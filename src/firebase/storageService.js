@@ -1,5 +1,5 @@
 import { storage } from './firebaseConfig';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, deleteObject } from 'firebase/storage';
 
 /**
  * Validate storage URL before using or storing in Firestore.
@@ -55,7 +55,9 @@ export async function uploadFile(file, path, onProgress) {
 
     if (onProgress) onProgress({ loaded: 1, total: 1 });
 
-    const url = await getDownloadURL(storageRef);
+    const bucket = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    const encodedPath = encodeURIComponent(path);
+    const url = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media`;
     
     // Validate URL before returning (Rule 5: Validate URLs)
     validateStorageUrl(url);

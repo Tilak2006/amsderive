@@ -3,9 +3,6 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
-import {
-  updateRegistrantStatus,
-} from '../../firebase/firestoreService';
 import styles from '../../styles/admin.module.css';
 
 function formatDate(isoString) {
@@ -45,8 +42,8 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
-async function getAuthHeader() {
-  const token = await auth.currentUser?.getIdToken();
+async function getAuthHeader(currentUser) {
+  const token = await currentUser?.getIdToken();
   return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
@@ -61,13 +58,12 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [stats, setStats] = useState({ total: 0, consentGiven: 0, pending: 0, today: 0 });
+  const [stats, setStats] = useState({ total: 0, consentGiven: 0, today: 0 });
 
   const [search, setSearch] = useState('');
   const [filterConsent, setFilterConsent] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [expandedRow, setExpandedRow] = useState(null);
-  const [updatingStatus, setUpdatingStatus] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -83,7 +79,7 @@ export default function AdminDashboard() {
 
   const loadInitial = useCallback(async () => {
     setLoadingData(true);
-    const headers = await getAuthHeader();
+    const headers = await getAuthHeader(user);
     const res = await fetch('/api/admin/get-registrants', {
       method: 'POST',
       headers,
@@ -94,10 +90,10 @@ export default function AdminDashboard() {
     setLastDoc(result.lastDocId);
     setHasMore(result.hasMore);
     setLoadingData(false);
-  }, []);
+  }, [user]);
 
   const loadStats = useCallback(async () => {
-    const headers = await getAuthHeader();
+    const headers = await getAuthHeader(user);
     const res = await fetch('/api/admin/get-stats', {
       method: 'POST',
       headers,
@@ -105,7 +101,7 @@ export default function AdminDashboard() {
     });
     const s = await res.json();
     setStats(s);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -116,7 +112,7 @@ export default function AdminDashboard() {
   async function loadMore() {
     if (!lastDoc || loadingMore) return;
     setLoadingMore(true);
-    const headers = await getAuthHeader();
+    const headers = await getAuthHeader(user);
     const res = await fetch('/api/admin/get-registrants', {
       method: 'POST',
       headers,
@@ -129,24 +125,13 @@ export default function AdminDashboard() {
     setLoadingMore(false);
   }
 
-  async function handleStatusChange(docId, newStatus) {
-    setUpdatingStatus(docId);
-    const result = await updateRegistrantStatus(docId, newStatus);
-    if (result.success) {
-      setRegistrants((prev) =>
-        prev.map((r) => (r.id === docId ? { ...r, status: newStatus } : r))
-      );
-    }
-    setUpdatingStatus(null);
-  }
-
   async function handleLogout() {
     await signOut(auth);
     router.push('/admin/login');
   }
 
   async function handleViewFile(fileUrl) {
-    const headers = await getAuthHeader();
+    const headers = await getAuthHeader(user);
     const res = await fetch('/api/admin/get-signed-url', {
       method: 'POST',
       headers,
@@ -231,7 +216,6 @@ export default function AdminDashboard() {
             {[
               { label: 'Total Registrants', value: stats.total },
               { label: 'Data Consent', value: stats.consentGiven },
-              { label: 'Pending Review', value: stats.pending },
               { label: "Today's Registrations", value: stats.today },
             ].map((s) => (
               <div key={s.label} className={styles.statCard}>
@@ -278,10 +262,11 @@ export default function AdminDashboard() {
             <div className={styles.tableLoading}>Loading registrants...</div>
           ) : (
             <div className={styles.tableWrap}>
-              <table className={styles.table}>
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
                 <thead>
                   <tr>
-                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'CC Handle', 'Consent', 'Submitted At', 'Resume', 'ID Card', 'Status'].map((h) => (
+                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'CC Handle', 'Consent', 'Submitted At', 'Resume', 'ID Card'].map((h) => (
                       <th key={h} className={styles.th}>{h}</th>
                     ))}
                   </tr>
@@ -289,7 +274,7 @@ export default function AdminDashboard() {
                 <tbody>
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={11} className={styles.emptyRow}>No registrants found.</td>
+                      <td colSpan={10} className={styles.emptyRow}>No registrants found.</td>
                     </tr>
                   ) : filtered.map((r, i) => (
                     <React.Fragment key={r.id}>
@@ -335,20 +320,11 @@ export default function AdminDashboard() {
                             >VIEW</button>
                           ) : '—'}
                         </td>
-                        <td className={styles.td}>
-                          <span className={
-                            r.status === 'approved' ? styles.badgeGreen :
-                            r.status === 'rejected' ? styles.badgeRed :
-                            styles.badgeAmber
-                          }>
-                            {r.status.toUpperCase()}
-                          </span>
-                        </td>
                       </tr>
 
                       {expandedRow === r.id && (
                         <tr key={`${r.id}-expanded`} className={styles.expandedPanel}>
-                          <td colSpan={11} className={styles.expandedCell}>
+                          <td colSpan={10} className={styles.expandedCell}>
                             <div className={styles.expandedGrid}>
                               <div className={styles.expandedSection}>
                                 <p className={styles.expandedLabel}>Full Name</p>
@@ -405,19 +381,6 @@ export default function AdminDashboard() {
                                   </button>
                                 ) : <p className={styles.expandedValue}>—</p>}
                               </div>
-                              <div className={styles.expandedSection}>
-                                <p className={styles.expandedLabel}>Update Status</p>
-                                <select
-                                  className={styles.statusSelect}
-                                  value={r.status}
-                                  disabled={updatingStatus === r.id}
-                                  onChange={(e) => handleStatusChange(r.id, e.target.value)}
-                                >
-                                  <option value="pending">Pending</option>
-                                  <option value="approved">Approved</option>
-                                  <option value="rejected">Rejected</option>
-                                </select>
-                              </div>
                             </div>
                             <button
                               className={styles.closeExpanded}
@@ -432,6 +395,7 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
             </div>
           )}
 

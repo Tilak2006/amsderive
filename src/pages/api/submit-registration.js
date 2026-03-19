@@ -56,7 +56,6 @@ export default async function handler(req, res) {
       dataConsent: true,
       ipHash: ipHash || null,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-      status: 'pending',
     });
 
     return res.status(200).json({ success: true, id: docRef.id });

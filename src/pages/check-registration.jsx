@@ -51,11 +51,6 @@ export default function CheckRegistration() {
   }
 
   const reg = result?.registration;
-  const statusColor = reg?.status === 'approved'
-    ? '#4ade80'
-    : reg?.status === 'rejected'
-    ? '#f87171'
-    : '#D4AF37';
 
   return (
     <>
@@ -130,12 +125,6 @@ export default function CheckRegistration() {
                     <span className={styles.resultTitle}>Registration Found</span>
                   </div>
                   <div className={styles.resultGrid}>
-                    <div className={styles.resultRow}>
-                      <span className={styles.resultLabel}>STATUS</span>
-                      <span className={styles.resultValue} style={{ color: statusColor, fontWeight: 700 }}>
-                        {(reg.status || 'pending').toUpperCase()}
-                      </span>
-                    </div>
                     <div className={styles.resultRow}>
                       <span className={styles.resultLabel}>SUBMITTED</span>
                       <span className={`${styles.resultValue} ${styles.mono}`}>{formatDate(reg.submittedAt)}</span>

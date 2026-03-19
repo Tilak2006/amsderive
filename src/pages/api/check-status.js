@@ -99,7 +99,6 @@ export default async function handler(req, res) {
     return res.status(200).json({
       found: true,
       registration: {
-        status: data.status || 'pending',
         submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : null,
       },
     });
