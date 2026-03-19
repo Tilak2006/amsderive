@@ -2,6 +2,7 @@
   background: #0a0a0a;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   padding: 80px 40px 0;
+  min-height: 200px;
 }
 
 .footerContent {
