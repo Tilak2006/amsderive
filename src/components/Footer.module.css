@@ -2,7 +2,7 @@
   background: #0a0a0a;
   border-top: 1px solid rgba(212, 175, 55, 0.1);
   padding: 80px 40px 0;
-  min-height: 200px;
+  min-height: 380px;
 }
 
 .footerContent {
@@ -27,9 +27,9 @@
 }
 
 .brandDesc {
-  font-family: var(--font-pt-serif), serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.9rem;
-  color: #6b6560;
+  color: #9a9390;
   line-height: 1.7;
   margin: 0 0 24px 0;
 }
@@ -40,7 +40,7 @@
 }
 
 .socialLink {
-  color: #6b6560;
+  color: #9a9390;
   transition: color 0.3s ease;
   text-decoration: none;
 }
@@ -71,7 +71,7 @@
 }
 
 .linkList a {
-  font-family: var(--font-pt-serif), serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.9rem;
   color: #8a8a8a;
   text-decoration: none;
@@ -93,14 +93,14 @@
   font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
   font-weight: 600;
-  color: #6b6560;
+  color: #9a9390;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
 
 .contactEmail {
-  font-family: var(--font-pt-serif), serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.9rem;
   color: #D4AF37;
   text-decoration: none;
@@ -124,9 +124,9 @@
 }
 
 .copyright {
-  font-family: var(--font-pt-serif), serif;
+  font-family: var(--font-sans), sans-serif;
   font-size: 0.8rem;
-  color: #6b6560;
+  color: #9a9390;
   margin: 0;
 }
 
@@ -140,15 +140,21 @@
   gap: 8px;
   font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
-  color: #6b6560;
+  color: #9a9390;
 }
 
 .statusDot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #D4AF37;
-  box-shadow: 0 0 6px rgba(212, 175, 55, 0.5);
+  background: #22c55e;
+  animation: dotPulse 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* Responsive */
