@@ -119,10 +119,11 @@ function WireframeMesh() {
 
     const isMobile = window.innerWidth < 768;
     const isLowEnd = isMobile && window.innerWidth < 420;
-    const gridSize = 128;
+    const gridSize = isLowEnd ? 48 : isMobile ? 64 : 128;
     const gridExtent = 10;
     const meshYOffset = 1.0;
     const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
+    const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
@@ -264,7 +265,6 @@ function WireframeMesh() {
     };
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('touchmove', handleTouchMove, { passive: true });
-    window.addEventListener('touchstart', handleTouchMove, { passive: true });
 
     // ── Animation loop ────────────────────────────────────────────────────
     let time = 0;
@@ -287,44 +287,48 @@ function WireframeMesh() {
       const volatility = baseVol + volSpike;
       const phase = time * 0.5;
 
-      // Update wireframe vertex positions with wave animation
-      const posAttr = wireGeometry.attributes.position;
-      const posArray = posAttr.array;
-      const step = (gridExtent * 2) / gridSize;
-      let vertexIndex = 0;
+      if (frameCount % vertexThrottle === 0) {
+        // Update wireframe vertex positions with wave animation
+        const posAttr = wireGeometry.attributes.position;
+        const posArray = posAttr.array;
+        const step = (gridExtent * 2) / gridSize;
+        let vertexIndex = 0;
 
-      // Update horizontal lines
-      for (let j = 0; j <= gridSize; j++) {
-        const z = -gridExtent + j * step;
-        for (let i = 0; i < gridSize; i++) {
-          const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
-          posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
-          vertexIndex++;
-          posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
-          vertexIndex++;
+        // Update horizontal lines
+        for (let j = 0; j <= gridSize; j++) {
+          const z = -gridExtent + j * step;
+          for (let i = 0; i < gridSize; i++) {
+            const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
+            posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
+            vertexIndex++;
+            posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
+            vertexIndex++;
+          }
         }
+
+        // Update vertical lines
+        for (let i = 0; i <= gridSize; i++) {
+          const x = -gridExtent + i * step;
+          for (let j = 0; j < gridSize; j++) {
+            const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
+            posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
+            vertexIndex++;
+            posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
+            vertexIndex++;
+          }
+        }
+        posAttr.needsUpdate = true;
       }
 
-      // Update vertical lines
-      for (let i = 0; i <= gridSize; i++) {
-        const x = -gridExtent + i * step;
-        for (let j = 0; j < gridSize; j++) {
-          const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
-          posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
-          vertexIndex++;
-          posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
-          vertexIndex++;
-        }
+      // Camera parallax — desktop only (mobile: skip to save CPU + eliminate scroll jank)
+      if (!isMobile) {
+        const lerpK = 1 - Math.pow(0.97, delta * 60);
+        const targetX = baseCamX + mouseRef.current.x * camTiltRange;
+        const targetY = camY - mouseRef.current.y * camTiltRange * 0.45;
+        camera.position.x += (targetX - camera.position.x) * lerpK;
+        camera.position.y += (targetY - camera.position.y) * lerpK;
+        camera.lookAt(0, 1, 0);
       }
-      posAttr.needsUpdate = true;
-
-      // Camera parallax (every frame — math only, no GPU writes)
-      const lerpK = 1 - Math.pow(0.97, delta * 60);
-      const targetX = baseCamX + mouseRef.current.x * camTiltRange;
-      const targetY = camY - mouseRef.current.y * camTiltRange * 0.45;
-      camera.position.x += (targetX - camera.position.x) * lerpK;
-      camera.position.y += (targetY - camera.position.y) * lerpK;
-      camera.lookAt(0, 1, 0);
 
       // Mesh + star rotation (every frame — cheap uniform updates, no buffer write)
       // Reduced rotation speed by 30% for premium, deliberate feel: 0.035 → 0.0245
@@ -379,16 +383,22 @@ function WireframeMesh() {
     // loop runs at 60fps the entire time the user reads the sections below,
     // competing directly with the browser's scroll rendering budget.
     // threshold:0 = act as soon as even 1px leaves/enters the viewport.
+    let pauseTimeout = null;
     const scrollObserver = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          // Cancel any pending pause — we're back in view
+          if (pauseTimeout) { clearTimeout(pauseTimeout); pauseTimeout = null; }
           lastTime = performance.now();
           if (!frameRef.current) animate();
         } else {
-          if (frameRef.current) {
-            cancelAnimationFrame(frameRef.current);
-            frameRef.current = null;
-          }
+          // Debounce pause by 150ms — prevents scroll gesture from triggering pause/resume cycle
+          pauseTimeout = setTimeout(() => {
+            if (frameRef.current) {
+              cancelAnimationFrame(frameRef.current);
+              frameRef.current = null;
+            }
+          }, 150);
         }
       },
       { threshold: 0 }
@@ -426,9 +436,9 @@ function WireframeMesh() {
 
     // ── Cleanup ────────────────────────────────────────────────────────────
     return () => {
+      if (pauseTimeout) clearTimeout(pauseTimeout);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('touchmove', handleTouchMove);
-      window.removeEventListener('touchstart', handleTouchMove);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       scrollObserver.disconnect();
       resizeObserver.disconnect();
