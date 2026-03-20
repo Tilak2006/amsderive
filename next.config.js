@@ -32,21 +32,37 @@ const nextConfig = {
 
   async headers() {
     return [
+      // Static assets — immutable forever
       {
-        source: '/(.*)',
+        source: '/_next/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      // Images and other public static files
+      {
+        source: '/(favicon.ico|favicon-.*|apple-touch-icon.*|android-chrome-.*|og-image.*|manifest.json|robots.txt|sitemap.xml)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+      // HTML pages — never cache
+      {
+        source: '/((?!_next/static|_next/image|favicon).*)',
         headers: [
           { key: 'X-DNS-Prefetch-Control', value: 'on' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
+      // API routes
       {
         source: '/api/(.*)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+          { key: 'Cache-Control', value: 'no-store, max-age=0' },
         ],
       },
     ];

@@ -2,7 +2,10 @@ User-agent: *
 Allow: /
 
 Disallow: /api/
+Disallow: /admin/
+Disallow: /firms/
 Disallow: /_next/
 Disallow: /register
+Disallow: /check-registration
 
-Sitemap: https://amsociety.in/sitemap.xml
+Sitemap: https://amsderive.in/sitemap.xml

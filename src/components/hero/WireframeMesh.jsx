@@ -123,7 +123,7 @@ function WireframeMesh() {
     const gridExtent = 10;
     const meshYOffset = 1.0;
     const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
-    const vertexThrottle = isMobile ? 3 : 2;
+    const vertexThrottle = 3;
 
     // ── Scene ────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
@@ -146,7 +146,8 @@ function WireframeMesh() {
       alpha: true,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const pixelRatioCap = isMobile ? 2 : 1.5;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setClearColor(0x000000, 0);
 
@@ -164,8 +165,13 @@ function WireframeMesh() {
       opacity: 1.0,
     });
     const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
-    const initialPositions = wireGeometry.attributes.position.array.slice();
     scene.add(wireframe);
+
+    // Pre-allocate 1D height row — reused every update frame (no GC pressure).
+    // getHeight() is purely f(x, phase) — z is accepted but never used —
+    // so one row of (gridSize+1) values covers the entire grid.
+    const heightRow = new Float32Array(gridSize + 1);
+    const step = (gridExtent * 2) / gridSize;
 
     // ── Axis scale tick marks ───────────────────────────────────────────
     const tickGroup = new THREE.Group();
@@ -288,32 +294,36 @@ function WireframeMesh() {
       const phase = time * 0.5;
 
       if (frameCount % vertexThrottle === 0) {
-        // Update wireframe vertex positions with wave animation
+        // Precompute 1D height row — one value per unique x.
+        // getHeight is f(x, phase) only; z is unused, so every row
+        // in the grid shares the same heights.  This reduces trig
+        // calls from ~329K to ~645 per update (99.8% reduction).
+        for (let i = 0; i <= gridSize; i++) {
+          const x = -gridExtent + i * step;
+          heightRow[i] = getHeight(x, 0, volatility, phase) - meshYOffset;
+        }
+
         const posAttr = wireGeometry.attributes.position;
         const posArray = posAttr.array;
-        const step = (gridExtent * 2) / gridSize;
         let vertexIndex = 0;
 
-        // Update horizontal lines
+        // Update horizontal lines — read from precomputed heightRow
         for (let j = 0; j <= gridSize; j++) {
-          const z = -gridExtent + j * step;
           for (let i = 0; i < gridSize; i++) {
-            const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
-            posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
+            posArray[vertexIndex * 3 + 1] = heightRow[i];
             vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
+            posArray[vertexIndex * 3 + 1] = heightRow[i + 1];
             vertexIndex++;
           }
         }
 
-        // Update vertical lines
+        // Update vertical lines — same heightRow lookup
         for (let i = 0; i <= gridSize; i++) {
-          const x = -gridExtent + i * step;
+          const h = heightRow[i];
           for (let j = 0; j < gridSize; j++) {
-            const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
-            posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
+            posArray[vertexIndex * 3 + 1] = h;
             vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
+            posArray[vertexIndex * 3 + 1] = h;
             vertexIndex++;
           }
         }

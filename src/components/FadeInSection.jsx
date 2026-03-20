@@ -11,6 +11,9 @@ const FadeInSection = ({ children }) => {
         if (entry.isIntersecting) {
           setVisible(true);
           observer.unobserve(entry.target);
+          setTimeout(() => {
+            if (entry.target) entry.target.style.willChange = 'auto';
+          }, 1100);
         }
       });
     }, { threshold: 0.1 });

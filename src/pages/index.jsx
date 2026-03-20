@@ -78,14 +78,23 @@ export default function LandingPage() {
     <>
       <Head>
         <title>AMS Derive | High-Signal Evaluation of Quantitative Thinking</title>
-<meta name="description" content="A three-round evaluation system identifying first-principles thinkers through structured reasoning, probabilistic thinking, and real-world problem-solving. Final round at IIT Bombay." />        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
-        <link rel="canonical" href="https://amsociety.in" />
+        <meta name="description" content="AMS Derive 2026 — India's premier quantitative finance contest. Three rounds of structured reasoning, probabilistic thinking, and algorithmic problem-solving. Final round at IIT Bombay. Register from April 20." />
+        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <link rel="canonical" href="https://amsderive.in" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="AMS Derive" />
-        <meta property="og:url" content="https://amsociety.in" />
+        <meta property="og:url" content="https://amsderive.in" />
         <meta property="og:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
         <meta property="og:description" content="Identifying first-principles thinkers through rigorous evaluation. Three rounds. Structured reasoning. Probabilistic thinking. Real-world problem-solving. IIT Bombay finals." />
-        <meta property="og:image" content="https://amsociety.in/og-image.png" />
+        <meta property="og:image" content="https://amsderive.in/og-image.jpg" />
+        <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
         <meta property="og:image:alt" content="AMS Derive — High-Signal Evaluation System" />
@@ -95,7 +104,7 @@ export default function LandingPage() {
         <meta name="twitter:creator" content="@amsderive" />
         <meta name="twitter:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
         <meta name="twitter:description" content="Identifying first-principles thinkers. Rigorous evaluation of structured reasoning and probabilistic thinking. IIT Bombay finals." />
-        <meta name="twitter:image" content="https://amsociety.in/og-image.png" />
+        <meta name="twitter:image" content="https://amsderive.in/og-image.jpg" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -110,12 +119,12 @@ export default function LandingPage() {
               "eventAttendanceMode": "https://schema.org/MixedEventAttendanceMode",
               "location": {
                 "@type": "VirtualLocation",
-                "url": "https://amsociety.in/ams-derive"
+                "url": "https://amsderive.in"
               },
               "organizer": {
                 "@type": "Organization",
                 "name": "AMS Society IIT Bombay",
-                "url": "https://amsociety.in"
+                "url": "https://amsderive.in"
               },
               "offers": {
                 "@type": "Offer",
@@ -123,10 +132,10 @@ export default function LandingPage() {
                 "priceCurrency": "INR",
                 "availability": "https://schema.org/InStock",
                 "validFrom": "2026-04-20",
-                "url": "https://amsociety.in/register"
+                "url": "https://amsderive.in/register"
               },
-              "image": "https://amsociety.in/og-image.png",
-              "url": "https://amsociety.in/ams-derive"
+              "image": "https://amsderive.in/og-image.jpg",
+              "url": "https://amsderive.in"
             })
           }}
         />
