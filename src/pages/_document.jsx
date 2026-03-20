@@ -7,10 +7,7 @@ export default function Document() {
       <Head>
         <meta name="theme-color" content="#0a0a0a" />
         
-        {/* Critical preconnects: highest priority for Firebase services */}
-        <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="preconnect" href="https://storage.googleapis.com" />
-        
+
         {/* DNS prefetch for Firebase domain resolution */}
         <link rel="dns-prefetch" href="https://firebaseapp.com" />
         
