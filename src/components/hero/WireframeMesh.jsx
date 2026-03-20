@@ -123,7 +123,7 @@ function WireframeMesh() {
     const gridExtent = 10;
     const meshYOffset = 1.0;
     const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
-    const vertexThrottle = 3;
+    const vertexThrottle = isLowEnd ? 3 : isMobile ? 2 : 1;
 
     // ── Scene ────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
