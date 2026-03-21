@@ -55,7 +55,8 @@ function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
   const tmp = new THREE.Color();
 
   function addVertex(x, y, z) {
-    positions.push(x, y - meshYOffset, z);
+    // The geometry is fully flat! GPU will add the wave heights.
+    positions.push(x, -meshYOffset, z);
     const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
     tmp.copy(amber).lerp(champagne, 1 - t);
     if (y > 3.0) tmp.lerp(ivory, Math.min((y - 3.0) / 2.5, 1.0));
@@ -162,8 +163,43 @@ function WireframeMesh() {
       transparent: true,
       opacity: 1.0,
     });
+    // GPU Shader Injection — Keeps exact aesthetics and native scene fog!
+    const wireUniforms = {
+      uTime: { value: 0 },
+      uVolatility: { value: 1.0 }
+    };
+
+    wireMaterial.onBeforeCompile = (shader) => {
+      shader.uniforms.uTime = wireUniforms.uTime;
+      shader.uniforms.uVolatility = wireUniforms.uVolatility;
+
+      shader.vertexShader = `
+        uniform float uTime;
+        uniform float uVolatility;
+
+        float getWaveHeight(float x, float volatility, float phase) {
+          float amplitude = 2.0;
+          float y = 0.0;
+          y += volatility * amplitude * 0.9 * sin(x * 1.0 + phase);
+          y += volatility * amplitude * 0.55 * sin(x * 1.7 + phase * 1.3);
+          y += volatility * amplitude * 0.35 * sin(x * 2.8 + phase * 0.7);
+          y += volatility * amplitude * 0.15 * sin(x * 4.3 + phase * 1.8);
+          y += volatility * amplitude * 0.10 * sin(x * 0.5 + phase * 0.4);
+          return y;
+        }
+      ` + shader.vertexShader;
+
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        `
+        vec3 transformed = vec3( position );
+        float phase = uTime * 0.5;
+        transformed.y += getWaveHeight(transformed.x, uVolatility, phase);
+        `
+      );
+    };
+
     const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
-    const initialPositions = wireGeometry.attributes.position.array.slice();
     scene.add(wireframe);
 
     // ── Axis scale tick marks ───────────────────────────────────────────
@@ -286,38 +322,9 @@ function WireframeMesh() {
       const volatility = baseVol + volSpike;
       const phase = time * 0.5;
 
-      if (frameCount % vertexThrottle === 0) {
-        // Update wireframe vertex positions with wave animation
-        const posAttr = wireGeometry.attributes.position;
-        const posArray = posAttr.array;
-        const step = (gridExtent * 2) / gridSize;
-        let vertexIndex = 0;
-
-        // Update horizontal lines
-        for (let j = 0; j <= gridSize; j++) {
-          const z = -gridExtent + j * step;
-          for (let i = 0; i < gridSize; i++) {
-            const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
-            posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
-            vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
-            vertexIndex++;
-          }
-        }
-
-        // Update vertical lines
-        for (let i = 0; i <= gridSize; i++) {
-          const x = -gridExtent + i * step;
-          for (let j = 0; j < gridSize; j++) {
-            const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
-            posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
-            vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
-            vertexIndex++;
-          }
-        }
-        posAttr.needsUpdate = true;
-      }
+      // CPU Cost dropped to ~0. GPU natively handles all 263K vertices via Vertex Shader!
+      wireUniforms.uTime.value = time;
+      wireUniforms.uVolatility.value = volatility;
 
       // Camera parallax — desktop only (mobile: skip to save CPU + eliminate scroll jank)
       if (!isMobile) {
