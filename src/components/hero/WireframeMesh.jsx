@@ -118,11 +118,10 @@ function WireframeMesh() {
     }
 
     const isMobile = window.innerWidth < 768;
-    const isLowEnd = isMobile && window.innerWidth < 420;
-    const gridSize = isLowEnd ? 48 : 128;
+    const gridSize = isMobile ? 256 : 128;
     const gridExtent = 10;
     const meshYOffset = 1.0;
-    const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
+    const pCount = isMobile ? 35 : 55;
     const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
