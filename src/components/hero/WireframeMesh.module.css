@@ -69,9 +69,9 @@
     z-index: 1;
     pointer-events: none;
     background: radial-gradient(ellipse at 50% 50%,
-        rgba(0, 0, 0, 0) 0%,
-        rgba(0, 0, 0, 0.15) 65%,
-        rgba(0, 0, 0, 0.65) 100%);
+            rgba(0, 0, 0, 0) 0%,
+            rgba(0, 0, 0, 0.08) 55%,
+            rgba(0, 0, 0, 0.45) 100%);
 }
 
 /* ── Mobile: nothing to remove here since there's no filter anymore ── */

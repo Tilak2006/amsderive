@@ -35,13 +35,13 @@ function getHeight(x, z, volatility = 1.0, phase = 0) {
   const amplitude = 2.0;
   const vol = volatility || 1.0;
   const p = phase || 0;
-  
+
   return (
-    vol * amplitude * 0.9  * Math.sin(x * 1.0  + p)
-    + vol * amplitude * 0.55 * Math.sin(x * 1.7  + p * 1.3)
-    + vol * amplitude * 0.35 * Math.sin(x * 2.8  + p * 0.7)
-    + vol * amplitude * 0.15 * Math.sin(x * 4.3  + p * 1.8)
-    + vol * amplitude * 0.10 * Math.sin(x * 0.5  + p * 0.4)
+    vol * amplitude * 0.9 * Math.sin(x * 1.0 + p)
+    + vol * amplitude * 0.55 * Math.sin(x * 1.7 + p * 1.3)
+    + vol * amplitude * 0.35 * Math.sin(x * 2.8 + p * 0.7)
+    + vol * amplitude * 0.15 * Math.sin(x * 4.3 + p * 1.8)
+    + vol * amplitude * 0.10 * Math.sin(x * 0.5 + p * 0.4)
   );
 }
 
@@ -59,7 +59,7 @@ function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
     const t = Math.pow((x + gridExtent) / (2 * gridExtent), 0.75);
     tmp.copy(amber).lerp(champagne, 1 - t);
     if (y > 3.0) tmp.lerp(ivory, Math.min((y - 3.0) / 2.5, 1.0));
-    const brightness = 0.55 + 0.45 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
+    const brightness = 0.25 + 0.75 * Math.pow(Math.max(y, 0) / 4.5, 1.3);
     colors.push(tmp.r * brightness, tmp.g * brightness, tmp.b * brightness);
   }
 
@@ -119,15 +119,15 @@ function WireframeMesh() {
 
     const isMobile = window.innerWidth < 768;
     const isLowEnd = isMobile && window.innerWidth < 420;
-    const gridSize = isLowEnd ? 48 : isMobile ? 64 : 128;
+    const gridSize = isLowEnd ? 48 : 128;
     const gridExtent = 10;
     const meshYOffset = 1.0;
     const pCount = isLowEnd ? 20 : isMobile ? 30 : 55;
-    const vertexThrottle = isLowEnd ? 3 : isMobile ? 2 : 1;
+    const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, isMobile ? 0.055 : 0.058);
+    scene.fog = new THREE.FogExp2(0x000000, isMobile ? 0.07 : 0.072);
 
     // ── Camera ───────────────────────────────────────────────────────────
     const fov = isMobile ? 52 : 40;
@@ -146,8 +146,7 @@ function WireframeMesh() {
       alpha: true,
       powerPreference: 'high-performance',
     });
-    const pixelRatioCap = isMobile ? 2 : 1.5;
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, pixelRatioCap));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setClearColor(0x000000, 0);
 
@@ -165,20 +164,15 @@ function WireframeMesh() {
       opacity: 1.0,
     });
     const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
+    const initialPositions = wireGeometry.attributes.position.array.slice();
     scene.add(wireframe);
-
-    // Pre-allocate 1D height row — reused every update frame (no GC pressure).
-    // getHeight() is purely f(x, phase) — z is accepted but never used —
-    // so one row of (gridSize+1) values covers the entire grid.
-    const heightRow = new Float32Array(gridSize + 1);
-    const step = (gridExtent * 2) / gridSize;
 
     // ── Axis scale tick marks ───────────────────────────────────────────
     const tickGroup = new THREE.Group();
     const tickCount = 8;
     const tickHeight = 0.08;
     const tickColor = new THREE.Color(0xD4AF37);
-    
+
     for (let i = 0; i < tickCount; i++) {
       const xPos = -gridExtent + (i / (tickCount - 1)) * (gridExtent * 2);
       const tickGeom = new THREE.BufferGeometry();
@@ -249,7 +243,7 @@ function WireframeMesh() {
     scene.add(stars);
 
     scene.add(new THREE.AmbientLight(0x1A1200, 0.8));
-    
+
     // ── Directional light for glow distribution ────────────────────────────
     // Positioned above and behind to highlight peaks in the mesh surface
     const dirLight = new THREE.DirectionalLight(0xD4A017, 0.35);
@@ -294,36 +288,32 @@ function WireframeMesh() {
       const phase = time * 0.5;
 
       if (frameCount % vertexThrottle === 0) {
-        // Precompute 1D height row — one value per unique x.
-        // getHeight is f(x, phase) only; z is unused, so every row
-        // in the grid shares the same heights.  This reduces trig
-        // calls from ~329K to ~645 per update (99.8% reduction).
-        for (let i = 0; i <= gridSize; i++) {
-          const x = -gridExtent + i * step;
-          heightRow[i] = getHeight(x, 0, volatility, phase) - meshYOffset;
-        }
-
+        // Update wireframe vertex positions with wave animation
         const posAttr = wireGeometry.attributes.position;
         const posArray = posAttr.array;
+        const step = (gridExtent * 2) / gridSize;
         let vertexIndex = 0;
 
-        // Update horizontal lines — read from precomputed heightRow
+        // Update horizontal lines
         for (let j = 0; j <= gridSize; j++) {
+          const z = -gridExtent + j * step;
           for (let i = 0; i < gridSize; i++) {
-            posArray[vertexIndex * 3 + 1] = heightRow[i];
+            const x1 = -gridExtent + i * step, x2 = -gridExtent + (i + 1) * step;
+            posArray[vertexIndex * 3 + 1] = getHeight(x1, z, volatility, phase) - meshYOffset;
             vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = heightRow[i + 1];
+            posArray[vertexIndex * 3 + 1] = getHeight(x2, z, volatility, phase) - meshYOffset;
             vertexIndex++;
           }
         }
 
-        // Update vertical lines — same heightRow lookup
+        // Update vertical lines
         for (let i = 0; i <= gridSize; i++) {
-          const h = heightRow[i];
+          const x = -gridExtent + i * step;
           for (let j = 0; j < gridSize; j++) {
-            posArray[vertexIndex * 3 + 1] = h;
+            const z1 = -gridExtent + j * step, z2 = -gridExtent + (j + 1) * step;
+            posArray[vertexIndex * 3 + 1] = getHeight(x, z1, volatility, phase) - meshYOffset;
             vertexIndex++;
-            posArray[vertexIndex * 3 + 1] = h;
+            posArray[vertexIndex * 3 + 1] = getHeight(x, z2, volatility, phase) - meshYOffset;
             vertexIndex++;
           }
         }
@@ -429,12 +419,12 @@ function WireframeMesh() {
       resizeTimeout = setTimeout(() => {
         const w = container.clientWidth, h = container.clientHeight;
         if (w === 0 || h === 0) return;
-        
+
         // Skip resize if only height changed by <100px (URL bar pattern on mobile)
         const dw = Math.abs(w - lastResizeW);
         const dh = Math.abs(h - lastResizeH);
         if (dw < 2 && dh > 0 && dh < 100) return;
-        
+
         lastResizeW = w;
         lastResizeH = h;
         camera.aspect = w / h;
