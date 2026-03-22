@@ -55,7 +55,7 @@ const HeroContent = memo(function HeroContent() {
       <div className={styles.heroContent}>
         <div className={styles.titleGroup}>
           <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-<p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
+          <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
 
         <p className={styles.signupLabel}>
           {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
@@ -78,8 +78,8 @@ export default function LandingPage() {
     <>
       <Head>
         <title>AMS Derive | High-Signal Evaluation of Quantitative Thinking</title>
-        <meta name="description" content="AMS Derive 2026 — India's premier quantitative finance contest. Three rounds of structured reasoning, probabilistic thinking, and algorithmic problem-solving. Final round at IIT Bombay. Register from April 20." />
-        <meta name="keywords" content="quant contest India, algorithmic trading competition, IIT Bombay quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
+        <meta name="description" content="AMS Derive 2026 — India's premier quantitative finance contest. Three rounds of structured reasoning, probabilistic thinking, and algorithmic problem-solving. Final round offline at one of the IITs. Register from April 20." />
+        <meta name="keywords" content="quant contest India, algorithmic trading competition, offline finals quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
@@ -92,7 +92,7 @@ export default function LandingPage() {
         <meta property="og:site_name" content="AMS Derive" />
         <meta property="og:url" content="https://amsderive.in" />
         <meta property="og:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
-        <meta property="og:description" content="Identifying first-principles thinkers through rigorous evaluation. Three rounds. Structured reasoning. Probabilistic thinking. Real-world problem-solving. IIT Bombay finals." />
+        <meta property="og:description" content="Identifying first-principles thinkers through rigorous evaluation. Three rounds. Structured reasoning. Probabilistic thinking. Real-world problem-solving. Offline finals at one of the IITs." />
         <meta property="og:image" content="https://amsderive.in/og-image.jpg" />
         <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="1200" />
@@ -103,7 +103,7 @@ export default function LandingPage() {
         <meta name="twitter:site" content="@amsderive" />
         <meta name="twitter:creator" content="@amsderive" />
         <meta name="twitter:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
-        <meta name="twitter:description" content="Identifying first-principles thinkers. Rigorous evaluation of structured reasoning and probabilistic thinking. IIT Bombay finals." />
+        <meta name="twitter:description" content="Identifying first-principles thinkers. Rigorous evaluation of structured reasoning and probabilistic thinking. Offline finals at one of the IITs." />
         <meta name="twitter:image" content="https://amsderive.in/og-image.jpg" />
         <script
           type="application/ld+json"
@@ -112,7 +112,7 @@ export default function LandingPage() {
               "@context": "https://schema.org",
               "@type": "Event",
               "name": "AMS Derive 2026",
-              "description": "A high-signal evaluation system identifying first-principles thinkers through three rounds of rigorous problem-solving. Final round at IIT Bombay.",
+              "description": "A high-signal evaluation system identifying first-principles thinkers through three rounds of rigorous problem-solving. Final round offline at one of the IITs.",
               "startDate": "2026-05-23",
               "endDate": "2026-07-11",
               "eventStatus": "https://schema.org/EventScheduled",
@@ -123,7 +123,7 @@ export default function LandingPage() {
               },
               "organizer": {
                 "@type": "Organization",
-                "name": "AMS Society IIT Bombay",
+                "name": "AMS Society",
                 "url": "https://amsderive.in"
               },
               "offers": {
