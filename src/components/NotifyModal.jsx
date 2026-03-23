@@ -116,8 +116,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
           <div className={styles.successContainer}>
             <h2 className={styles.successTitle}>Success!</h2>
             <p className={styles.successMessage}>
-              You'll be notified when registrations open
-            </p>
+              You've successfully pre-registered. We'll notify you via email when registrations open.            </p>
             <button
               type="button"
               className={styles.doneBtn}
@@ -128,7 +127,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
           </div>
         ) : (
           <>
-            <h2 className={styles.title}>Get Notified</h2>
+            <h2 className={styles.title}>Pre register</h2>
             <p className={styles.subtitle}>
               We'll send you an email when registrations open
             </p>
@@ -150,7 +149,7 @@ const NotifyModal = ({ isOpen, onClose }) => {
                 className={styles.submitBtn}
                 disabled={loading}
               >
-                {loading ? 'Subscribing...' : 'Notify Me'}
+                {loading ? 'Subscribing...' : 'Pre register'}
               </button>
             </form>
           </>

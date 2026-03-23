@@ -36,7 +36,7 @@ const Navbar = () => {
           className={styles.notifyBtn}
           onClick={() => setIsModalOpen(true)}
         >
-          Notify Me
+          Pre register
         </button>
       </nav>
       <NotifyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
