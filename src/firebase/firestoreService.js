@@ -97,8 +97,8 @@ export async function submitRegistration(data) {
       university: data.university,
       resumeUrl: data.resumeUrl,
       resumeFileName: data.resumeFileName,
-      idCardUrl: data.idCardUrl,
-      idCardFileName: data.idCardFileName,
+      transcriptUrl: data.transcriptUrl,
+      transcriptFileName: data.transcriptFileName,
       codeforcesHandle: data.codeforcesHandle,
       phoneNumber: data.phoneNumber || null,
       linkedIn: data.linkedIn || null,
@@ -188,8 +188,8 @@ export async function getAllRegistrants(lastDoc = null) {
         status: data.status || 'pending',
         resumeUrl: data.resumeUrl || null,
         resumeFileName: data.resumeFileName || null,
-        idCardUrl: data.idCardUrl || null,
-        idCardFileName: data.idCardFileName || null,
+        transcriptUrl: data.transcriptUrl || null,
+        transcriptFileName: data.transcriptFileName || null,
         // Mask IP hash — last 8 chars only
         ipHash: data.ipHash ? '••••••••' + data.ipHash.slice(-8) : '—',
       };

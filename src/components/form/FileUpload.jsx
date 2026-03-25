@@ -13,10 +13,12 @@ export default function FileUpload({
   error = '',
   file = null,
   required = false,
+  infoTooltip = '',
 }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     if (!file || !file.type.startsWith('image/')) {
@@ -76,10 +78,23 @@ export default function FileUpload({
 
   return (
     <div className={styles.fileUploadField}>
-      <label className={styles.fileUploadLabel}>
-        {label}
-        {required && <span className={styles.fileUploadRequired}> *</span>}
-      </label>
+      <div className={styles.fileUploadHeader}>
+        <label className={styles.fileUploadLabel}>
+          {label}
+          {required && <span className={styles.fileUploadRequired}> *</span>}
+        </label>
+        {infoTooltip && (
+          <div
+            className={styles.infoIconWrapper}
+            tabIndex="0"
+            onClick={() => setShowTooltip((prev) => !prev)}
+            onBlur={() => setShowTooltip(false)}
+          >
+            <span className={styles.infoIcon}>ⓘ</span>
+            <div className={`${styles.tooltipText} ${showTooltip ? styles.tooltipVisible : ''}`}>{infoTooltip}</div>
+          </div>
+        )}
+      </div>
       <p className={styles.fileUploadSubtext}>to verify institution</p>
       <button
         type="button"

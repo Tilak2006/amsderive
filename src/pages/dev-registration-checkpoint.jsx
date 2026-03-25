@@ -138,7 +138,7 @@ export default function DevRegistrationCheckpoint() {
       // Step 6: NOW upload files (rate limit already passed)
       const uploadResult = await PerformanceLogger.monitor(
         'File Upload',
-        withTimeout(uploadRegistrationFiles(data.resumeFile, data.idCardFile, sanitizedName))
+        withTimeout(uploadRegistrationFiles(data.resumeFile, data.transcriptFile, sanitizedName))
       );
 
       if (!uploadResult.success) {
@@ -157,8 +157,8 @@ export default function DevRegistrationCheckpoint() {
             university: data.university.trim(),
             resumeUrl: uploadResult.resumeUrl,
             resumeFileName: uploadResult.resumeFileName,
-            idCardUrl: uploadResult.idCardUrl,
-            idCardFileName: uploadResult.idCardFileName,
+            transcriptUrl: uploadResult.transcriptUrl,
+            transcriptFileName: uploadResult.transcriptFileName,
             codeforcesHandle: data.codeforcesHandle.trim(),
             phoneNumber: data.phoneNumber.trim(),
             linkedIn: data.linkedIn.trim() || null,

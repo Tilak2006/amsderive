@@ -88,39 +88,39 @@ export async function getFileUrl(path) {
  * Always uploads raw files (no compression) to preserve MIME types.
  * Ref: firebase-upload-safety skill (implemented rules 1-6)
  * @param {File} resumeFile - PDF file
- * @param {File} idCardFile - PDF file
+ * @param {File} transcriptFile - PDF file
  * @param {string} sanitizedName - Sanitized participant name for path
- * @returns {Promise<{success: boolean, resumeUrl?: string, idCardUrl?: string, resumeFileName?: string, idCardFileName?: string, error?: string}>}
+ * @returns {Promise<{success: boolean, resumeUrl?: string, transcriptUrl?: string, resumeFileName?: string, transcriptFileName?: string, error?: string}>}
  */
-export async function uploadRegistrationFiles(resumeFile, idCardFile, sanitizedName) {
+export async function uploadRegistrationFiles(resumeFile, transcriptFile, sanitizedName) {
   try {
     const timestamp = Date.now();
     const resumePath = `registrants/${timestamp}_${sanitizedName}_resume.pdf`;
     
-    // ID card must be PDF per file-safety rules
-    const idPath = `registrants/${timestamp}_${sanitizedName}_id.pdf`;
+    // Transcript must be PDF per file-safety rules
+    const transcriptPath = `registrants/${timestamp}_${sanitizedName}_transcript.pdf`;
 
     // Upload both files in parallel (raw, no compression)
     // MIME type preserved for client and server-side validation
-    const [resumeResult, idResult] = await Promise.all([
+    const [resumeResult, transcriptResult] = await Promise.all([
       uploadFile(resumeFile, resumePath),
-      uploadFile(idCardFile, idPath),
+      uploadFile(transcriptFile, transcriptPath),
     ]);
 
     if (!resumeResult.success) {
       return { success: false, error: resumeResult.error || 'Failed to upload resume.' };
     }
-    if (!idResult.success) {
+    if (!transcriptResult.success) {
       try { await deleteObject(ref(storage, resumePath)); } catch {}
-      return { success: false, error: idResult.error || 'Failed to upload ID card.' };
+      return { success: false, error: transcriptResult.error || 'Failed to upload transcript.' };
     }
 
     return {
       success: true,
       resumeUrl: resumeResult.url,
-      idCardUrl: idResult.url,
+      transcriptUrl: transcriptResult.url,
       resumeFileName: resumeFile.name,
-      idCardFileName: idCardFile.name,
+      transcriptFileName: transcriptFile.name,
     };
   } catch (error) {
     return { success: false, error: error.message };

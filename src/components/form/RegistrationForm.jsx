@@ -37,7 +37,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     dataConsent: false,
   });
   const [resumeFile, setResumeFile] = useState(null);
-  const [idCardFile, setIdCardFile] = useState(null);
+  const [transcriptFile, setTranscriptFile] = useState(null);
   const [errors, setErrors] = useState({});
 
   const [cfVerifying, setCfVerifying] = useState(false);
@@ -142,10 +142,10 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     }
   }
 
-  function handleIdCardSelect(file) {
-    setIdCardFile(file);
-    if (errors.idCard) {
-      setErrors((prev) => ({ ...prev, idCard: '' }));
+  function handleTranscriptSelect(file) {
+    setTranscriptFile(file);
+    if (errors.transcript) {
+      setErrors((prev) => ({ ...prev, transcript: '' }));
     }
   }
 
@@ -197,16 +197,16 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       }
     }
 
-    // ID Card file validation
-    if (!idCardFile) {
-      newErrors.idCard = 'ID card is required';
+    // Transcript file validation
+    if (!transcriptFile) {
+      newErrors.transcript = 'Transcript is required';
     } else {
-      const idTypeResult = validateFileType(idCardFile, ID_ALLOWED_TYPES);
-      if (!idTypeResult.valid) {
-        newErrors.idCard = 'ID card must be a PDF';
+      const transcriptTypeResult = validateFileType(transcriptFile, ID_ALLOWED_TYPES);
+      if (!transcriptTypeResult.valid) {
+        newErrors.transcript = 'Transcript must be a PDF';
       } else {
-        const idSizeResult = validateFileSize(idCardFile, ID_MAX_SIZE);
-        if (!idSizeResult.valid) newErrors.idCard = 'ID card must be under 100KB';
+        const transcriptSizeResult = validateFileSize(transcriptFile, ID_MAX_SIZE);
+        if (!transcriptSizeResult.valid) newErrors.transcript = 'Transcript must be under 100KB';
       }
     }
 
@@ -216,7 +216,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     }
 
     return newErrors;
-  }, [fields, resumeFile, idCardFile]);
+  }, [fields, resumeFile, transcriptFile]);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -238,7 +238,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           gitHub: snapshot.gitHub.trim(),
           dataConsent: snapshot.dataConsent,
           resumeFile,
-          idCardFile,
+          transcriptFile,
         },
         setErrors
       );
@@ -352,13 +352,14 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         />
 
         <FileUpload
-          label="ID Card"
-          name="idCard"
+          label="Transcript"
+          name="transcript"
           accept="application/pdf"
-          onFileSelect={handleIdCardSelect}
-          error={errors.idCard}
-          file={idCardFile}
+          onFileSelect={handleTranscriptSelect}
+          error={errors.transcript}
+          file={transcriptFile}
           hint="PDF only, max 100KB"
+          infoTooltip="Most recent transcript (college / highschool marksheet)"
           required
         />
 

@@ -62,8 +62,8 @@ export default async function handler(req, res) {
         status: data.status || 'pending',
         resumeUrl: data.resumeUrl || null,
         resumeFileName: data.resumeFileName || null,
-        idCardUrl: data.idCardUrl || null,
-        idCardFileName: data.idCardFileName || null,
+        transcriptUrl: data.transcriptUrl || null,
+        transcriptFileName: data.transcriptFileName || null,
         ipHash: data.ipHash ? '••••••••' + data.ipHash.slice(-8) : '—',
       };
     });

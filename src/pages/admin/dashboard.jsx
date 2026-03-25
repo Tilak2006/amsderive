@@ -484,10 +484,10 @@ export default function AdminDashboard() {
               </button>
               <button
                 className={styles.panelActionBtn}
-                disabled={!r.idCardUrl}
-                onClick={() => r.idCardUrl && handleViewFile(r.idCardUrl)}
+                disabled={!r.transcriptUrl}
+                onClick={() => r.transcriptUrl && handleViewFile(r.transcriptUrl)}
               >
-                VIEW ID CARD
+                VIEW TRANSCRIPT
               </button>
             </div>
           </aside>

@@ -33,19 +33,24 @@ export default async function handler(req, res) {
   const {
     fullName, email, university, codeforcesHandle, phoneNumber,
     linkedIn, gitHub, dataConsent, resumeUrl, resumeFileName,
-    idCardUrl, idCardFileName, ipHash,
+    transcriptUrl, transcriptFileName, ipHash,
   } = req.body;
 
   // Server-side validation — never trust client
   if (!fullName || !email || !university || !codeforcesHandle || !phoneNumber ||
-    !resumeUrl || !idCardUrl || !linkedIn || dataConsent !== true) {
+    !resumeUrl || !transcriptUrl || !linkedIn || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
-  // Validate URL safety
+  // Validate URL safety — strict hostname check to prevent domain spoofing
   const validDomains = ['firebasestorage.googleapis.com', 'storage.googleapis.com'];
-  if (!validDomains.some(d => resumeUrl.includes(d)) ||
-    !validDomains.some(d => idCardUrl.includes(d))) {
+  try {
+    const resumeHostname = new URL(resumeUrl).hostname;
+    const transcriptHostname = new URL(transcriptUrl).hostname;
+    if (!validDomains.includes(resumeHostname) || !validDomains.includes(transcriptHostname)) {
+      return res.status(400).json({ success: false, error: 'Invalid file URLs.' });
+    }
+  } catch (e) {
     return res.status(400).json({ success: false, error: 'Invalid file URLs.' });
   }
 
@@ -55,7 +60,7 @@ export default async function handler(req, res) {
   // Verify Codeforces handle
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
     const cfRes = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(cfHandle)}`, {
       signal: controller.signal
@@ -94,8 +99,8 @@ export default async function handler(req, res) {
       university: university.trim(),
       resumeUrl,
       resumeFileName: resumeFileName || null,
-      idCardUrl,
-      idCardFileName: idCardFileName || null,
+      transcriptUrl,
+      transcriptFileName: transcriptFileName || null,
       codeforcesHandle: codeforcesHandle.trim(),
       phoneNumber: phoneNumber.trim(),
       linkedIn: linkedIn?.trim() || null,
