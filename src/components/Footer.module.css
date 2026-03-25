@@ -141,13 +141,23 @@
   font-family: var(--font-mono), monospace;
   font-size: 0.75rem;
   color: #9a9390;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.statusBadge:hover {
+  background: rgba(0, 119, 181, 0.1);
+  color: #0077b5;
 }
 
 .statusDot {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: #22c55e;
+  background: #0077b5;
+  box-shadow: 0 0 10px rgba(0, 119, 181, 0.4);
   animation: dotPulse 2s ease-in-out infinite;
   will-change: opacity;
 }
