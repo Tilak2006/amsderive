@@ -80,7 +80,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       } else if (fieldName === 'codeforcesHandle') {
         const result = validateCodeforcesHandleFormat(value);
         if (!result.valid) error = result.error;
-        
+
         // UX: clear verifying state since validation is done
         // Add a slight delay just so the user sees the "Verifying..." hint briefly
         setTimeout(() => setCfVerifying(false), 800);
@@ -249,152 +249,152 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     <form className={styles.registrationForm} onSubmit={handleSubmit} noValidate>
       <div className={styles.terminalLabel}>$ ams-derive-register</div>
       <div className={styles.terminalForm}>
-      {/* Personal Details Section - 2 Column */}
-      <div className={styles.formGridRow}>
-        <TextInput
-          label="Full Name"
-          name="fullName"
-          value={fields.fullName}
-          onChange={handleChange}
-          error={errors.fullName}
-          placeholder="Your full name"
-          required
-        />
-        <TextInput
-          label="Email"
-          name="email"
-          type="email"
-          value={fields.email}
-          onChange={handleChange}
-          error={errors.email}
-          placeholder="your.email@example.com"
-          required
-        />
-      </div>
-
-      {/* University / Institution - Full Width */}
-      <UniversitySelect
-        label="University / Institution"
-        name="university"
-        value={fields.university}
-        onChange={handleChange}
-        error={errors.university}
-        required
-      />
-
-      {/* Competitive Programming Handles - Single Column */}
-      <div className={styles.cfInputWrap}>
-        <TextInput
-          label="Codeforces Handle"
-          name="codeforcesHandle"
-          value={fields.codeforcesHandle}
-          onChange={handleChange}
-          error={errors.codeforcesHandle}
-          placeholder="cf_username"
-          hint="Alphanumeric and underscores only. Max 24 characters"
-          required
-        />
-        {cfVerifying && !errors.codeforcesHandle && (
-          <span className={styles.verifyingHint}>Verifying...</span>
-        )}
-      </div>
-
-      <TextInput
-        label="Phone Number"
-        name="phoneNumber"
-        type="tel"
-        value={fields.phoneNumber}
-        onChange={handleChange}
-        error={errors.phoneNumber}
-        placeholder="9876543210"
-        hint="10-digit phone number"
-        prefix="+91"
-        required
-      />
-
-      <div className={styles.formGridRow}>
-        <TextInput
-          label="LinkedIn Profile"
-          name="linkedIn"
-          type="url"
-          value={fields.linkedIn}
-          onChange={handleChange}
-          error={errors.linkedIn}
-          placeholder="linkedin.com/in/yourprofile"
-          hint="Your LinkedIn profile URL"
-          required
-        />
-        <TextInput
-          label="GitHub Profile"
-          name="gitHub"
-          type="url"
-          value={fields.gitHub}
-          onChange={handleChange}
-          error={errors.gitHub}
-          placeholder="github.com/yourprofile"
-          hint="Your GitHub profile URL (Optional)"
-        />
-      </div>
-
-      {/* Divider */}
-      <div className={styles.formDivider} />
-
-      {/* File Uploads - Single Column */}
-      <FileUpload
-        label="Resume"
-        name="resume"
-        accept="application/pdf"
-        onFileSelect={handleResumeSelect}
-        error={errors.resume}
-        file={resumeFile}
-        hint="PDF only, max 400KB"
-        required
-      />
-
-      <FileUpload
-        label="ID Card"
-        name="idCard"
-        accept="application/pdf"
-        onFileSelect={handleIdCardSelect}
-        error={errors.idCard}
-        file={idCardFile}
-        hint="PDF only, max 100KB"
-        required
-      />
-
-      {/* Data Consent Checkbox */}
-      <div className={styles.consentField}>
-        <label className={styles.consentCheckbox}>
-          <input
-            type="checkbox"
-            name="dataConsent"
-            checked={fields.dataConsent}
+        {/* Personal Details Section - 2 Column */}
+        <div className={styles.formGridRow}>
+          <TextInput
+            label="Full Name"
+            name="fullName"
+            value={fields.fullName}
             onChange={handleChange}
+            error={errors.fullName}
+            placeholder="Your full name"
             required
           />
-          <span className={styles.checkboxLabel}>
-            I consent to my profile being shared with partner firms for recruitment purposes
-          </span>
-        </label>
-        {errors.dataConsent && (
-          <p className={styles.consentError} role="alert">
-            {errors.dataConsent}
-          </p>
-        )}
-      </div>
+          <TextInput
+            label="Email"
+            name="email"
+            type="email"
+            value={fields.email}
+            onChange={handleChange}
+            error={errors.email}
+            placeholder="your.email@example.com"
+            required
+          />
+        </div>
 
-      <Button type="submit" disabled={loading}>
-        {loading ? (
-          <span className={styles.submitLoading}>
-            Registering
-            <span className={`${styles.submitDot} ${styles.submitDot1}`}>&middot;</span>
-            <span className={`${styles.submitDot} ${styles.submitDot2}`}>&middot;</span>
-            <span className={`${styles.submitDot} ${styles.submitDot3}`}>&middot;</span>
-          </span>
-        ) : (
-          'Submit Registration'
-        )}
-      </Button>
+        {/* University / Institution - Full Width */}
+        <UniversitySelect
+          label="University / Institution"
+          name="university"
+          value={fields.university}
+          onChange={handleChange}
+          error={errors.university}
+          required
+        />
+
+        {/* Competitive Programming Handles - Single Column */}
+        <div className={styles.cfInputWrap}>
+          <TextInput
+            label="Codeforces Handle"
+            name="codeforcesHandle"
+            value={fields.codeforcesHandle}
+            onChange={handleChange}
+            error={errors.codeforcesHandle}
+            placeholder="cf_username"
+            hint="Alphanumeric and underscores only. Max 24 characters"
+            required
+          />
+          {cfVerifying && !errors.codeforcesHandle && (
+            <span className={styles.verifyingHint}>Verifying...</span>
+          )}
+        </div>
+
+        <TextInput
+          label="Phone Number"
+          name="phoneNumber"
+          type="tel"
+          value={fields.phoneNumber}
+          onChange={handleChange}
+          error={errors.phoneNumber}
+          placeholder="XXXXXXXXXX"
+          hint="10-digit phone number"
+          prefix="+91"
+          required
+        />
+
+        <div className={styles.formGridRow}>
+          <TextInput
+            label="LinkedIn Profile"
+            name="linkedIn"
+            type="url"
+            value={fields.linkedIn}
+            onChange={handleChange}
+            error={errors.linkedIn}
+            placeholder="linkedin.com/in/yourprofile"
+            hint="Your LinkedIn profile URL"
+            required
+          />
+          <TextInput
+            label="GitHub Profile"
+            name="gitHub"
+            type="url"
+            value={fields.gitHub}
+            onChange={handleChange}
+            error={errors.gitHub}
+            placeholder="github.com/yourprofile"
+            hint="Your GitHub profile URL (Optional)"
+          />
+        </div>
+
+        {/* Divider */}
+        <div className={styles.formDivider} />
+
+        {/* File Uploads - Single Column */}
+        <FileUpload
+          label="Resume"
+          name="resume"
+          accept="application/pdf"
+          onFileSelect={handleResumeSelect}
+          error={errors.resume}
+          file={resumeFile}
+          hint="PDF only, max 400KB"
+          required
+        />
+
+        <FileUpload
+          label="ID Card"
+          name="idCard"
+          accept="application/pdf"
+          onFileSelect={handleIdCardSelect}
+          error={errors.idCard}
+          file={idCardFile}
+          hint="PDF only, max 100KB"
+          required
+        />
+
+        {/* Data Consent Checkbox */}
+        <div className={styles.consentField}>
+          <label className={styles.consentCheckbox}>
+            <input
+              type="checkbox"
+              name="dataConsent"
+              checked={fields.dataConsent}
+              onChange={handleChange}
+              required
+            />
+            <span className={styles.checkboxLabel}>
+              I consent to my profile being shared with partner firms for recruitment purposes
+            </span>
+          </label>
+          {errors.dataConsent && (
+            <p className={styles.consentError} role="alert">
+              {errors.dataConsent}
+            </p>
+          )}
+        </div>
+
+        <Button type="submit" disabled={loading}>
+          {loading ? (
+            <span className={styles.submitLoading}>
+              Registering
+              <span className={`${styles.submitDot} ${styles.submitDot1}`}>&middot;</span>
+              <span className={`${styles.submitDot} ${styles.submitDot2}`}>&middot;</span>
+              <span className={`${styles.submitDot} ${styles.submitDot3}`}>&middot;</span>
+            </span>
+          ) : (
+            'Submit Registration'
+          )}
+        </Button>
       </div>
     </form>
   );
