@@ -32,22 +32,22 @@ export async function checkRegistrationCap() {
   }
 }
 
-export async function checkDuplicateHandle(cfHandle, ccHandle) {
+export async function checkDuplicateHandleOrPhone(cfHandle, phone) {
   try {
     const registrationsRef = collection(db, 'registrants');
     const cfQuery = query(registrationsRef, where('codeforcesHandle', '==', cfHandle));
-    const ccQuery = query(registrationsRef, where('codechefHandle', '==', ccHandle));
+    const phoneQuery = query(registrationsRef, where('phoneNumber', '==', phone));
 
-    const [cfSnapshot, ccSnapshot] = await Promise.all([
+    const [cfSnapshot, phoneSnapshot] = await Promise.all([
       getDocs(cfQuery),
-      getDocs(ccQuery),
+      getDocs(phoneQuery),
     ]);
 
     if (!cfSnapshot.empty) {
       return { duplicate: true, error: 'This Codeforces handle is already registered.' };
     }
-    if (!ccSnapshot.empty) {
-      return { duplicate: true, error: 'This CodeChef handle is already registered.' };
+    if (!phoneSnapshot.empty) {
+      return { duplicate: true, error: 'This phone number is already registered.' };
     }
 
     return { duplicate: false };
@@ -100,7 +100,7 @@ export async function submitRegistration(data) {
       idCardUrl: data.idCardUrl,
       idCardFileName: data.idCardFileName,
       codeforcesHandle: data.codeforcesHandle,
-      codechefHandle: data.codechefHandle || null,
+      phoneNumber: data.phoneNumber || null,
       linkedIn: data.linkedIn || null,
       gitHub: data.gitHub || null,
       dataConsent: data.dataConsent,
@@ -182,7 +182,7 @@ export async function getAllRegistrants(lastDoc = null) {
         email: data.email || '',
         university: data.university || '',
         codeforcesHandle: data.codeforcesHandle || '',
-        codechefHandle: data.codechefHandle || null,
+        phoneNumber: data.phoneNumber || null,
         dataConsent: data.dataConsent || false,
         submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : null,
         status: data.status || 'pending',

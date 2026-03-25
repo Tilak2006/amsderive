@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         email: data.email || '',
         university: data.university || '',
         codeforcesHandle: data.codeforcesHandle || '',
-        codechefHandle: data.codechefHandle || null,
+        phoneNumber: data.phoneNumber || null,
         linkedIn: data.linkedIn || null,
         gitHub: data.gitHub || null,
         dataConsent: data.dataConsent || false,

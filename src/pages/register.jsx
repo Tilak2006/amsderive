@@ -183,7 +183,7 @@ export default function Register() {
               idCardUrl: uploadResult.idCardUrl,
               idCardFileName: uploadResult.idCardFileName,
               codeforcesHandle: data.codeforcesHandle.trim(),
-              codechefHandle: data.codechefHandle.trim() || null,
+              phoneNumber: data.phoneNumber.trim(),
               linkedIn: data.linkedIn.trim() || null,
               gitHub: data.gitHub.trim() || null,
               dataConsent: data.dataConsent,

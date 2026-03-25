@@ -9,7 +9,7 @@ import {
   validateEmail,
   validateUniversity,
   validateCodeforcesHandleFormat,
-  validateCodechefHandleOptional,
+  validateIndianPhone,
   validateLinkedInOptional,
   validateGitHubOptional,
 } from '../../utils/validators';
@@ -31,7 +31,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     email: '',
     university: '',
     codeforcesHandle: '',
-    codechefHandle: '',
+    phoneNumber: '',
     linkedIn: '',
     gitHub: '',
     dataConsent: false,
@@ -84,8 +84,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         // UX: clear verifying state since validation is done
         // Add a slight delay just so the user sees the "Verifying..." hint briefly
         setTimeout(() => setCfVerifying(false), 800);
-      } else if (fieldName === 'codechefHandle') {
-        const result = validateCodechefHandleOptional(value);
+      } else if (fieldName === 'phoneNumber') {
+        const result = validateIndianPhone(value);
         if (!result.valid) error = result.error;
       } else if (fieldName === 'linkedIn') {
         if (!value.trim()) {
@@ -168,9 +168,9 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     const cfResult = validateCodeforcesHandleFormat(fields.codeforcesHandle);
     if (!cfResult.valid) newErrors.codeforcesHandle = cfResult.error;
 
-    // CodeChef handle validation (optional)
-    const ccResult = validateCodechefHandleOptional(fields.codechefHandle);
-    if (!ccResult.valid) newErrors.codechefHandle = ccResult.error;
+    // Phone Number validation
+    const phoneResult = validateIndianPhone(fields.phoneNumber);
+    if (!phoneResult.valid) newErrors.phoneNumber = phoneResult.error;
 
     // LinkedIn validation (required)
     if (!fields.linkedIn.trim()) {
@@ -180,13 +180,9 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       if (!linkedInResult.valid) newErrors.linkedIn = linkedInResult.error;
     }
 
-    // GitHub validation (required)
-    if (!fields.gitHub.trim()) {
-      newErrors.gitHub = 'GitHub profile is required';
-    } else {
-      const gitHubResult = validateGitHubOptional(fields.gitHub);
-      if (!gitHubResult.valid) newErrors.gitHub = gitHubResult.error;
-    }
+    // GitHub validation (optional)
+    const gitHubResult = validateGitHubOptional(fields.gitHub);
+    if (!gitHubResult.valid) newErrors.gitHub = gitHubResult.error;
 
     // Resume file validation
     if (!resumeFile) {
@@ -237,7 +233,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           email: snapshot.email.trim(),
           university: snapshot.university.trim(),
           codeforcesHandle: snapshot.codeforcesHandle.trim(),
-          codechefHandle: snapshot.codechefHandle.trim(),
+          phoneNumber: snapshot.phoneNumber.trim(),
           linkedIn: snapshot.linkedIn.trim(),
           gitHub: snapshot.gitHub.trim(),
           dataConsent: snapshot.dataConsent,
@@ -304,13 +300,16 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       </div>
 
       <TextInput
-        label="CodeChef Handle"
-        name="codechefHandle"
-        value={fields.codechefHandle}
+        label="Phone Number"
+        name="phoneNumber"
+        type="tel"
+        value={fields.phoneNumber}
         onChange={handleChange}
-        error={errors.codechefHandle}
-        placeholder="cc_username"
-        hint="Optional. Alphanumeric, underscores, and hyphens only."
+        error={errors.phoneNumber}
+        placeholder="9876543210"
+        hint="10-digit phone number"
+        prefix="+91"
+        required
       />
 
       <div className={styles.formGridRow}>
@@ -333,8 +332,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           onChange={handleChange}
           error={errors.gitHub}
           placeholder="github.com/yourprofile"
-          hint="Your GitHub profile URL"
-          required
+          hint="Your GitHub profile URL (Optional)"
         />
       </div>
 

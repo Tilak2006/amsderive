@@ -20,14 +20,14 @@ function formatDate(isoString) {
 function exportCSV(data) {
   const headers = [
     'Full Name', 'Email', 'University',
-    'CF Handle', 'CC Handle', 'Data Consent', 'Submitted At', 'Status',
+    'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status',
   ];
   const rows = data.map((r) => [
     `"${(r.fullName || '').replace(/"/g, '""')}"`,
     `"${(r.email || '').replace(/"/g, '""')}"`,
     `"${(r.university || '').replace(/"/g, '""')}"`,
     `"${(r.codeforcesHandle || '').replace(/"/g, '""')}"`,
-    `"${(r.codechefHandle || '').replace(/"/g, '""')}"`,
+    `"${(r.phoneNumber || '').replace(/"/g, '""')}"`,
     r.dataConsent ? 'Yes' : 'No',
     `"${formatDate(r.submittedAt)}"`,
     r.status || 'pending',
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                 <table className={styles.table}>
                 <thead>
                   <tr>
-                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'CC Handle', 'Consent', 'Submitted At'].map((h) => (
+                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
                       <th key={h} className={styles.th}>{h}</th>
                     ))}
                   </tr>
@@ -344,7 +344,7 @@ export default function AdminDashboard() {
                           {reg.codeforcesHandle}
                         </a>
                       </td>
-                      <td className={`${styles.td} ${styles.mono}`}>{reg.codechefHandle || '—'}</td>
+                      <td className={`${styles.td} ${styles.mono}`}>{reg.phoneNumber ? `+91 ${reg.phoneNumber}` : '—'}</td>
                       <td className={styles.td}>
                         <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
                           {reg.dataConsent ? 'YES' : 'NO'}
@@ -417,8 +417,8 @@ export default function AdminDashboard() {
                 </a>
               </div>
               <div className={styles.panelSection}>
-                <p className={styles.panelLabel}>CodeChef Handle</p>
-                <p className={`${styles.panelValue} ${styles.mono}`}>{r.codechefHandle || '—'}</p>
+                <p className={styles.panelLabel}>Phone Number</p>
+                <p className={`${styles.panelValue} ${styles.mono}`}>{r.phoneNumber ? `+91 ${r.phoneNumber}` : '—'}</p>
               </div>
 
               {/* LinkedIn / GitHub — only if present */}

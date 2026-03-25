@@ -31,14 +31,14 @@ export default async function handler(req, res) {
   }
 
   const {
-    fullName, email, university, codeforcesHandle, codechefHandle,
+    fullName, email, university, codeforcesHandle, phoneNumber,
     linkedIn, gitHub, dataConsent, resumeUrl, resumeFileName,
     idCardUrl, idCardFileName, ipHash,
   } = req.body;
 
   // Server-side validation — never trust client
-  if (!fullName || !email || !university || !codeforcesHandle ||
-    !resumeUrl || !idCardUrl || !linkedIn || !gitHub || dataConsent !== true) {
+  if (!fullName || !email || !university || !codeforcesHandle || !phoneNumber ||
+    !resumeUrl || !idCardUrl || !linkedIn || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
@@ -97,7 +97,7 @@ export default async function handler(req, res) {
       idCardUrl,
       idCardFileName: idCardFileName || null,
       codeforcesHandle: codeforcesHandle.trim(),
-      codechefHandle: codechefHandle?.trim() || null,
+      phoneNumber: phoneNumber.trim(),
       linkedIn: linkedIn?.trim() || null,
       gitHub: gitHub?.trim() || null,
       dataConsent: true,

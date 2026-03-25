@@ -59,16 +59,15 @@ export function validateCodeforcesHandle(value) {
 }
 
 /**
- * Validate a CodeChef handle.
+ * Validate an Indian phone number (exactly 10 digits).
  * @param {string} value
  * @returns {{ valid: boolean, error?: string }}
  */
-export function validateCodechefHandle(value) {
+export function validateIndianPhone(value) {
   const trimmed = (value || '').trim();
-  if (!trimmed) return { valid: false, error: 'CodeChef handle is required' };
-  if (trimmed.length > 24) return { valid: false, error: 'CodeChef handle must be under 24 characters' };
-  if (!/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
-    return { valid: false, error: 'CodeChef handle can only contain letters, numbers, underscores, dots, and hyphens' };
+  if (!trimmed) return { valid: false, error: 'Phone number is required' };
+  if (!/^\d{10}$/.test(trimmed)) {
+    return { valid: false, error: 'Phone number must be exactly 10 digits' };
   }
   return { valid: true };
 }
@@ -132,18 +131,13 @@ export function validateCodeforcesHandleFormat(value) {
 }
 
 /**
- * Validate CodeChef handle (optional, but if provided must be valid).
+ * Validate phone number using the same strict Indian phone validator.
  * @param {string} value
  * @returns {{ valid: boolean, error?: string }}
  */
-export function validateCodechefHandleOptional(value) {
-  const trimmed = (value || '').trim();
-  if (!trimmed) return { valid: true }; // Optional field
-  if (trimmed.length > 24) return { valid: false, error: 'CodeChef handle must be under 24 characters' };
-  if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
-    return { valid: false, error: 'CodeChef handle can only contain letters, numbers, underscores, and hyphens' };
-  }
-  return { valid: true };
+export function validatePhoneStrict(value) {
+  // Can just reuse validateIndianPhone
+  return validateIndianPhone(value);
 }
 
 /**
