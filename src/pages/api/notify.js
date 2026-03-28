@@ -41,6 +41,28 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid email format' });
   }
 
+  // Protection 2: Disposable email domain blocklist
+  const DISPOSABLE_DOMAINS = [
+    'mailinator.com', 'guerrillamail.com', 'tempmail.com', 'throwaway.email',
+    'yopmail.com', 'sharklasers.com', 'trashmail.com', 'fakeinbox.com',
+    'mailnesia.com', 'maildrop.cc', 'dispostable.com', 'getairmail.com',
+    'mailcatch.com', 'tempr.email', 'discard.email', 'mailsac.com',
+    'mytemp.email', 'temp-mail.org', 'guerrillamailblock.com', 'grr.la',
+    'guerrillamail.info', 'guerrillamail.net', 'guerrillamail.de',
+    'tmail.com', 'tempail.com', 'mohmal.com', 'burnermail.io',
+    'inboxkitten.com', 'jetable.org', 'harakirimail.com', 'spamgourmet.com',
+    'trashmail.me', 'trashmail.net', 'mailnull.com', 'spamhereplease.com',
+    'safetymail.info', 'binkmail.com', 'spamavert.com', 'incognitomail.org',
+    'kasmail.com', 'spamfree24.org', 'filzmail.com', 'mailmoat.com',
+    'trashymail.com', 'emailsensei.com', 'getnada.com', 'tempinbox.com',
+    'mailtemp.info', 'tempmailaddress.com', 'tmpmail.net', 'tmpmail.org',
+  ];
+
+  const emailDomain = normalizedEmail.split('@')[1];
+  if (DISPOSABLE_DOMAINS.includes(emailDomain)) {
+    return res.status(400).json({ error: 'Invalid email domain.' });
+  }
+
   // Rate Limiting
   const forwarded = req.headers['x-forwarded-for'];
   const rawIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
@@ -81,6 +103,20 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('[notify] Rate limit check failed:', error);
     return res.status(500).json({ error: 'Rate limit check failed. Please try again.' });
+  }
+
+  // Protection 3: Duplicate email check in Firestore
+  try {
+    const existing = await db.collection('pre_registrations')
+      .where('email', '==', normalizedEmail)
+      .limit(1)
+      .get();
+    if (!existing.empty) {
+      return res.status(409).json({ error: 'Already registered.' });
+    }
+  } catch (dupErr) {
+    console.error('[notify] Duplicate check failed:', dupErr);
+    // Don't block submission if the check itself errors
   }
 
   // Get Brevo API key from environment
