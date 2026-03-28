@@ -79,7 +79,12 @@ const NotifyModal = ({ isOpen, onClose }) => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          refCode: typeof window !== 'undefined'
+            ? localStorage.getItem('ams_derive_ref') || null
+            : null,
+        }),
         signal: abortRef.current.signal,
       });
 

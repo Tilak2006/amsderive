@@ -10,7 +10,10 @@ export default function App({ Component, pageProps }) {
   useEffect(() => {
     const ref = router.query.ref;
     if (ref && typeof ref === "string" && ref.trim()) {
-      localStorage.setItem("ams_derive_ref", ref.trim());
+      // First-touch attribution — do not overwrite existing ref
+      if (!localStorage.getItem("ams_derive_ref")) {
+        localStorage.setItem("ams_derive_ref", ref.trim());
+      }
     }
   }, [router.query]);
 

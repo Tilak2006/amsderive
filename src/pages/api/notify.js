@@ -26,7 +26,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email } = req.body;
+  const { email, refCode } = req.body;
+  const sanitizedRefCode = (refCode && typeof refCode === 'string') ? refCode.trim().toLowerCase() : null;
 
   // Validate email format
   if (!email || typeof email !== 'string') {
@@ -92,6 +93,15 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Build Brevo contact payload — include AMBASSADOR_REF attribute if ref code present
+    const brevoBody = {
+      email: normalizedEmail,
+      listIds: [parseInt(brevoListId, 10)],
+    };
+    if (sanitizedRefCode) {
+      brevoBody.attributes = { AMBASSADOR_REF: sanitizedRefCode };
+    }
+
     // Call Brevo API to add contact to list
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
@@ -101,13 +111,12 @@ export default async function handler(req, res) {
         'api-key': brevoApiKey,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        email: normalizedEmail,
-        listIds: [parseInt(brevoListId, 10)],
-      }),
+      body: JSON.stringify(brevoBody),
       signal: controller.signal,
     });
     clearTimeout(timeoutId);
+
+    let isDuplicate = false;
 
     // Handle Brevo API response
     if (!brevoResponse.ok) {
@@ -119,18 +128,46 @@ export default async function handler(req, res) {
         brevoResponse.status === 400
         && (errorData.code === 'duplicate_parameter' || (errorData.message && errorData.message.toLowerCase().includes('duplicate')))
       ) {
-        return res.status(200).json({ message: 'already_subscribed' });
-      }
+        isDuplicate = true;
 
-      return res.status(500).json({
-        error: 'Failed to subscribe email. Please try again later.',
+        // For duplicates, update the existing contact with AMBASSADOR_REF if present
+        if (sanitizedRefCode) {
+          try {
+            await fetch(`https://api.brevo.com/v3/contacts/${encodeURIComponent(normalizedEmail)}`, {
+              method: 'PUT',
+              headers: {
+                'api-key': brevoApiKey,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ attributes: { AMBASSADOR_REF: sanitizedRefCode } }),
+            });
+          } catch (updateErr) {
+            console.warn('[notify] Brevo attribute update failed:', updateErr.message);
+          }
+        }
+      } else {
+        return res.status(500).json({
+          error: 'Failed to subscribe email. Please try again later.',
+        });
+      }
+    }
+
+    // Store pre-registration in Firestore (regardless of Brevo new/duplicate)
+    try {
+      await db.collection('pre_registrations').add({
+        email: normalizedEmail,
+        refCode: sanitizedRefCode,
+        submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+    } catch (firestoreErr) {
+      console.error('[notify] Firestore pre_registrations write failed:', firestoreErr);
+      // Don't fail the request — Brevo subscription already succeeded
     }
 
     // Success
     return res.status(200).json({
       success: true,
-      message: 'Email subscribed successfully',
+      message: isDuplicate ? 'already_subscribed' : 'Email subscribed successfully',
     });
   } catch (error) {
     if (error.name === 'AbortError') {

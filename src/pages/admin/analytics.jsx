@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
+import { AMBASSADOR_REF_MAP } from '../../lib/ambassador-codes';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, CartesianGrid,
@@ -16,13 +17,7 @@ const CHART_BG = '#0e0e0e';
 const LABEL_COLOR = '#6b6560';
 const TEXT_COLOR = '#f0ede6';
 
-/* ── Referral code → institution name mapping ── */
-const REF_CODE_MAP = {
-  NSUT: 'NSUT Delhi',
-  NITP: 'NIT Patna',
-  NITS: 'NIT Srinagar',
-  ICT: 'ICT Mumbai',
-};
+
 
 function formatDate(isoString) {
   if (!isoString) return '—';
@@ -155,7 +150,7 @@ export default function AdminAnalytics() {
       .sort((a, b) => b[1] - a[1])
       .map(([code, count]) => ({
         code,
-        institution: REF_CODE_MAP[code.toUpperCase()] || code,
+        institution: AMBASSADOR_REF_MAP[code.toLowerCase()] || code,
         count,
       }));
 
@@ -197,6 +192,7 @@ export default function AdminAnalytics() {
           <div className={styles.tabBar}>
             <Link href="/admin/dashboard" className={styles.tab}>REGISTRANTS</Link>
             <span className={`${styles.tab} ${styles.tabActive}`}>ANALYTICS</span>
+            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
           </div>
 
           {loading ? (

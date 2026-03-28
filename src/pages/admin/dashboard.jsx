@@ -258,6 +258,7 @@ export default function AdminDashboard() {
           <div className={styles.tabBar}>
             <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
             <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
+            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
           </div>
 
           {/* Filters */}
