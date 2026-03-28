@@ -163,19 +163,19 @@ export default function AdminAmbassadors() {
 
               {/* Ambassador table */}
               <div className={styles.tableWrap}>
-                <div className={styles.tableScroll}>
+                <div style={{ maxHeight: '60vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
                   <table className={styles.table}>
                     <thead>
                       <tr>
-                        {['Ref Code', 'Institution', 'Registration Count', 'Last Registration'].map((h) => (
-                          <th key={h} className={styles.th}>{h}</th>
+                        {['Ref Code', 'Institution', 'Registrations', 'Last Registration', ''].map((h) => (
+                          <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {tableData.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className={styles.emptyRow}>No ambassador referrals yet.</td>
+                          <td colSpan={5} className={styles.emptyRow}>No ambassador referrals yet.</td>
                         </tr>
                       ) : tableData.map((row, i) => (
                         <React.Fragment key={row.code}>
@@ -188,10 +188,13 @@ export default function AdminAmbassadors() {
                             <td className={styles.td}>{row.institution}</td>
                             <td className={styles.td} style={{ fontVariantNumeric: 'tabular-nums' }}>{row.count}</td>
                             <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(row.lastRegistration)}</td>
+                            <td className={styles.td} style={{ textAlign: 'center', fontSize: '0.6rem', color: '#6b6560' }}>
+                              {expandedCode === row.code ? '▲' : '▼'}
+                            </td>
                           </tr>
                           {expandedCode === row.code && (
                             <tr className={styles.expandedPanel}>
-                              <td colSpan={4} className={styles.expandedCell}>
+                              <td colSpan={5} className={styles.expandedCell}>
                                 <table className={styles.table} style={{ width: '100%', marginBottom: 0 }}>
                                   <thead>
                                     <tr>
