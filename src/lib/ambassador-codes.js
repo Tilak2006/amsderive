@@ -31,6 +31,7 @@ export const AMBASSADOR_REF_MAP = {
   'd26-ict-bdfd': 'ICT Mumbai',
   'd26-vit-eebd': 'VIT Vellore',
   'd26-mahe-a1c9': 'Manipal',
+  'd26-iitbhu-82c6': 'IIT BHU',
 };
 
 export const AMBASSADOR_LINKS = {
@@ -58,6 +59,7 @@ export const AMBASSADOR_LINKS = {
   'ICT Mumbai': 'amsderive.in?ref=d26-ict-bdfd',
   'VIT Vellore': 'amsderive.in?ref=d26-vit-eebd',
   'Manipal': 'amsderive.in?ref=d26-mahe-a1c9',
+  'IIT BHU': 'amsderive.in?ref=d26-iitbhu-82c6',
 };
 
 export const PENDING_AMBASSADORS = [];
