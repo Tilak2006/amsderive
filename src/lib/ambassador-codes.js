@@ -32,6 +32,10 @@ export const AMBASSADOR_REF_MAP = {
   'd26-vit-eebd': 'VIT Vellore',
   'd26-mahe-a1c9': 'Manipal',
   'd26-iitbhu-82c6': 'IIT BHU',
+  'd26-nitbpl-5804': 'NIT Bhopal',
+  'd26-iitp-c304': 'IIT Patna',
+  'd26-iitmandi-867b': 'IIT Mandi',
+  'd26-iitgn-dcff': 'IIT Gandhinagar',
 };
 
 export const AMBASSADOR_LINKS = {
@@ -60,6 +64,10 @@ export const AMBASSADOR_LINKS = {
   'VIT Vellore': 'amsderive.in?ref=d26-vit-eebd',
   'Manipal': 'amsderive.in?ref=d26-mahe-a1c9',
   'IIT BHU': 'amsderive.in?ref=d26-iitbhu-82c6',
+  'NIT Bhopal': 'amsderive.in?ref=d26-nitbpl-5804',
+  'IIT Patna': 'amsderive.in?ref=d26-iitp-c304',
+  'IIT Mandi': 'amsderive.in?ref=d26-iitmandi-867b',
+  'IIT Gandhinagar': 'amsderive.in?ref=d26-iitgn-dcff',
 };
 
 export const PENDING_AMBASSADORS = [];
