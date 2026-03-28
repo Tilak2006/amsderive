@@ -31,4 +31,3 @@ firestore.indexes.json
   
 # Ambassador tracking data
 ambassadors.md
-src/lib/ambassador-codes.js
