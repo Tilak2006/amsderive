@@ -90,24 +90,7 @@ export default function Register() {
         })()
       );
 
-      // Step 3: CHECK RATE LIMIT FIRST - BEFORE any file operations
-      // (Ref: firebase-upload-safety skill - Rule 1)
-      const rateResult = await PerformanceLogger.monitor(
-        'Rate Limit Check (Before Upload)',
-        withTimeout(
-          fetch('/api/check-rate-limit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fingerprint }),
-          }).then(r => r.json())
-        )
-      );
-
-      if (!rateResult.allowed) {
-        setStatus('error');
-        setErrorMessage(rateResult.error || 'Too many submissions. Please try again later.');
-        return;
-      }
+      // Rate limit check has been moved server-side into submit-registration.js
 
       // Step 4: CHECK REGISTRATION DATE GATE (server-side)
       // (Ref: firebase-upload-safety skill - admin bypass moved to server)
@@ -188,6 +171,7 @@ export default function Register() {
               gitHub: data.gitHub.trim() || null,
               dataConsent: data.dataConsent,
               ipHash: fingerprint,
+              refCode: data.refCode || null,
             }),
           }).then(r => r.json())
         )

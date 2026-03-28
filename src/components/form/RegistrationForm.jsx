@@ -227,6 +227,11 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       return;
     }
     if (onSubmit) {
+      // Read referral code from localStorage (set by _app.jsx from URL ?ref= param)
+      const refCode = typeof window !== 'undefined'
+        ? localStorage.getItem('ams_derive_ref') || null
+        : null;
+
       onSubmit(
         {
           fullName: snapshot.fullName.trim(),
@@ -239,6 +244,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           dataConsent: snapshot.dataConsent,
           resumeFile,
           transcriptFile,
+          refCode,
         },
         setErrors
       );

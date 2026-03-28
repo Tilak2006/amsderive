@@ -4,6 +4,22 @@
  * Body: { email: string }
  */
 
+import * as admin from 'firebase-admin';
+import crypto from 'crypto';
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  });
+}
+
+const db = admin.firestore();
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
@@ -22,6 +38,48 @@ export default async function handler(req, res) {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(normalizedEmail)) {
     return res.status(400).json({ error: 'Invalid email format' });
+  }
+
+  // Rate Limiting
+  const forwarded = req.headers['x-forwarded-for'];
+  const rawIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+  const ip = /^[\d.:\[\]a-fA-F]+$/.test(rawIp ?? '') ? rawIp : 'unknown';
+  const userAgent = req.headers['user-agent'] || 'unknown';
+  
+  const combined = `${ip}:${userAgent}`;
+  const ipHash = crypto.createHash('sha256').update(combined).digest('hex');
+
+  try {
+    const rateLimitRef = db.collection('_rate_limits').doc(`notify_${ipHash}`);
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const MAX_PER_HOUR = 3;
+
+    const rateResult = await db.runTransaction(async (transaction) => {
+      const rateLimitDoc = await transaction.get(rateLimitRef);
+
+      let timestamps = [];
+      if (rateLimitDoc.exists) {
+        timestamps = rateLimitDoc.data().timestamps || [];
+      }
+
+      const recent = timestamps.filter((ts) => ts > oneHourAgo);
+
+      if (recent.length >= MAX_PER_HOUR) {
+        return { allowed: false, error: 'Too many requests. Please try again in an hour.' };
+      }
+
+      recent.push(Date.now());
+      transaction.set(rateLimitRef, { timestamps: recent });
+
+      return { allowed: true };
+    });
+
+    if (!rateResult.allowed) {
+      return res.status(429).json({ error: rateResult.error });
+    }
+  } catch (error) {
+    console.error('[notify] Rate limit check failed:', error);
+    return res.status(500).json({ error: 'Rate limit check failed. Please try again.' });
   }
 
   // Get Brevo API key from environment

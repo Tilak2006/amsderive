@@ -19,6 +19,45 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const { ipHash } = req.body;
+
+  if (!ipHash || typeof ipHash !== 'string' || !/^[a-f0-9]{64}$/.test(ipHash)) {
+    return res.status(400).json({ success: false, error: 'Invalid or missing fingerprint' });
+  }
+
+  try {
+    const rateLimitRef = db.collection('_rate_limits').doc(ipHash);
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const MAX_PER_HOUR = 3;
+
+    const rateResult = await db.runTransaction(async (transaction) => {
+      const rateLimitDoc = await transaction.get(rateLimitRef);
+
+      let timestamps = [];
+      if (rateLimitDoc.exists) {
+        timestamps = rateLimitDoc.data().timestamps || [];
+      }
+
+      const recent = timestamps.filter((ts) => ts > oneHourAgo);
+
+      if (recent.length >= MAX_PER_HOUR) {
+        return { allowed: false, error: 'Too many submissions. Please try again in an hour.' };
+      }
+
+      recent.push(Date.now());
+      transaction.set(rateLimitRef, { timestamps: recent });
+
+      return { allowed: true };
+    });
+
+    if (!rateResult.allowed) {
+      return res.status(429).json({ success: false, error: rateResult.error });
+    }
+  } catch (error) {
+    console.error('[submit-registration] Rate limit error:', error);
+    return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
+  }
+
   // Pre-fetch count for cap check
   try {
     const countSnap = await db.collection('registrants').count().get();
@@ -33,7 +72,7 @@ export default async function handler(req, res) {
   const {
     fullName, email, university, codeforcesHandle, phoneNumber,
     linkedIn, gitHub, dataConsent, resumeUrl, resumeFileName,
-    transcriptUrl, transcriptFileName, ipHash,
+    transcriptUrl, transcriptFileName, refCode,
   } = req.body;
 
   // Server-side validation — never trust client
@@ -107,6 +146,7 @@ export default async function handler(req, res) {
       gitHub: gitHub?.trim() || null,
       dataConsent: true,
       ipHash: ipHash || null,
+      refCode: refCode?.trim() || null,
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 

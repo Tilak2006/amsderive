@@ -16,6 +16,14 @@ const CHART_BG = '#0e0e0e';
 const LABEL_COLOR = '#6b6560';
 const TEXT_COLOR = '#f0ede6';
 
+/* ── Referral code → institution name mapping ── */
+const REF_CODE_MAP = {
+  NSUT: 'NSUT Delhi',
+  NITP: 'NIT Patna',
+  NITS: 'NIT Srinagar',
+  ICT: 'ICT Mumbai',
+};
+
 function formatDate(isoString) {
   if (!isoString) return '—';
   const d = new Date(isoString);
@@ -135,7 +143,23 @@ export default function AdminAnalytics() {
       { name: 'Not Consented', value: total - consentGiven },
     ];
 
-    return { total, consentPct, today, topUni, dailyData, uniData, consentPie };
+    // Referral code distribution
+    const refCounts = {};
+    registrants.forEach((r) => {
+      const code = (r.refCode || '').trim();
+      if (code) {
+        refCounts[code] = (refCounts[code] || 0) + 1;
+      }
+    });
+    const refData = Object.entries(refCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([code, count]) => ({
+        code,
+        institution: REF_CODE_MAP[code.toUpperCase()] || code,
+        count,
+      }));
+
+    return { total, consentPct, today, topUni, dailyData, uniData, consentPie, refData };
   }, [registrants]);
 
   if (checking) {
@@ -274,6 +298,33 @@ export default function AdminAnalytics() {
                     </ResponsiveContainer>
                   </div>
                 </div>
+
+                {/* Referral analytics */}
+                {analytics.refData.length > 0 && (
+                  <div className={styles.chartCard}>
+                    <h3 className={styles.chartTitle}>Referral Analytics</h3>
+                    <div className={styles.chartWrap}>
+                      <table className={styles.table} style={{ width: '100%' }}>
+                        <thead>
+                          <tr>
+                            <th className={styles.th}>Ref Code</th>
+                            <th className={styles.th}>Institution</th>
+                            <th className={styles.th} style={{ textAlign: 'right' }}>Registrations</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {analytics.refData.map((row, i) => (
+                            <tr key={row.code} className={i % 2 === 1 ? styles.trAlt : ''}>
+                              <td className={`${styles.td} ${styles.mono}`}>{row.code}</td>
+                              <td className={styles.td}>{row.institution}</td>
+                              <td className={styles.td} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.count}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

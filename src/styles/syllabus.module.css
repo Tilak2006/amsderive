@@ -1,10 +1,12 @@
-.section {
-  padding: 120px 24px;
+/* ── Syllabus Page Specific Styles ── */
+
+.syllabusPage {
+  padding: 120px 24px 80px;
   background: #0a0a0a;
   display: flex;
   flex-direction: column;
   align-items: center;
-  border-top: 1px solid rgba(212, 175, 55, 0.05);
+  min-height: 100vh;
 }
 
 .container {
@@ -12,28 +14,19 @@
   width: 100%;
 }
 
-.containerWide {
-  max-width: 1400px;
-  width: 100%;
-}
-
-.sectionTitle {
+/* ── Page Title ── */
+.pageTitle {
   font-family: var(--font-serif);
   font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 700;
   color: #FFFFFF;
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 80px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.subsection {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
+/* ── Gold Divider ── */
 .divider {
   border: 0;
   height: 1px;
@@ -42,7 +35,8 @@
   width: 100%;
 }
 
-.subsectionTitle {
+/* ── Subsection Label ── */
+.subsectionLabel {
   font-family: var(--font-serif);
   font-size: 1.5rem;
   font-weight: 700;
@@ -77,16 +71,10 @@
   align-items: stretch;
 }
 
-.gridFour {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-}
-
 .card {
   background: #0e0e0e;
   border: 1px solid rgba(212, 175, 55, 0.15);
-  padding: 28px 28px;
+  padding: 28px;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -97,37 +85,17 @@
 }
 
 .card:hover {
-  border-color: rgba(212, 175, 55, 0.15);
-  background: #0e0e0e;
   transform: translateY(-4px);
   box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
 }
 
-.cardIcon {
-  color: #D4AF37;
-  font-size: 1.5rem;
-  margin-bottom: 8px;
-  font-family: var(--font-mono);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
 .cardTitle {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #D4AF37;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-}
-
-.cardSubtitle {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: #f0ede6;
-  letter-spacing: 0.08em;
-  opacity: 0.7;
-  margin-top: -4px;
 }
 
 .cardText {
@@ -137,60 +105,97 @@
   line-height: 1.625;
 }
 
-.timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  position: relative;
-  padding-left: 20px;
+/* ── Resources Block ── */
+.resourcesBlock {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 2px;
+  padding: 60px 40px;
+  text-align: center;
+  max-width: 800px;
+  margin: 0 auto;
+  transition: box-shadow 0.3s ease;
 }
 
-.timelineItem {
-  position: relative;
-  padding-bottom: 40px;
-  padding-left: 40px;
-  border-left: 1px solid rgba(212, 175, 55, 0.2);
+.resourcesBlock:hover {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.1);
 }
 
-.timelineDate {
+.resourcesLabel {
   font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: #D4AF37;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin-bottom: 4px;
+  margin-bottom: 16px;
+  opacity: 0.7;
 }
 
-.timelineTitle {
-  font-family: var(--font-cinzel), serif;
-  font-size: 1.1rem;
+.resourcesTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  font-weight: 700;
   color: #FFFFFF;
-  margin-bottom: 8px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
 }
 
-.timelineDesc {
-  font-family: var(--font-pt-serif), serif;
+.resourcesDesc {
+  font-family: var(--font-sans);
   font-size: 0.9rem;
   color: #8A8A8A;
+  line-height: 1.6;
+  margin-bottom: 32px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
+.resourcesBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #D4AF37;
+  color: #0a0a0a;
+  padding: 14px 32px;
+  border: 1px solid #D4AF37;
+  border-radius: 2px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  min-height: 44px;
+}
+
+.resourcesBtn:hover {
+  background: #0a0a0a;
+  color: #D4AF37;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+}
+
+/* ── Responsive ── */
 @media (max-width: 900px) {
-  .gridFour {
+  .grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .section {
+  .syllabusPage {
     padding: 80px 24px;
   }
 
-  .sectionTitle {
+  .resourcesBlock {
+    padding: 40px 24px;
+  }
+
+  .pageTitle {
     font-size: clamp(1.4rem, 6vw, 2.25rem);
-    margin-bottom: 40px;
-    letter-spacing: 0.06em;
+    margin-bottom: 60px;
   }
 
   .grid {
@@ -202,39 +207,7 @@
     padding: 32px 24px;
   }
 
-  .cardTitle {
-    font-size: 1.25rem;
+  .divider {
+    margin: 40px 0 30px;
   }
-
-  .cardText {
-    font-size: 0.9375rem;
-  }
-
-  .timelineItem {
-    padding-left: 24px;
-    padding-bottom: 32px;
-  }
-}
-
-@media (max-width: 500px) {
-  .gridFour {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ── Caption & Label Styles ── */
-.caption {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-.label {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
 }

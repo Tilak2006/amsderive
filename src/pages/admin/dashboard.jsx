@@ -20,7 +20,7 @@ function formatDate(isoString) {
 function exportCSV(data) {
   const headers = [
     'Full Name', 'Email', 'University',
-    'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status',
+    'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status', 'Ref Code',
   ];
   const rows = data.map((r) => [
     `"${(r.fullName || '').replace(/"/g, '""')}"`,
@@ -31,6 +31,7 @@ function exportCSV(data) {
     r.dataConsent ? 'Yes' : 'No',
     `"${formatDate(r.submittedAt)}"`,
     r.status || 'pending',
+    `"${(r.refCode || '').replace(/"/g, '""')}"`,
   ]);
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

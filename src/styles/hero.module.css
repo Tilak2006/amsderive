@@ -90,6 +90,36 @@
   opacity: 0.9;
 }
 
+.mobileNotifyBtn {
+  display: none;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: #D4AF37;
+  color: #0a0a0a;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto; /* Important: overlay has pointer-events: none */
+}
+
+@media (hover: hover) {
+  .mobileNotifyBtn:hover {
+    background: #0a0a0a;
+    color: #D4AF37;
+    border: 1px solid #D4AF37;
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
+  }
+}
+
 .lightBeam {
   position: absolute;
   top: 0;
@@ -136,6 +166,10 @@
 
   .heroContent {
     gap: 20px;
+  }
+
+  .mobileNotifyBtn {
+    display: flex;
   }
 
   .titleGroup {

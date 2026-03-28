@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import Countdown from '../components/Countdown';
 import FadeInSection from '../components/FadeInSection';
 import Footer from '../components/Footer';
+import NotifyModal from '../components/NotifyModal';
 import styles from '../styles/hero.module.css';
 import pageStyles from './index.module.css';
 
@@ -38,6 +39,14 @@ const WhoSection = dynamic(() => import('../components/sections/WhoSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
   ssr: false,
 });
+// const SyllabusSection = dynamic(() => import('../components/sections/SyllabusSection'), {
+//   loading: () => <div style={{ minHeight: '400px' }} />,
+//   ssr: false,
+// });
+// const AMSAboutSection = dynamic(() => import('../components/sections/AMSAboutSection'), {
+//   loading: () => <div style={{ minHeight: '400px' }} />,
+//   ssr: false,
+// });
 
 // ── HeroContent ────────────────────────────────────────────────────────────
 // Isolated into its own memoized component so that:
@@ -48,21 +57,33 @@ const WhoSection = dynamic(() => import('../components/sections/WhoSection'), {
 //  2. `handleExpired` is stable via useCallback — no prop reference churn.
 const HeroContent = memo(function HeroContent() {
   const [expired, setExpired] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const handleExpired = useCallback(() => setExpired(true), []);
 
   return (
-    <div className={styles.heroOverlay}>
-      <div className={styles.heroContent}>
-        <div className={styles.titleGroup}>
-          <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-          <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
+    <>
+      <div className={styles.heroOverlay}>
+        <div className={styles.heroContent}>
+          <div className={styles.titleGroup}>
+            <h1 className={styles.mainTitle}>AMS DERIVE</h1>
+            <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
 
-        <p className={styles.signupLabel}>
-          {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
-        </p>
-        <Countdown onExpiredChange={handleExpired} />
+          <p className={styles.signupLabel}>
+            {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
+          </p>
+          <Countdown onExpiredChange={handleExpired} />
+          
+          <button 
+            type="button"
+            className={styles.mobileNotifyBtn}
+            onClick={() => setIsModalOpen(true)}
+          >
+            Pre register
+          </button>
+        </div>
       </div>
-    </div>
+      <NotifyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+    </>
   );
 });
 
@@ -155,8 +176,10 @@ export default function LandingPage() {
           <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
             <FadeInSection><AboutSection /></FadeInSection>
             <FadeInSection><CompetitionSection /></FadeInSection>
+            {/* <FadeInSection><SyllabusSection /></FadeInSection> */}
             <FadeInSection><TimelineSection /></FadeInSection>
             <FadeInSection><WhoSection /></FadeInSection>
+            {/* <FadeInSection><AMSAboutSection /></FadeInSection> */}
           </Suspense>
         </div>
       )}

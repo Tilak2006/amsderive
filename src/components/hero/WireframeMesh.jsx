@@ -1,5 +1,25 @@
 import { useRef, useEffect, memo } from 'react';
-import * as THREE from 'three';
+import {
+  Color,
+  BufferGeometry,
+  Float32BufferAttribute,
+  Scene,
+  FogExp2,
+  PerspectiveCamera,
+  WebGLRenderer,
+  LineBasicMaterial,
+  LineSegments,
+  Group,
+  BufferAttribute,
+  RingGeometry,
+  MeshBasicMaterial,
+  DoubleSide,
+  Mesh,
+  PointsMaterial,
+  Points,
+  AmbientLight,
+  DirectionalLight
+} from 'three';
 import styles from './WireframeMesh.module.css';
 
 /**
@@ -49,10 +69,10 @@ function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
   const step = (gridExtent * 2) / gridSize;
   const positions = [];
   const colors = [];
-  const champagne = new THREE.Color(0xFFE57A);
-  const amber = new THREE.Color(0xB8720A);
-  const ivory = new THREE.Color(0xFFFAF0);
-  const tmp = new THREE.Color();
+  const champagne = new Color(0xFFE57A);
+  const amber = new Color(0xB8720A);
+  const ivory = new Color(0xFFFAF0);
+  const tmp = new Color();
 
   function addVertex(x, y, z) {
     // The geometry is fully flat! GPU will add the wave heights.
@@ -81,9 +101,9 @@ function buildWireframeLines(gridSize, gridExtent, meshYOffset = 0) {
     }
   }
 
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  const geo = new BufferGeometry();
+  geo.setAttribute('position', new Float32BufferAttribute(positions, 3));
+  geo.setAttribute('color', new Float32BufferAttribute(colors, 3));
   return geo;
 }
 
@@ -126,22 +146,22 @@ function WireframeMesh() {
     const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
-    const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x000000, isMobile ? 0.07 : 0.072);
+    const scene = new Scene();
+    scene.fog = new FogExp2(0x000000, isMobile ? 0.07 : 0.072);
 
     // ── Camera ───────────────────────────────────────────────────────────
     const fov = isMobile ? 52 : 40;
     const camZ = isMobile ? 14 : baseCamZ;
     const camY = isMobile ? 7 : baseCamY;
 
-    const camera = new THREE.PerspectiveCamera(
+    const camera = new PerspectiveCamera(
       fov, container.clientWidth / container.clientHeight, 0.1, 1000,
     );
     camera.position.set(baseCamX, camY, camZ);
     camera.lookAt(0, 1, 0);
 
     // ── Renderer ─────────────────────────────────────────────────────────
-    const renderer = new THREE.WebGLRenderer({
+    const renderer = new WebGLRenderer({
       antialias: false,
       alpha: true,
       powerPreference: 'high-performance',
@@ -157,7 +177,7 @@ function WireframeMesh() {
 
     // ── Wireframe ─────────────────────────────────────────────────────────
     const wireGeometry = buildWireframeLines(gridSize, gridExtent, meshYOffset);
-    const wireMaterial = new THREE.LineBasicMaterial({
+    const wireMaterial = new LineBasicMaterial({
       color: 0xD4AF37,
       vertexColors: true,
       transparent: true,
@@ -199,43 +219,43 @@ function WireframeMesh() {
       );
     };
 
-    const wireframe = new THREE.LineSegments(wireGeometry, wireMaterial);
+    const wireframe = new LineSegments(wireGeometry, wireMaterial);
     scene.add(wireframe);
 
     // ── Axis scale tick marks ───────────────────────────────────────────
-    const tickGroup = new THREE.Group();
+    const tickGroup = new Group();
     const tickCount = 8;
     const tickHeight = 0.08;
-    const tickColor = new THREE.Color(0xD4AF37);
+    const tickColor = new Color(0xD4AF37);
 
     for (let i = 0; i < tickCount; i++) {
       const xPos = -gridExtent + (i / (tickCount - 1)) * (gridExtent * 2);
-      const tickGeom = new THREE.BufferGeometry();
+      const tickGeom = new BufferGeometry();
       const tickPositions = new Float32Array([
         xPos, 0, 0,
         xPos, tickHeight, 0
       ]);
-      tickGeom.setAttribute('position', new THREE.BufferAttribute(tickPositions, 3));
-      const tickMat = new THREE.LineBasicMaterial({
+      tickGeom.setAttribute('position', new BufferAttribute(tickPositions, 3));
+      const tickMat = new LineBasicMaterial({
         color: tickColor,
         transparent: true,
         opacity: 0.15
       });
-      const tick = new THREE.LineSegments(tickGeom, tickMat);
+      const tick = new LineSegments(tickGeom, tickMat);
       tickGroup.add(tick);
     }
     scene.add(tickGroup);
 
     // ── Horizon ring glow ─────────────────────────────────────────────────
-    const ringGeo = new THREE.RingGeometry(1.5, 9, 80);
-    const ringMat = new THREE.MeshBasicMaterial({
+    const ringGeo = new RingGeometry(1.5, 9, 80);
+    const ringMat = new MeshBasicMaterial({
       color: 0xD4A017,
       transparent: true,
       opacity: 0.04,
-      side: THREE.DoubleSide,
+      side: DoubleSide,
       depthWrite: false,
     });
-    const ring = new THREE.Mesh(ringGeo, ringMat);
+    const ring = new Mesh(ringGeo, ringMat);
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = -0.08;
     scene.add(ring);
@@ -243,10 +263,10 @@ function WireframeMesh() {
     // ── Rising ember particles ─────────────────────────────────────────────
     const { pos: particlePos, vel: particleVel, drift: particleDrift } =
       initParticles(pCount, gridExtent);
-    const particleGeo = new THREE.BufferGeometry();
-    const particlePosAttr = new THREE.Float32BufferAttribute(particlePos, 3);
+    const particleGeo = new BufferGeometry();
+    const particlePosAttr = new Float32BufferAttribute(particlePos, 3);
     particleGeo.setAttribute('position', particlePosAttr);
-    const particleMat = new THREE.PointsMaterial({
+    const particleMat = new PointsMaterial({
       color: 0xFFD060,
       size: isMobile ? 0.045 : 0.065,
       transparent: true,
@@ -254,7 +274,7 @@ function WireframeMesh() {
       sizeAttenuation: true,
       depthWrite: false,
     });
-    const particles = new THREE.Points(particleGeo, particleMat);
+    const particles = new Points(particleGeo, particleMat);
     scene.add(particles);
 
     // ── Starfield ─────────────────────────────────────────────────────────
@@ -265,23 +285,23 @@ function WireframeMesh() {
       starPos[i * 3 + 1] = (Math.random() - 0.5) * 50;
       starPos[i * 3 + 2] = -15 - Math.random() * 30;
     }
-    const starGeo = new THREE.BufferGeometry();
-    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
-    const starMaterial = new THREE.PointsMaterial({
+    const starGeo = new BufferGeometry();
+    starGeo.setAttribute('position', new Float32BufferAttribute(starPos, 3));
+    const starMaterial = new PointsMaterial({
       color: 0xFFF8DC,
       size: 0.07,
       transparent: true,
       opacity: 0.45,
       sizeAttenuation: true,
     });
-    const stars = new THREE.Points(starGeo, starMaterial);
+    const stars = new Points(starGeo, starMaterial);
     scene.add(stars);
 
-    scene.add(new THREE.AmbientLight(0x1A1200, 0.8));
+    scene.add(new AmbientLight(0x1A1200, 0.8));
 
     // ── Directional light for glow distribution ────────────────────────────
     // Positioned above and behind to highlight peaks in the mesh surface
-    const dirLight = new THREE.DirectionalLight(0xD4A017, 0.35);
+    const dirLight = new DirectionalLight(0xD4A017, 0.35);
     dirLight.position.set(-2, 6, 3);
     dirLight.target.position.set(0, 0.5, 0);
     scene.add(dirLight);

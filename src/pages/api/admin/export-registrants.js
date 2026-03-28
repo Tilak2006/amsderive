@@ -29,25 +29,48 @@ export default async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db.collection('registrants')
-      .orderBy('submittedAt', 'desc')
-      .get();
+    const registrants = [];
+    let lastDoc = null;
+    let hasMoreDocs = true;
 
-    const registrants = snapshot.docs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        fullName: data.fullName || '',
-        email: data.email || '',
-        university: data.university || '',
-        codeforcesHandle: data.codeforcesHandle || '',
-        phoneNumber: data.phoneNumber || '',
-        linkedIn: data.linkedIn || '',
-        gitHub: data.gitHub || '',
-        dataConsent: data.dataConsent ? 'Yes' : 'No',
-        submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : '',
-      };
-    });
+    while (hasMoreDocs) {
+      let query = db.collection('registrants')
+        .orderBy('submittedAt', 'desc')
+        .limit(500);
+
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+
+      const snapshot = await query.get();
+
+      if (snapshot.empty) {
+        break;
+      }
+
+      for (const d of snapshot.docs) {
+        const data = d.data();
+        registrants.push({
+          id: d.id,
+          fullName: data.fullName || '',
+          email: data.email || '',
+          university: data.university || '',
+          codeforcesHandle: data.codeforcesHandle || '',
+          phoneNumber: data.phoneNumber || '',
+          linkedIn: data.linkedIn || '',
+          gitHub: data.gitHub || '',
+          dataConsent: data.dataConsent ? 'Yes' : 'No',
+          submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : '',
+          refCode: data.refCode || '',
+        });
+      }
+
+      if (snapshot.docs.length < 500) {
+        hasMoreDocs = false;
+      } else {
+        lastDoc = snapshot.docs[snapshot.docs.length - 1];
+      }
+    }
 
     return res.status(200).json({ registrants });
   } catch (error) {
