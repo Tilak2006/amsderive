@@ -34,6 +34,7 @@ export const AMBASSADOR_REF_MAP = {
   'd26-iitbhu-82c6': 'IIT BHU',
   'd26-nitbpl-5804': 'NIT Bhopal',
   'd26-iitp-c304': 'IIT Patna',
+  'd26-iitp-40a4': 'IIT Patna (Ambassador 2)',
   'd26-iitmandi-867b': 'IIT Mandi',
   'd26-iitgn-dcff': 'IIT Gandhinagar',
 };
@@ -66,6 +67,7 @@ export const AMBASSADOR_LINKS = {
   'IIT BHU': 'amsderive.in?ref=d26-iitbhu-82c6',
   'NIT Bhopal': 'amsderive.in?ref=d26-nitbpl-5804',
   'IIT Patna': 'amsderive.in?ref=d26-iitp-c304',
+  'IIT Patna (Ambassador 2)': 'amsderive.in?ref=d26-iitp-40a4',
   'IIT Mandi': 'amsderive.in?ref=d26-iitmandi-867b',
   'IIT Gandhinagar': 'amsderive.in?ref=d26-iitgn-dcff',
 };
