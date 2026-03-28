@@ -1,23 +1,16 @@
 /**
- * Server-side rate limit check using Firebase Admin SDK.
- * Bypasses Firestore security rules to enforce rate limiting server-side.
- * 
- * Sliding window: 3 submissions per hour per fingerprint.
- * 
- * Usage:
+ * Server-side rate limiter for login attempts.
  * POST /api/check-rate-limit
- * Body: { fingerprint: string (64-char hex) }
- * 
- * Response:
- * - 200 OK: { allowed: true } or { allowed: false, error: '...' }
- * - 400 Bad Request: invalid fingerprint format
- * - 405 Method Not Allowed: not POST
+ * Body: { action: 'login' }
+ *
+ * Tracks attempts per IP using Firestore.
+ * - Max 5 attempts per 15 minutes
+ * - Returns 429 if exceeded
  */
 
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 
-// Initialize Admin SDK with credential cert pattern
-// Critical: privateKey.replace(/\\n/g, '\n') handles Vercel env var literal \n strings
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -25,61 +18,82 @@ if (!admin.apps.length) {
       clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
       privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
   });
 }
 
 const db = admin.firestore();
+
+const LIMITS = {
+  login: { max: 5, windowMs: 15 * 60 * 1000 },  // 5 attempts per 15 min
+};
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { fingerprint } = req.body;
+  const { action } = req.body;
 
-  if (!fingerprint || typeof fingerprint !== 'string') {
-    return res.status(400).json({ error: 'Missing fingerprint' });
+  if (!action || !LIMITS[action]) {
+    return res.status(400).json({ error: 'Invalid action' });
   }
 
-  // Validate fingerprint format: 64-char hex (SHA-256)
-  if (!/^[a-f0-9]{64}$/.test(fingerprint)) {
-    return res.status(400).json({ error: 'Invalid fingerprint format' });
-  }
+  const { max, windowMs } = LIMITS[action];
+
+  // Hash IP + user-agent for fingerprinting
+  const forwarded = req.headers['x-forwarded-for'];
+  const rawIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+  const ip = /^[\d.:\[\]a-fA-F]+$/.test(rawIp ?? '') ? rawIp : 'unknown';
+  const ipHash = crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
+
+  const docId = `${action}_${ipHash}`;
+  const cutoff = Date.now() - windowMs;
 
   try {
-    const rateLimitRef = db.collection('_rate_limits').doc(fingerprint);
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const MAX_PER_HOUR = 3;
-
-    const result = await db.runTransaction(async (transaction) => {
-      const rateLimitDoc = await transaction.get(rateLimitRef);
-
+    const ref = db.collection('_rate_limits').doc(docId);
+    const result = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(ref);
       let timestamps = [];
-      if (rateLimitDoc.exists) {
-        timestamps = rateLimitDoc.data().timestamps || [];
+      if (doc.exists) {
+        timestamps = doc.data().timestamps || [];
       }
 
-      // Filter to submissions within the last hour
-      const recent = timestamps.filter((ts) => ts > oneHourAgo);
+      // Keep only recent timestamps
+      const recent = timestamps.filter((ts) => ts > cutoff);
 
-      if (recent.length >= MAX_PER_HOUR) {
-        return { allowed: false, error: 'Too many submissions. Please try again in an hour.' };
+      if (recent.length >= max) {
+        const oldestRecent = Math.min(...recent);
+        const retryAfterSec = Math.ceil((oldestRecent + windowMs - Date.now()) / 1000);
+        return {
+          allowed: false,
+          retryAfter: retryAfterSec,
+          remaining: 0,
+        };
       }
 
-      // Add current timestamp and update
       recent.push(Date.now());
-      transaction.set(rateLimitRef, { timestamps: recent });
+      tx.set(ref, { timestamps: recent });
 
-      return { allowed: true };
+      return {
+        allowed: true,
+        remaining: max - recent.length,
+      };
     });
 
-    return res.status(200).json(result);
-  } catch (error) {
-    console.error('[check-rate-limit] Error:', error);
-    return res.status(500).json({ 
-      allowed: false, 
-      error: 'Rate limit check failed. Please try again.' 
+    if (!result.allowed) {
+      return res.status(429).json({
+        error: `Too many login attempts. Try again in ${result.retryAfter}s.`,
+        retryAfter: result.retryAfter,
+      });
+    }
+
+    return res.status(200).json({
+      allowed: true,
+      remaining: result.remaining,
     });
+  } catch (err) {
+    console.error('[check-rate-limit] Error:', err);
+    // Fail open — don't block legitimate users if rate limit check itself errors
+    return res.status(200).json({ allowed: true });
   }
 }

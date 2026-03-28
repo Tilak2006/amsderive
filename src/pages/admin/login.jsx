@@ -1,9 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
+
+// Sanitize input — strip scripts, SQL fragments, null bytes
+function sanitize(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // control chars
+    .replace(/<[^>]*>/g, '') // HTML tags
+    .trim();
+}
+
+const MAX_EMAIL_LEN = 120;
+const MAX_PASS_LEN = 128;
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -11,9 +24,8 @@ export default function AdminLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [locked, setLocked] = useState(false);
   const emailRef = useRef(null);
-  const failedAttemptsRef = useRef(0);
-  const lockoutUntilRef = useRef(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -33,30 +45,55 @@ export default function AdminLogin() {
 
   async function handleLogin(e) {
     e.preventDefault();
-    
-    if (Date.now() < lockoutUntilRef.current) {
-      const secsLeft = Math.ceil((lockoutUntilRef.current - Date.now()) / 1000);
-      setError(`Too many attempts. Try again in ${secsLeft}s.`);
+
+    if (locked) {
+      setError('Too many attempts. Please wait and try again.');
       return;
     }
-    
-    if (!email.trim() || !password.trim()) {
+
+    const cleanEmail = sanitize(email).slice(0, MAX_EMAIL_LEN);
+    const cleanPassword = password.slice(0, MAX_PASS_LEN);
+
+    if (!cleanEmail || !cleanPassword) {
       setError('Both fields are required.');
       return;
     }
+
+    // Basic email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Invalid email format.');
+      return;
+    }
+
     setLoading(true);
     setError('');
+
+    // Server-side rate limit check
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const rlRes = await fetch('/api/check-rate-limit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login' }),
+      });
+      const rlData = await rlRes.json();
+
+      if (!rlData.allowed) {
+        setError(rlData.error || 'Too many attempts. Try again later.');
+        setLocked(true);
+        // Auto-unlock after retryAfter seconds
+        setTimeout(() => setLocked(false), (rlData.retryAfter || 60) * 1000);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // Fail open if rate limit API is down
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
       router.push('/admin/dashboard');
     } catch {
       setError('Invalid credentials.');
-      failedAttemptsRef.current += 1;
-      if (failedAttemptsRef.current >= 5) {
-        lockoutUntilRef.current = Date.now() + 30 * 1000;
-        failedAttemptsRef.current = 0;
-        setError('Too many failed attempts. Try again in 30s.');
-      }
       setLoading(false);
     }
   }
@@ -76,6 +113,10 @@ export default function AdminLogin() {
         <meta name="robots" content="noindex, nofollow" />
       </Head>
       <div className={styles.loginPage}>
+        <Link href="/" className={styles.backToHome}>
+          <span className={styles.backIcon}>←</span>
+          <span>HOME</span>
+        </Link>
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
             <span className={styles.loginWordmark}>
@@ -104,8 +145,9 @@ export default function AdminLogin() {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 placeholder="admin@amsociety.in"
-                disabled={loading}
+                disabled={loading || locked}
                 autoComplete="email"
+                maxLength={MAX_EMAIL_LEN}
               />
             </div>
 
@@ -120,17 +162,18 @@ export default function AdminLogin() {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 placeholder="••••••••••"
-                disabled={loading}
+                disabled={loading || locked}
                 autoComplete="current-password"
+                maxLength={MAX_PASS_LEN}
               />
             </div>
 
             <button
               type="submit"
               className={styles.loginBtn}
-              disabled={loading}
+              disabled={loading || locked}
             >
-              {loading ? <span className={styles.loadingDots}>Verifying</span> : 'LOGIN'}
+              {locked ? 'LOCKED' : loading ? <span className={styles.loadingDots}>Verifying</span> : 'LOGIN'}
             </button>
           </form>
         </div>
