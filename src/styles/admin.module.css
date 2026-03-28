@@ -485,8 +485,6 @@
 }
 
 .th {
-  position: sticky;
-  top: 64px;
   background: #0e0e0e;
   padding: 12px 14px;
   text-align: left;
@@ -497,7 +495,6 @@
   color: #D4AF37;
   border-bottom: 1px solid rgba(212, 175, 55, 0.15);
   white-space: nowrap;
-  z-index: 10;
 }
 
 .tr {

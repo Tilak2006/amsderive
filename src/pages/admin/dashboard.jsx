@@ -311,12 +311,12 @@ export default function AdminDashboard() {
             <div className={styles.tableLoading}>Loading registrants...</div>
           ) : (
             <div className={styles.tableWrap}>
-              <div className={styles.tableScroll}>
+              <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
                 <table className={styles.table}>
                 <thead>
                   <tr>
                     {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
-                      <th key={h} className={styles.th}>{h}</th>
+                      <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
