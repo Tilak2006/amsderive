@@ -18,6 +18,7 @@
     "three": "^0.183.2"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.1",
     "critters": "^0.0.23"
   },
   "browserslist": [

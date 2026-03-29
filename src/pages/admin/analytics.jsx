@@ -2,14 +2,32 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
 import { AMBASSADOR_REF_MAP } from '../../lib/ambassador-codes';
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, CartesianGrid,
-} from 'recharts';
+
+// Dynamically load Recharts — only downloaded when analytics page is visited
+const RechartsComponents = dynamic(
+  () => import('recharts').then((mod) => {
+    // Return a thin wrapper that exposes the needed components
+    const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } = mod;
+    // Store on the component so we can destructure in render
+    function RechartsProvider({ children }) {
+      return children({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid });
+    }
+    return RechartsProvider;
+  }),
+  {
+    ssr: false,
+    loading: () => (
+      <div className={styles.tableLoading} style={{ minHeight: '400px' }}>
+        Loading charts...
+      </div>
+    ),
+  }
+);
 
 const GOLD = '#D4AF37';
 const DARK_RED = '#8B2020';
@@ -82,6 +100,7 @@ export default function AdminAnalytics() {
   }, [user]);
 
   async function handleLogout() {
+    document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
     await signOut(auth);
     router.push('/admin/login');
   }
@@ -216,112 +235,116 @@ export default function AdminAnalytics() {
                 ))}
               </div>
 
-              {/* Charts grid */}
-              <div className={styles.chartsGrid}>
-                {/* Registrations over time */}
-                <div className={styles.chartCard}>
-                  <h3 className={styles.chartTitle}>Registrations Over Time</h3>
-                  <div className={styles.chartWrap}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={analytics.dailyData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
-                        <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
-                          interval="preserveStartEnd"
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis
-                          tick={{ fill: LABEL_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
-                          allowDecimals={false}
-                        />
-                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.06)' }} />
-                        <Bar dataKey="count" fill={GOLD} radius={[2, 2, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* University distribution */}
-                <div className={styles.chartCard}>
-                  <h3 className={styles.chartTitle}>University Distribution (Top 15)</h3>
-                  <div className={styles.chartWrap}>
-                    <ResponsiveContainer width="100%" height={Math.max(300, analytics.uniData.length * 32)}>
-                      <BarChart data={analytics.uniData} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-                        <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" horizontal={false} />
-                        <XAxis
-                          type="number"
-                          tick={{ fill: LABEL_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
-                          allowDecimals={false}
-                        />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          tick={{ fill: TEXT_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
-                          width={160}
-                        />
-                        <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.06)' }} />
-                        <Bar dataKey="count" fill={GOLD} radius={[0, 2, 2, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Consent pie */}
-                <div className={styles.chartCard}>
-                  <h3 className={styles.chartTitle}>Data Consent</h3>
-                  <div className={styles.chartWrap} style={{ display: 'flex', justifyContent: 'center' }}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={analytics.consentPie}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={60}
-                          outerRadius={110}
-                          dataKey="value"
-                          stroke="#0e0e0e"
-                          strokeWidth={2}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          <Cell fill={GOLD} />
-                          <Cell fill={DARK_RED} />
-                        </Pie>
-                        <Tooltip content={<ChartTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Referral analytics */}
-                {analytics.refData.length > 0 && (
-                  <div className={styles.chartCard}>
-                    <h3 className={styles.chartTitle}>Referral Analytics</h3>
-                    <div className={styles.chartWrap}>
-                      <table className={styles.table} style={{ width: '100%' }}>
-                        <thead>
-                          <tr>
-                            <th className={styles.th}>Ref Code</th>
-                            <th className={styles.th}>Institution</th>
-                            <th className={styles.th} style={{ textAlign: 'right' }}>Registrations</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {analytics.refData.map((row, i) => (
-                            <tr key={row.code} className={i % 2 === 1 ? styles.trAlt : ''}>
-                              <td className={`${styles.td} ${styles.mono}`}>{row.code}</td>
-                              <td className={styles.td}>{row.institution}</td>
-                              <td className={styles.td} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.count}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+              {/* Charts grid — Recharts loaded dynamically */}
+              <RechartsComponents>
+                {({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid }) => (
+                  <div className={styles.chartsGrid}>
+                    {/* Registrations over time */}
+                    <div className={styles.chartCard}>
+                      <h3 className={styles.chartTitle}>Registrations Over Time</h3>
+                      <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={analytics.dailyData} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+                            <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" />
+                            <XAxis
+                              dataKey="date"
+                              tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
+                              interval="preserveStartEnd"
+                              angle={-45}
+                              textAnchor="end"
+                              height={60}
+                            />
+                            <YAxis
+                              tick={{ fill: LABEL_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
+                              allowDecimals={false}
+                            />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.06)' }} />
+                            <Bar dataKey="count" fill={GOLD} radius={[2, 2, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
+
+                    {/* University distribution */}
+                    <div className={styles.chartCard}>
+                      <h3 className={styles.chartTitle}>University Distribution (Top 15)</h3>
+                      <div className={styles.chartWrap}>
+                        <ResponsiveContainer width="100%" height={Math.max(300, analytics.uniData.length * 32)}>
+                          <BarChart data={analytics.uniData} layout="vertical" margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+                            <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" horizontal={false} />
+                            <XAxis
+                              type="number"
+                              tick={{ fill: LABEL_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
+                              allowDecimals={false}
+                            />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              tick={{ fill: TEXT_COLOR, fontSize: 11, fontFamily: 'var(--font-mono)' }}
+                              width={160}
+                            />
+                            <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.06)' }} />
+                            <Bar dataKey="count" fill={GOLD} radius={[0, 2, 2, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Consent pie */}
+                    <div className={styles.chartCard}>
+                      <h3 className={styles.chartTitle}>Data Consent</h3>
+                      <div className={styles.chartWrap} style={{ display: 'flex', justifyContent: 'center' }}>
+                        <ResponsiveContainer width="100%" height={300}>
+                          <PieChart>
+                            <Pie
+                              data={analytics.consentPie}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={60}
+                              outerRadius={110}
+                              dataKey="value"
+                              stroke="#0e0e0e"
+                              strokeWidth={2}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            >
+                              <Cell fill={GOLD} />
+                              <Cell fill={DARK_RED} />
+                            </Pie>
+                            <Tooltip content={<ChartTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Referral analytics */}
+                    {analytics.refData.length > 0 && (
+                      <div className={styles.chartCard}>
+                        <h3 className={styles.chartTitle}>Referral Analytics</h3>
+                        <div className={styles.chartWrap}>
+                          <table className={styles.table} style={{ width: '100%' }}>
+                            <thead>
+                              <tr>
+                                <th className={styles.th}>Ref Code</th>
+                                <th className={styles.th}>Institution</th>
+                                <th className={styles.th} style={{ textAlign: 'right' }}>Registrations</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analytics.refData.map((row, i) => (
+                                <tr key={row.code} className={i % 2 === 1 ? styles.trAlt : ''}>
+                                  <td className={`${styles.td} ${styles.mono}`}>{row.code}</td>
+                                  <td className={styles.td}>{row.institution}</td>
+                                  <td className={styles.td} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.count}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
-              </div>
+              </RechartsComponents>
             </>
           )}
         </main>

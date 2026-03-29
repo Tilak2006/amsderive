@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   // reactStrictMode intentionally disabled:
   // In development, Strict Mode double-invokes useEffect which causes Two WebGL
@@ -13,6 +17,13 @@ const nextConfig = {
   compiler: {
     // Strip all console.* calls from production bundle
     removeConsole: process.env.NODE_ENV === 'production',
+  },
+
+  // Tree-shake Recharts — only bundle the components actually imported
+  modularizeImports: {
+    recharts: {
+      transform: 'recharts/es6/{{member}}',
+    },
   },
 
   images: {
@@ -69,4 +80,4 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

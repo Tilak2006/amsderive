@@ -202,7 +202,7 @@ export default function Register() {
         {/* Ref: firebase-upload-safety skill - prevent public exposure of registration flow */}
         <meta name="robots" content="noindex, nofollow" />
       </Head>
-      
+
       <Navbar />
 
       <main className={styles.registerMain}>

@@ -93,6 +93,7 @@ export default function AdminAmbassadors() {
   }, [data]);
 
   async function handleLogout() {
+    document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
     await signOut(auth);
     router.push('/admin/login');
   }

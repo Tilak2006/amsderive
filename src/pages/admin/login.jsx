@@ -90,7 +90,10 @@ export default function AdminLogin() {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+      const cred = await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
+      // Set a lightweight session cookie for Edge Middleware pre-check
+      const token = await cred.user.getIdToken();
+      document.cookie = `__session=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
       router.push('/admin/dashboard');
     } catch {
       setError('Invalid credentials.');

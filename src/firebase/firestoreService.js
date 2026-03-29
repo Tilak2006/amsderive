@@ -61,7 +61,7 @@ export async function checkDuplicateRegistration(email, cfHandle) {
     // Ref: firebase-upload-safety skill (Rule 4: Email case-insensitive)
     // Normalize email to lowercase for consistent comparison
     const normalizedEmail = email.toLowerCase().trim();
-    
+
     const registrationsRef = collection(db, 'registrants');
     // Query against emailLower field to ensure case-insensitive matching
     const emailQuery = query(registrationsRef, where('emailLower', '==', normalizedEmail));
@@ -89,7 +89,7 @@ export async function submitRegistration(data) {
   try {
     // Ref: firebase-upload-safety skill (Rule 4: Email case-insensitive)
     const normalizedEmail = data.email.toLowerCase().trim();
-    
+
     const docRef = await addDoc(collection(db, 'registrants'), {
       fullName: data.fullName,
       email: normalizedEmail,                    // Primary email field
