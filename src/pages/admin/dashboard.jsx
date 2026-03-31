@@ -67,6 +67,20 @@ export default function AdminDashboard() {
   const [filterUniversity, setFilterUniversity] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusMsg, setStatusMsg] = useState(null);
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
+  const [broadcastSubject, setBroadcastSubject] = useState('');
+  const [broadcastBody, setBroadcastBody] = useState('');
+  const [broadcastFilter, setBroadcastFilter] = useState('all');
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [broadcastMsg, setBroadcastMsg] = useState(null);
+  const [broadcastConfirming, setBroadcastConfirming] = useState(false);
+  const [roundLoading, setRoundLoading] = useState(false);
+  const [roundMsg, setRoundMsg] = useState(null);
+  const [approveAllConfirm, setApproveAllConfirm] = useState(false);
+  const [approveAllLoading, setApproveAllLoading] = useState(false);
+  const [approveAllMsg, setApproveAllMsg] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -164,6 +178,120 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleStatusUpdate(newStatus) {
+    if (!selectedRegistrant || statusLoading) return;
+    setStatusLoading(true);
+    setStatusMsg(null);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/admin/update-registrant-status', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ docId: selectedRegistrant.id, status: newStatus }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRegistrants((prev) =>
+          prev.map((reg) => reg.id === selectedRegistrant.id ? { ...reg, status: newStatus } : reg)
+        );
+        setSelectedRegistrant((prev) => prev ? { ...prev, status: newStatus } : prev);
+        setStatusMsg({ type: 'success', text: `Marked as ${newStatus}` });
+      } else {
+        setStatusMsg({ type: 'error', text: data.error || 'Update failed.' });
+      }
+    } catch {
+      setStatusMsg({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
+  async function handleApproveAll() {
+    if (approveAllLoading) return;
+    setApproveAllConfirm(false);
+    setApproveAllLoading(true);
+    setApproveAllMsg(null);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/admin/approve-all', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({}),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRegistrants((prev) =>
+          prev.map((reg) => reg.status === 'pending' ? { ...reg, status: 'approved' } : reg)
+        );
+        setApproveAllMsg({
+          type: 'success',
+          text: `Approved ${data.approved} · ${data.emailsSent} emails sent`,
+        });
+      } else {
+        setApproveAllMsg({ type: 'error', text: data.error || 'Bulk approval failed.' });
+      }
+    } catch {
+      setApproveAllMsg({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setApproveAllLoading(false);
+    }
+  }
+
+  async function handleRoundUpdate(docId, newRound) {
+    if (roundLoading) return;
+    setRoundLoading(true);
+    setRoundMsg(null);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/admin/update-registrant-round', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ docId, round: newRound }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRegistrants((prev) =>
+          prev.map((reg) => reg.id === docId ? { ...reg, round: newRound } : reg)
+        );
+        setSelectedRegistrant((prev) => prev ? { ...prev, round: newRound } : prev);
+        setRoundMsg({ type: 'success', text: `→ ${newRound.toUpperCase()}` });
+      } else {
+        setRoundMsg({ type: 'error', text: data.error || 'Failed to update round.' });
+      }
+    } catch {
+      setRoundMsg({ type: 'error', text: 'Network error.' });
+    } finally {
+      setRoundLoading(false);
+    }
+  }
+
+  async function handleBroadcast() {
+    if (!broadcastSubject.trim() || !broadcastBody.trim() || broadcastLoading) return;
+    setBroadcastConfirming(false);
+    setBroadcastLoading(true);
+    setBroadcastMsg(null);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/admin/send-broadcast', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ subject: broadcastSubject, body: broadcastBody, roundFilter: broadcastFilter }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} registrant${data.sent !== 1 ? 's' : ''}` });
+        setBroadcastSubject('');
+        setBroadcastBody('');
+      } else {
+        setBroadcastMsg({ type: 'error', text: data.error || 'Broadcast failed.' });
+      }
+    } catch {
+      setBroadcastMsg({ type: 'error', text: 'Network error. Please try again.' });
+    } finally {
+      setBroadcastLoading(false);
+    }
+  }
+
   const filtered = useMemo(() =>
     registrants
       .filter((r) => {
@@ -215,6 +343,12 @@ export default function AdminDashboard() {
           <div className={styles.topBarRight}>
             <span className={styles.topBarEmail}>{user?.email}</span>
             <button
+              className={styles.broadcastBtn}
+              onClick={() => { setBroadcastOpen((o) => !o); setBroadcastMsg(null); setBroadcastConfirming(false); }}
+            >
+              {broadcastOpen ? 'CLOSE' : 'BROADCAST'}
+            </button>
+            <button
               className={styles.exportBtn}
               onClick={async () => {
                 if (hasMore) {
@@ -241,6 +375,75 @@ export default function AdminDashboard() {
         </header>
 
         <main className={styles.dashMain}>
+          {/* Broadcast panel */}
+          {broadcastOpen && (
+            <div className={styles.broadcastPanel}>
+              <p className={styles.broadcastTitle}>BROADCAST EMAIL</p>
+              <input
+                className={styles.broadcastInput}
+                type="text"
+                placeholder="Subject"
+                value={broadcastSubject}
+                onChange={(e) => setBroadcastSubject(e.target.value)}
+              />
+              <textarea
+                className={styles.broadcastTextarea}
+                placeholder="Message body..."
+                value={broadcastBody}
+                onChange={(e) => setBroadcastBody(e.target.value)}
+                rows={5}
+              />
+              <div className={styles.broadcastFooter}>
+                <select
+                  className={styles.filterSelect}
+                  value={broadcastFilter}
+                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); }}
+                  disabled={broadcastLoading}
+                >
+                  <option value="all">All Registrants</option>
+                  <option value="prior">PRIOR</option>
+                  <option value="posterior">POSTERIOR</option>
+                  <option value="convergence">CONVERGENCE</option>
+                </select>
+                {broadcastConfirming ? (
+                  <div className={styles.broadcastConfirm}>
+                    <span className={styles.broadcastConfirmText}>
+                      Send &ldquo;{broadcastSubject}&rdquo; to{' '}
+                      <strong>{broadcastFilter === 'all' ? 'all registrants' : broadcastFilter.toUpperCase()}</strong>?
+                    </span>
+                    <button
+                      className={styles.confirmBtn}
+                      onClick={handleBroadcast}
+                      disabled={broadcastLoading}
+                    >
+                      CONFIRM
+                    </button>
+                    <button
+                      className={styles.cancelBtn}
+                      onClick={() => setBroadcastConfirming(false)}
+                      disabled={broadcastLoading}
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className={styles.broadcastSendBtn}
+                    onClick={() => setBroadcastConfirming(true)}
+                    disabled={broadcastLoading || !broadcastSubject.trim() || !broadcastBody.trim()}
+                  >
+                    {broadcastLoading ? 'SENDING...' : 'SEND'}
+                  </button>
+                )}
+                {broadcastMsg && (
+                  <span className={broadcastMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {broadcastMsg.text}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           <div className={styles.statsGrid}>
             {[
@@ -307,6 +510,44 @@ export default function AdminDashboard() {
             </span>
           </div>
 
+          {/* Bulk actions */}
+          <div className={styles.bulkActions}>
+            {approveAllConfirm ? (
+              <div className={styles.bulkConfirm}>
+                <span className={styles.bulkConfirmText}>
+                  Approve ALL pending registrants and send approval emails to each?
+                </span>
+                <button
+                  className={styles.confirmBtn}
+                  onClick={handleApproveAll}
+                  disabled={approveAllLoading}
+                >
+                  CONFIRM
+                </button>
+                <button
+                  className={styles.cancelBtn}
+                  onClick={() => setApproveAllConfirm(false)}
+                  disabled={approveAllLoading}
+                >
+                  CANCEL
+                </button>
+              </div>
+            ) : (
+              <button
+                className={styles.approveAllBtn}
+                onClick={() => { setApproveAllConfirm(true); setApproveAllMsg(null); }}
+                disabled={approveAllLoading}
+              >
+                {approveAllLoading ? 'APPROVING...' : 'APPROVE ALL PENDING'}
+              </button>
+            )}
+            {approveAllMsg && (
+              <span className={approveAllMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                {approveAllMsg.text}
+              </span>
+            )}
+          </div>
+
           {/* Table */}
           {loadingData ? (
             <div className={styles.tableLoading}>Loading registrants...</div>
@@ -330,7 +571,7 @@ export default function AdminDashboard() {
                     <tr
                       key={reg.id}
                       className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''}`}
-                      onClick={() => setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg)}
+                      onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); }}
                     >
                       <td className={styles.td}>{i + 1}</td>
                       <td className={styles.td}>{reg.fullName}</td>
@@ -381,14 +622,14 @@ export default function AdminDashboard() {
         <>
           <div
             className={styles.panelBackdrop}
-            onClick={() => setSelectedRegistrant(null)}
+            onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); }}
           />
           <aside className={styles.sidePanel}>
             <div className={styles.panelHeader}>
               <span className={styles.panelName}>{r.fullName}</span>
               <button
                 className={styles.panelClose}
-                onClick={() => setSelectedRegistrant(null)}
+                onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); }}
               >
                 CLOSE ✕
               </button>
@@ -467,6 +708,24 @@ export default function AdminDashboard() {
                 </span>
               </div>
               <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Round</p>
+                <select
+                  className={styles.roundSelect}
+                  value={r.round || 'prior'}
+                  disabled={roundLoading}
+                  onChange={(e) => handleRoundUpdate(r.id, e.target.value)}
+                >
+                  <option value="prior">PRIOR</option>
+                  <option value="posterior">POSTERIOR</option>
+                  <option value="convergence">CONVERGENCE</option>
+                </select>
+                {roundMsg && (
+                  <p className={roundMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {roundMsg.text}
+                  </p>
+                )}
+              </div>
+              <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>Submitted At</p>
                 <p className={`${styles.panelValue} ${styles.mono}`}>{formatDate(r.submittedAt)}</p>
               </div>
@@ -478,20 +737,52 @@ export default function AdminDashboard() {
 
             {/* Action buttons */}
             <div className={styles.panelActions}>
-              <button
-                className={styles.panelActionBtn}
-                disabled={!r.resumeUrl}
-                onClick={() => r.resumeUrl && handleViewFile(r.resumeUrl)}
-              >
-                VIEW RESUME
-              </button>
-              <button
-                className={styles.panelActionBtn}
-                disabled={!r.transcriptUrl}
-                onClick={() => r.transcriptUrl && handleViewFile(r.transcriptUrl)}
-              >
-                VIEW TRANSCRIPT
-              </button>
+              {r.status === 'pending' ? (
+                <div className={styles.panelStatusActions}>
+                  <button
+                    className={styles.approveBtn}
+                    disabled={statusLoading}
+                    onClick={() => handleStatusUpdate('approved')}
+                  >
+                    {statusLoading ? '...' : 'APPROVE'}
+                  </button>
+                  <button
+                    className={styles.rejectBtn}
+                    disabled={statusLoading}
+                    onClick={() => handleStatusUpdate('rejected')}
+                  >
+                    {statusLoading ? '...' : 'REJECT'}
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.panelStatusDisplay}>
+                  <span className={styles.panelLabel}>Status</span>
+                  <span className={r.status === 'approved' ? styles.badgeGreen : styles.badgeRed}>
+                    {(r.status || 'pending').toUpperCase()}
+                  </span>
+                </div>
+              )}
+              {statusMsg && (
+                <p className={statusMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                  {statusMsg.text}
+                </p>
+              )}
+              <div className={styles.panelFileActions}>
+                <button
+                  className={styles.panelActionBtn}
+                  disabled={!r.resumeUrl}
+                  onClick={() => r.resumeUrl && handleViewFile(r.resumeUrl)}
+                >
+                  VIEW RESUME
+                </button>
+                <button
+                  className={styles.panelActionBtn}
+                  disabled={!r.transcriptUrl}
+                  onClick={() => r.transcriptUrl && handleViewFile(r.transcriptUrl)}
+                >
+                  VIEW TRANSCRIPT
+                </button>
+              </div>
             </div>
           </aside>
         </>

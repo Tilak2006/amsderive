@@ -1,4 +1,6 @@
 import * as admin from 'firebase-admin';
+import { resend } from '../../lib/resend';
+import { registrationConfirmationEmail } from '../../emails/templates';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -147,8 +149,22 @@ export default async function handler(req, res) {
       dataConsent: true,
       ipHash: ipHash || null,
       refCode: refCode?.trim() || null,
+      round: 'prior',
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    // Send confirmation email — failure must NOT fail the registration
+    try {
+      const { from, subject, html } = registrationConfirmationEmail({
+        fullName: fullName.trim(),
+        codeforcesHandle: codeforcesHandle.trim(),
+        university: university.trim(),
+      });
+      await resend.emails.send({ from, to: normalizedEmail, subject, html });
+      console.info(`[submit-registration] Confirmation email sent: ${normalizedEmail}`);
+    } catch (emailErr) {
+      console.error(`[submit-registration] Confirmation email failed: ${normalizedEmail}`, emailErr.message);
+    }
 
     return res.status(200).json({ success: true, id: docRef.id });
   } catch (error) {

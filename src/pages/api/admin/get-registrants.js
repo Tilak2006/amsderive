@@ -60,6 +60,7 @@ export default async function handler(req, res) {
         dataConsent: data.dataConsent || false,
         submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : null,
         status: data.status || 'pending',
+        round: data.round || 'prior',
         resumeUrl: data.resumeUrl || null,
         resumeFileName: data.resumeFileName || null,
         transcriptUrl: data.transcriptUrl || null,
