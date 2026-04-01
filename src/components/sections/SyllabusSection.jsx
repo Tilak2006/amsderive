@@ -1,80 +1,99 @@
+import Link from 'next/link';
 import styles from '../../styles/syllabus.module.css';
 
-const SyllabusSection = () => {
-  const subsections = [
-    {
-      title: 'MATHEMATICS',
-      cards: [
-        {
-          title: 'Probability & Inference',
-          desc: 'Topics: Sample spaces, Conditional probability, Bayes theorem, Discrete and continuous distributions, PMF PDF CDF, Joint distributions, Linearity of expectation, Moments, MGFs, Tail bounds.'
-        },
-        {
-          title: 'Stochastic Processes',
-          desc: 'Topics: Markov chains, Transition matrices, Stationary distributions, Random walks, Martingales, Basic Brownian motion intuition.'
-        },
-        {
-          title: 'Analytical Foundations',
-          desc: 'Topics: Derivation over formula recall, First-principles reasoning, Modeling under uncertainty, Structured proof construction.'
-        }
-      ]
-    },
-    {
-      title: 'ALGORITHMS',
-      cards: [
-        {
-          title: 'Graph Theory',
-          desc: 'Topics: BFS, DFS, Shortest paths, Trees, Flows and matchings.'
-        },
-        {
-          title: 'Dynamic Programming',
-          desc: 'Topics: Optimal substructure, State design, DP on sequences trees and graphs.'
-        },
-        {
-          title: 'Optimization',
-          desc: 'Topics: Greedy algorithms, Exchange arguments, Constraint handling, Expected-cost minimization.'
-        }
-      ]
-    },
-    {
-      title: 'QUANT CONCEPTS',
-      cards: [
-        {
-          title: 'Order Books',
-          desc: 'Topics: Bid-ask structure, Limit and market orders, Price impact intuition.'
-        },
-        {
-          title: 'Pricing Intuition',
-          desc: 'Topics: No-arbitrage reasoning, Risk-neutral thinking, Relative valuation.'
-        },
-        {
-          title: 'Arbitrage Logic',
-          desc: 'Topics: Identifying mispricing, Constructing hedges, Reasoning about market efficiency.'
-        }
-      ]
-    }
-  ];
+const sections = [
+  {
+    num: '01',
+    title: 'Mathematics',
+    areas: [
+      {
+        name: 'Probability & Inference',
+        topics: 'Sample spaces, Conditional probability, Bayes theorem, Discrete and continuous distributions, PMF / PDF / CDF, Joint distributions, Linearity of expectation, Moments, MGFs, Tail bounds'
+      },
+      {
+        name: 'Stochastic Processes',
+        topics: 'Markov chains, Transition matrices, Stationary distributions, Random walks, Martingales, Brownian motion intuition'
+      },
+      {
+        name: 'Analytical Foundations',
+        topics: 'Derivation over formula recall, First-principles reasoning, Modeling under uncertainty, Structured proof construction'
+      }
+    ]
+  },
+  {
+    num: '02',
+    title: 'Algorithms',
+    areas: [
+      {
+        name: 'Graph Theory',
+        topics: 'BFS, DFS, Shortest paths, Trees, Flows and matchings'
+      },
+      {
+        name: 'Dynamic Programming',
+        topics: 'Optimal substructure, State design, DP on sequences, DP on trees, DP on graphs'
+      },
+      {
+        name: 'Optimization',
+        topics: 'Greedy algorithms, Exchange arguments, Constraint handling, Expected-cost minimization'
+      }
+    ]
+  },
+  {
+    num: '03',
+    title: 'Quant Concepts',
+    areas: [
+      {
+        name: 'Order Books',
+        topics: 'Bid-ask structure, Limit and market orders, Price impact intuition'
+      },
+      {
+        name: 'Pricing Intuition',
+        topics: 'No-arbitrage reasoning, Risk-neutral thinking, Relative valuation'
+      },
+      {
+        name: 'Arbitrage Logic',
+        topics: 'Identifying mispricing, Constructing hedges, Reasoning about market efficiency'
+      }
+    ]
+  }
+];
 
+const SyllabusSection = () => {
   return (
     <section id="syllabus" className={styles.syllabusPage}>
       <div className={styles.container}>
         <h1 className={styles.pageTitle}>Syllabus</h1>
-        <div className={styles.subsectionsWrapper}>
-          {subsections.map((sub, idx) => (
-            <div key={idx} className={styles.subsection}>
+
+        <div className={styles.sectionsWrapper}>
+          {sections.map((sec, idx) => (
+            <div key={idx}>
               {idx > 0 && <hr className={styles.divider} />}
-              <h2 className={styles.subsectionLabel}>{sub.title}</h2>
-              {sub.note && <p className={styles.subsectionNote}>{sub.note}</p>}
-              <div className={styles.grid}>
-                {sub.cards.map((card, cIdx) => (
-                  <div key={cIdx} className={styles.card}>
-                    <div className={styles.cardTitle}>{card.title}</div>
-                    <p className={styles.cardText}>{card.desc}</p>
+              <div className={styles.sectionHead}>
+                <span className={styles.sectionNum}>{sec.num}</span>
+                <h2 className={styles.sectionTitle}>{sec.title}</h2>
+              </div>
+              <div className={styles.topicTable}>
+                {sec.areas.map((area, aIdx) => (
+                  <div key={aIdx} className={styles.topicRow}>
+                    <span className={styles.topicName}>{area.name}</span>
+                    <span className={styles.topicList}>{area.topics}</span>
                   </div>
                 ))}
               </div>
             </div>
           ))}
+        </div>
+
+        <hr className={styles.divider} />
+
+        {/* ── Sample Problem CTA ── */}
+        <div className={styles.problemCta}>
+          <span className={styles.problemCtaEyebrow}>Round I · PRIOR</span>
+          <h2 className={styles.problemCtaTitle}>Sample Problem</h2>
+          <p className={styles.problemCtaDesc}>See what to expect — a problem representative of Round I difficulty</p>
+          <Link href="/problems" className={styles.problemCtaLink}>
+            View Problem →
+          </Link>
         </div>
 
         <hr className={styles.divider} />

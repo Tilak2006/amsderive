@@ -1,7 +1,7 @@
 .countdownContainer {
   display: flex;
   justify-content: center;
-  padding: var(--space-8) 0;
+  padding: var(--space-4) 0;
 }
 
 .countdownBlocks {
@@ -13,10 +13,9 @@
 .countdownSeparator {
   font-family: var(--font-mono);
   font-size: var(--text-3xl);
-  font-weight: 600;
-  color: var(--color-text-muted);
-  align-self: flex-start;
-  padding-top: var(--space-1);
+  font-weight: 400;
+  color: rgba(212, 175, 55, 0.45);
+  align-self: center;
 }
 
 .countdownExpired {

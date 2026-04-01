@@ -65,6 +65,7 @@ const HeroContent = memo(function HeroContent() {
       <div className={styles.heroOverlay}>
         <div className={styles.heroContent}>
           <div className={styles.titleGroup}>
+            <p className={styles.eyebrow}>Algorithms &amp; Mathematics Society</p>
             <h1 className={styles.mainTitle}>AMS DERIVE</h1>
             <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
 

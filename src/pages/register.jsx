@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ErrorBanner from '../components/ui/ErrorBanner';
+import RegistrationCard from '../components/ui/RegistrationCard';
 import styles from './register.module.css';
 import { uploadRegistrationFiles } from '../firebase/storageService';
 import { hashIp, createRateLimitFingerprint } from '../utils/hashIp';
@@ -32,6 +33,7 @@ export default function Register() {
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
+  const [submittedUniversity, setSubmittedUniversity] = useState('');
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [countData, setCountData] = useState(null);
 
@@ -185,6 +187,7 @@ export default function Register() {
 
       // Success
       setSubmittedName(data.fullName.trim());
+      setSubmittedUniversity(data.university.trim());
       setStatus('success');
     } catch (err) {
       setStatus('error');
@@ -270,6 +273,7 @@ export default function Register() {
                   <p className={styles.registerSuccessMessage}>
                     We&apos;ll reach out before the event starts.
                   </p>
+                  <RegistrationCard fullName={submittedName} university={submittedUniversity} />
                 </div>
               ) : (
                 isHydrated && (

@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 import { resend } from '../../lib/resend';
 import { registrationConfirmationEmail } from '../../emails/templates';
 
@@ -21,11 +22,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { ipHash } = req.body;
-
-  if (!ipHash || typeof ipHash !== 'string' || !/^[a-f0-9]{64}$/.test(ipHash)) {
-    return res.status(400).json({ success: false, error: 'Invalid or missing fingerprint' });
-  }
+  // Generate IP hash server-side — never trust client-provided fingerprint
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+    .toString()
+    .split(',')[0]
+    .trim();
+  const ipHash = crypto.createHash('sha256').update(clientIp).digest('hex');
 
   try {
     const rateLimitRef = db.collection('_rate_limits').doc(ipHash);
@@ -60,17 +62,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
   }
 
-  // Pre-fetch count for cap check
-  try {
-    const countSnap = await db.collection('registrants').count().get();
-    if (countSnap.data().count >= MAX_REGISTRATIONS) {
-      return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
-    }
-  } catch (err) {
-    console.error('[submit-registration] Cap check failed:', err);
-    // Continue if count fails — don't block registration on metadata failure
-  }
-
   const {
     fullName, email, university, codeforcesHandle, phoneNumber,
     linkedIn, gitHub, dataConsent, resumeUrl, resumeFileName,
@@ -98,38 +89,49 @@ export default async function handler(req, res) {
   const normalizedEmail = email.trim().toLowerCase();
   const cfHandle = codeforcesHandle.trim();
 
-  // Verify Codeforces handle
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
-
-    const cfRes = await fetch(`https://codeforces.com/api/user.info?handles=${encodeURIComponent(cfHandle)}`, {
-      signal: controller.signal
+  // Run cap check and Codeforces validation in parallel
+  const capCheckPromise = db.collection('registrants').count().get()
+    .then((snap) => snap.data().count)
+    .catch((err) => {
+      console.error('[submit-registration] Cap check failed:', err);
+      return null; // Continue if count fails — don't block registration on metadata failure
     });
 
-    clearTimeout(timeoutId);
+  const cfCheckPromise = (async () => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
 
-    // Only fail if CF explicitly says user not found
-    if (cfRes.status === 400 || cfRes.status === 404) {
-      const cfData = await cfRes.json();
-      if (cfData.status === 'FAILED') {
-        return res.status(400).json({
-          success: false,
-          error: 'Codeforces handle not found. Please check your handle and try again.'
-        });
+      const cfRes = await fetch(
+        `https://codeforces.com/api/user.info?handles=${encodeURIComponent(cfHandle)}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+
+      if (cfRes.status === 400 || cfRes.status === 404 || cfRes.ok) {
+        const cfData = await cfRes.json();
+        if (cfData.status === 'FAILED') {
+          return { valid: false };
+        }
       }
-    } else if (cfRes.ok) {
-      const cfData = await cfRes.json();
-      if (cfData.status === 'FAILED') {
-        return res.status(400).json({
-          success: false,
-          error: 'Codeforces handle not found. Please check your handle and try again.'
-        });
-      }
+    } catch (error) {
+      // Fail open — log warning and proceed if CF API is flaky, down, or times out
+      console.warn(`[submit-registration] Codeforces API check failed for handle '${cfHandle}':`, error.message);
     }
-  } catch (error) {
-    // Fail open — log warning and proceed if CF API is flaky, down, or times out
-    console.warn(`[submit-registration] Codeforces API check failed for handle '${cfHandle}':`, error.message);
+    return { valid: true };
+  })();
+
+  const [registrantCount, cfResult] = await Promise.all([capCheckPromise, cfCheckPromise]);
+
+  if (registrantCount !== null && registrantCount >= MAX_REGISTRATIONS) {
+    return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
+  }
+
+  if (!cfResult.valid) {
+    return res.status(400).json({
+      success: false,
+      error: 'Codeforces handle not found. Please check your handle and try again.',
+    });
   }
 
   try {
@@ -147,24 +149,34 @@ export default async function handler(req, res) {
       linkedIn: linkedIn?.trim() || null,
       gitHub: gitHub?.trim() || null,
       dataConsent: true,
-      ipHash: ipHash || null,
+      ipHash,
       refCode: refCode?.trim() || null,
       round: 'prior',
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Send confirmation email — failure must NOT fail the registration
-    try {
-      const { from, subject, html } = registrationConfirmationEmail({
-        fullName: fullName.trim(),
-        codeforcesHandle: codeforcesHandle.trim(),
-        university: university.trim(),
-      });
-      await resend.emails.send({ from, to: normalizedEmail, subject, html });
-      console.info(`[submit-registration] Confirmation email sent: ${normalizedEmail}`);
-    } catch (emailErr) {
-      console.error(`[submit-registration] Confirmation email failed: ${normalizedEmail}`, emailErr.message);
-    }
+    // Fire off stats update and confirmation email concurrently — failures must NOT fail the registration
+    await Promise.allSettled([
+      db.collection('stats').doc('leaderboard').set(
+        { [university.trim()]: admin.firestore.FieldValue.increment(1) },
+        { merge: true }
+      ).catch((statsErr) => {
+        console.error('[submit-registration] Leaderboard stats update failed:', statsErr.message);
+      }),
+      (async () => {
+        try {
+          const { from, subject, html } = registrationConfirmationEmail({
+            fullName: fullName.trim(),
+            codeforcesHandle: codeforcesHandle.trim(),
+            university: university.trim(),
+          });
+          await resend.emails.send({ from, to: normalizedEmail, subject, html });
+          console.info(`[submit-registration] Confirmation email sent: ${normalizedEmail}`);
+        } catch (emailErr) {
+          console.error(`[submit-registration] Confirmation email failed: ${normalizedEmail}`, emailErr.message);
+        }
+      })(),
+    ]);
 
     return res.status(200).json({ success: true, id: docRef.id });
   } catch (error) {
