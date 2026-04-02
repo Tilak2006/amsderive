@@ -43,15 +43,20 @@ export default function AdminLogin() {
       }, 2000);
 
       try {
-        unsubscribe = onAuthStateChanged(auth, (user) => {
+        unsubscribe = onAuthStateChanged(auth, async (user) => {
           if (!isMounted) return;
           if (authTimeout) clearTimeout(authTimeout);
 
           if (user) {
-            router.replace('/admin/dashboard').catch(err => {
-              console.error('[AdminLogin] Navigation failed:', err);
+            try {
+              // Ensure __session cookie is set before navigating,
+              // otherwise Edge Middleware will redirect back here
+              const token = await user.getIdToken();
+              document.cookie = `__session=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
+              router.replace('/admin/dashboard');
+            } catch {
               setChecking(false);
-            });
+            }
           } else {
             setChecking(false);
           }
