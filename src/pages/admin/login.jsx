@@ -29,22 +29,48 @@ export default function AdminLogin() {
   const router = useRouter();
 
   useEffect(() => {
-    // Safety timeout: if checking doesn't complete in 5 seconds, stop loading
-    const timeout = setTimeout(() => {
-      setChecking(false);
-    }, 5000);
+    let isMounted = true;
+    let unsubscribe;
+    let authTimeout;
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      clearTimeout(timeout);
-      if (user) {
-        router.replace('/admin/dashboard');
-      } else {
-        setChecking(false);
+    const checkAuth = () => {
+      // CRITICAL: Force show form after 2 seconds no matter what
+      authTimeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('[AdminLogin] Auth check timeout - showing login form');
+          setChecking(false);
+        }
+      }, 2000);
+
+      try {
+        unsubscribe = onAuthStateChanged(auth, (user) => {
+          if (!isMounted) return;
+          if (authTimeout) clearTimeout(authTimeout);
+
+          if (user) {
+            router.replace('/admin/dashboard').catch(err => {
+              console.error('[AdminLogin] Navigation failed:', err);
+              setChecking(false);
+            });
+          } else {
+            setChecking(false);
+          }
+        });
+      } catch (err) {
+        console.error('[AdminLogin] Firebase auth error:', err);
+        if (isMounted) {
+          if (authTimeout) clearTimeout(authTimeout);
+          setChecking(false);
+        }
       }
-    });
+    };
+
+    checkAuth();
+
     return () => {
-      clearTimeout(timeout);
-      unsubscribe();
+      isMounted = false;
+      if (authTimeout) clearTimeout(authTimeout);
+      if (unsubscribe) unsubscribe();
     };
   }, [router]);
 
