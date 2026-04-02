@@ -29,14 +29,23 @@ export default function AdminLogin() {
   const router = useRouter();
 
   useEffect(() => {
+    // Safety timeout: if checking doesn't complete in 5 seconds, stop loading
+    const timeout = setTimeout(() => {
+      setChecking(false);
+    }, 5000);
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      clearTimeout(timeout);
       if (user) {
         router.replace('/admin/dashboard');
       } else {
         setChecking(false);
       }
     });
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [router]);
 
   useEffect(() => {
