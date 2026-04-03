@@ -38,6 +38,7 @@ export const AMBASSADOR_REF_MAP = {
   'd26-iitp-40a4': 'IIT Patna (Ambassador 2)',
   'd26-iitmandi-867b': 'IIT Mandi',
   'd26-iitgn-dcff': 'IIT Gandhinagar',
+  'd26-tsec-b4a1': 'TSEC Mumbai (Ambassador 2)',
 };
 
 export const AMBASSADOR_LINKS = {
@@ -72,6 +73,7 @@ export const AMBASSADOR_LINKS = {
   'IIT Patna (Ambassador 2)': 'amsderive.in?ref=d26-iitp-40a4',
   'IIT Mandi': 'amsderive.in?ref=d26-iitmandi-867b',
   'IIT Gandhinagar': 'amsderive.in?ref=d26-iitgn-dcff',
+  'TSEC Mumbai (Ambassador 2)': 'amsderive.in?ref=d26-tsec-b4a1',
 };
 
 export const PENDING_AMBASSADORS = [];
