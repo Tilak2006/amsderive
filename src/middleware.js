@@ -15,27 +15,33 @@ import { NextResponse } from 'next/server';
 export function middleware(request) {
   const { pathname } = request.nextUrl;
 
-  // Only guard admin pages (not the login page itself, API routes, or static assets)
-  if (
-    pathname === '/admin/login' ||
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/_next/')
-  ) {
+  // Skip API routes and static assets entirely
+  if (pathname.startsWith('/api/') || pathname.startsWith('/_next/')) {
     return NextResponse.next();
   }
 
-  // Check for the lightweight session cookie
-  const session = request.cookies.get('__session');
+  // Guard /admin/* (soft pre-check, authoritative check is client-side Firebase auth)
+  if (pathname.startsWith('/admin/')) {
+    if (pathname === '/admin/login') return NextResponse.next();
+    const session = request.cookies.get('__session');
+    if (!session?.value) {
+      return NextResponse.redirect(new URL('/admin/login', request.url));
+    }
+  }
 
-  if (!session?.value) {
-    const loginUrl = new URL('/admin/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  // Guard /firm/* (soft pre-check, authoritative check is client-side Firebase auth)
+  if (pathname.startsWith('/firm/')) {
+    if (pathname === '/firm/login') return NextResponse.next();
+    const firmSession = request.cookies.get('__firmSession');
+    if (!firmSession?.value) {
+      return NextResponse.redirect(new URL('/firm/login', request.url));
+    }
   }
 
   return NextResponse.next();
 }
 
-// Only run middleware on /admin/* paths
+// Run middleware on /admin/* and /firm/* paths
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/firm/:path*'],
 };

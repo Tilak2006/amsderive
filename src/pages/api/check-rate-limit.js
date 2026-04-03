@@ -24,7 +24,8 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 const LIMITS = {
-  login: { max: 5, windowMs: 15 * 60 * 1000 },  // 5 attempts per 15 min
+  login: { max: 5, windowMs: 15 * 60 * 1000 },       // 5 attempts per 15 min
+  'firm-login': { max: 5, windowMs: 15 * 60 * 1000 }, // 5 attempts per 15 min
 };
 
 export default async function handler(req, res) {

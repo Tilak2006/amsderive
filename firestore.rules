@@ -25,6 +25,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // amsderive.in — firm partner accounts
+    // All reads/writes go through Admin SDK in API routes. No client SDK access permitted.
+    match /firms/{uid} {
+      allow read, write: if false;
+    }
+
     // Block everything else
     match /{document=**} {
       allow read, write: if false;

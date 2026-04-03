@@ -851,7 +851,6 @@
   inset: 0;
   z-index: 900;
   background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(2px);
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -873,7 +872,6 @@
   border-left: 1px solid rgba(212, 175, 55, 0.18);
   box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
   animation: slideIn 0.2s ease-out;
-  will-change: transform;
 }
 
 @keyframes slideIn {

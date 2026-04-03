@@ -141,6 +141,7 @@ export default function AdminAmbassadors() {
             <Link href="/admin/dashboard" className={styles.tab}>REGISTRANTS</Link>
             <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
             <span className={`${styles.tab} ${styles.tabActive}`}>AMBASSADORS</span>
+            <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
           </div>
 
           {loading ? (

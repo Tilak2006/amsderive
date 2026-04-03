@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
@@ -44,9 +44,12 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
-async function getAuthHeader(currentUser) {
-  const token = await currentUser?.getIdToken();
-  return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+// Attach a pre-parsed numeric timestamp to each registrant for fast sorting
+function attachTs(registrants) {
+  return registrants.map((r) => ({
+    ...r,
+    _ts: r.submittedAt ? new Date(r.submittedAt).getTime() : 0,
+  }));
 }
 
 export default function AdminDashboard() {
@@ -62,6 +65,8 @@ export default function AdminDashboard() {
 
   const [stats, setStats] = useState({ total: 0, consentGiven: 0, today: 0 });
 
+  // Separate input state (changes on every keystroke) from filter state (debounced 200ms)
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filterConsent, setFilterConsent] = useState('all');
   const [filterUniversity, setFilterUniversity] = useState('all');
@@ -82,9 +87,32 @@ export default function AdminDashboard() {
   const [approveAllLoading, setApproveAllLoading] = useState(false);
   const [approveAllMsg, setApproveAllMsg] = useState(null);
 
+  // Refs: store current user for callbacks that don't need to re-create on user change,
+  // and token cache to avoid repeated getIdToken() async calls.
+  const userRef = useRef(null);
+  const tokenCache = useRef({ token: null, expiry: 0 });
+
+  // Returns a cached Firebase ID token. Firebase SDK already caches internally,
+  // but this avoids the async overhead of calling getIdToken() on every request.
+  async function getToken() {
+    if (tokenCache.current.token && Date.now() < tokenCache.current.expiry) {
+      return tokenCache.current.token;
+    }
+    const token = await userRef.current?.getIdToken();
+    tokenCache.current = { token, expiry: Date.now() + 50 * 60 * 1000 }; // 50-min TTL
+    return token;
+  }
+
+  async function authHeaders() {
+    const token = await getToken();
+    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  }
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       if (u) {
+        userRef.current = u;
         setUser(u);
         setChecking(false);
       } else {
@@ -94,7 +122,7 @@ export default function AdminDashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  // Close side panel on Escape key
+  // ── Escape to close panel ────────────────────────────────────────────────
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') setSelectedRegistrant(null);
@@ -103,62 +131,108 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const loadInitial = useCallback(async () => {
-    setLoadingData(true);
-    const headers = await getAuthHeader(user);
-    const res = await fetch('/api/admin/get-registrants', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ lastDocId: null }),
-    });
-    const result = await res.json();
-    setRegistrants(result.registrants || []);
-    setLastDoc(result.lastDocId);
-    setHasMore(result.hasMore);
-    setLoadingData(false);
-  }, [user]);
+  // ── Search debounce (200ms) ──────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput), 200);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
-  const loadStats = useCallback(async () => {
-    const headers = await getAuthHeader(user);
-    const res = await fetch('/api/admin/get-stats', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({}),
-    });
-    const s = await res.json();
-    setStats(s);
-  }, [user]);
-
+  // ── Initial data load ────────────────────────────────────────────────────
+  // Depends on uid (stable string), not user object (Firebase may give a new
+  // reference on token refresh). Gets ONE token and fires registrants + stats
+  // in parallel — eliminates the double getIdToken() call and the sequential
+  // fetch waterfall from the original code.
   useEffect(() => {
     if (!user) return;
-    loadInitial();
-    loadStats();
-  }, [user, loadInitial, loadStats]);
 
+    const controller = new AbortController();
+
+    async function loadAll() {
+      setLoadingData(true);
+      try {
+        const token = await getToken();
+        const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+        const [regRes, statsRes] = await Promise.all([
+          fetch('/api/admin/get-registrants', {
+            method: 'POST',
+            headers: hdrs,
+            body: JSON.stringify({ lastDocId: null }),
+            signal: controller.signal,
+          }),
+          fetch('/api/admin/get-stats', {
+            method: 'POST',
+            headers: hdrs,
+            body: JSON.stringify({}),
+            signal: controller.signal,
+          }),
+        ]);
+
+        const [regData, statsData] = await Promise.all([regRes.json(), statsRes.json()]);
+
+        setRegistrants(attachTs(regData.registrants || []));
+        setLastDoc(regData.lastDocId);
+        setHasMore(regData.hasMore);
+        setStats(statsData);
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('[dashboard] loadAll error:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    loadAll();
+    return () => controller.abort();
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Stats poll — every 5 min, skips when tab is hidden ──────────────────
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(() => {
-      loadStats();
-    }, 30000);
+
+    async function pollStats() {
+      if (document.hidden) return; // Don't hit the API when the tab is backgrounded
+      try {
+        const hdrs = await authHeaders();
+        const res = await fetch('/api/admin/get-stats', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify({}),
+        });
+        const s = await res.json();
+        setStats(s);
+      } catch {
+        // Silently ignore poll failures — stale stats are fine
+      }
+    }
+
+    const interval = setInterval(pollStats, 5 * 60 * 1000); // 5 minutes
     return () => clearInterval(interval);
-  }, [user, loadStats]);
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Pagination ────────────────────────────────────────────────────────────
   async function loadMore() {
     if (!lastDoc || loadingMore) return;
     setLoadingMore(true);
-    const headers = await getAuthHeader(user);
-    const res = await fetch('/api/admin/get-registrants', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ lastDocId: lastDoc }),
-    });
-    const result = await res.json();
-    setRegistrants((prev) => [...prev, ...(result.registrants || [])]);
-    setLastDoc(result.lastDocId);
-    setHasMore(result.hasMore);
-    setLoadingMore(false);
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/get-registrants', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ lastDocId: lastDoc }),
+      });
+      const result = await res.json();
+      setRegistrants((prev) => [...prev, ...attachTs(result.registrants || [])]);
+      setLastDoc(result.lastDocId);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      console.error('[dashboard] loadMore error:', err);
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
+  // ── Actions ───────────────────────────────────────────────────────────────
   async function handleLogout() {
     document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
     await signOut(auth);
@@ -166,16 +240,14 @@ export default function AdminDashboard() {
   }
 
   async function handleViewFile(fileUrl) {
-    const headers = await getAuthHeader(user);
+    const hdrs = await authHeaders();
     const res = await fetch('/api/admin/get-signed-url', {
       method: 'POST',
-      headers,
+      headers: hdrs,
       body: JSON.stringify({ fileUrl }),
     });
     const data = await res.json();
-    if (data.signedUrl) {
-      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-    }
+    if (data.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
   async function handleStatusUpdate(newStatus) {
@@ -183,10 +255,10 @@ export default function AdminDashboard() {
     setStatusLoading(true);
     setStatusMsg(null);
     try {
-      const headers = await getAuthHeader(user);
+      const hdrs = await authHeaders();
       const res = await fetch('/api/admin/update-registrant-status', {
         method: 'POST',
-        headers,
+        headers: hdrs,
         body: JSON.stringify({ docId: selectedRegistrant.id, status: newStatus }),
       });
       const data = await res.json();
@@ -212,10 +284,10 @@ export default function AdminDashboard() {
     setApproveAllLoading(true);
     setApproveAllMsg(null);
     try {
-      const headers = await getAuthHeader(user);
+      const hdrs = await authHeaders();
       const res = await fetch('/api/admin/approve-all', {
         method: 'POST',
-        headers,
+        headers: hdrs,
         body: JSON.stringify({}),
       });
       const data = await res.json();
@@ -242,10 +314,10 @@ export default function AdminDashboard() {
     setRoundLoading(true);
     setRoundMsg(null);
     try {
-      const headers = await getAuthHeader(user);
+      const hdrs = await authHeaders();
       const res = await fetch('/api/admin/update-registrant-round', {
         method: 'POST',
-        headers,
+        headers: hdrs,
         body: JSON.stringify({ docId, round: newRound }),
       });
       const data = await res.json();
@@ -271,10 +343,10 @@ export default function AdminDashboard() {
     setBroadcastLoading(true);
     setBroadcastMsg(null);
     try {
-      const headers = await getAuthHeader(user);
+      const hdrs = await authHeaders();
       const res = await fetch('/api/admin/send-broadcast', {
         method: 'POST',
-        headers,
+        headers: hdrs,
         body: JSON.stringify({ subject: broadcastSubject, body: broadcastBody, roundFilter: broadcastFilter }),
       });
       const data = await res.json();
@@ -292,29 +364,28 @@ export default function AdminDashboard() {
     }
   }
 
-  const filtered = useMemo(() =>
-    registrants
-      .filter((r) => {
-        const q = search.toLowerCase();
-        if (q && !(
-          r.fullName.toLowerCase().includes(q) ||
-          r.email.toLowerCase().includes(q) ||
-          r.codeforcesHandle.toLowerCase().includes(q) ||
-          (r.university || '').toLowerCase().includes(q)
-        )) return false;
-        if (filterConsent === 'yes' && !r.dataConsent) return false;
-        if (filterConsent === 'no' && r.dataConsent) return false;
-        if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortOrder === 'newest') return new Date(b.submittedAt) - new Date(a.submittedAt);
-        if (sortOrder === 'oldest') return new Date(a.submittedAt) - new Date(b.submittedAt);
-        if (sortOrder === 'name') return a.fullName.localeCompare(b.fullName);
-        return 0;
-      }),
-    [registrants, search, filterConsent, filterUniversity, sortOrder]
-  );
+  // ── Filtered + sorted list ────────────────────────────────────────────────
+  // Uses pre-parsed _ts for O(1) numeric sort — no new Date() inside comparator.
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    const list = registrants.filter((r) => {
+      if (q && !(
+        r.fullName.toLowerCase().includes(q) ||
+        r.email.toLowerCase().includes(q) ||
+        r.codeforcesHandle.toLowerCase().includes(q) ||
+        (r.university || '').toLowerCase().includes(q)
+      )) return false;
+      if (filterConsent === 'yes' && !r.dataConsent) return false;
+      if (filterConsent === 'no' && r.dataConsent) return false;
+      if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
+      return true;
+    });
+
+    if (sortOrder === 'newest') return list.sort((a, b) => b._ts - a._ts);
+    if (sortOrder === 'oldest') return list.sort((a, b) => a._ts - b._ts);
+    if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return list;
+  }, [registrants, search, filterConsent, filterUniversity, sortOrder]);
 
   if (checking) {
     return (
@@ -352,10 +423,10 @@ export default function AdminDashboard() {
               className={styles.exportBtn}
               onClick={async () => {
                 if (hasMore) {
-                  const headers = await getAuthHeader(user);
+                  const hdrs = await authHeaders();
                   const res = await fetch('/api/admin/export-registrants', {
                     method: 'POST',
-                    headers,
+                    headers: hdrs,
                     body: JSON.stringify({}),
                   });
                   const data = await res.json();
@@ -411,18 +482,10 @@ export default function AdminDashboard() {
                       Send &ldquo;{broadcastSubject}&rdquo; to{' '}
                       <strong>{broadcastFilter === 'all' ? 'all registrants' : broadcastFilter.toUpperCase()}</strong>?
                     </span>
-                    <button
-                      className={styles.confirmBtn}
-                      onClick={handleBroadcast}
-                      disabled={broadcastLoading}
-                    >
+                    <button className={styles.confirmBtn} onClick={handleBroadcast} disabled={broadcastLoading}>
                       CONFIRM
                     </button>
-                    <button
-                      className={styles.cancelBtn}
-                      onClick={() => setBroadcastConfirming(false)}
-                      disabled={broadcastLoading}
-                    >
+                    <button className={styles.cancelBtn} onClick={() => setBroadcastConfirming(false)} disabled={broadcastLoading}>
                       CANCEL
                     </button>
                   </div>
@@ -444,6 +507,14 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Tabs */}
+          <div className={styles.tabBar}>
+            <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
+            <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
+            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
+            <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
+          </div>
+
           {/* Stats */}
           <div className={styles.statsGrid}>
             {[
@@ -458,21 +529,14 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {/* Tabs */}
-          <div className={styles.tabBar}>
-            <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
-            <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
-            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
-          </div>
-
           {/* Filters */}
           <div className={styles.filterBar}>
             <input
               className={styles.searchInput}
               type="text"
               placeholder="Search name, email, CF handle..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
             <select
               className={styles.filterSelect}
@@ -517,18 +581,10 @@ export default function AdminDashboard() {
                 <span className={styles.bulkConfirmText}>
                   Approve ALL pending registrants and send approval emails to each?
                 </span>
-                <button
-                  className={styles.confirmBtn}
-                  onClick={handleApproveAll}
-                  disabled={approveAllLoading}
-                >
+                <button className={styles.confirmBtn} onClick={handleApproveAll} disabled={approveAllLoading}>
                   CONFIRM
                 </button>
-                <button
-                  className={styles.cancelBtn}
-                  onClick={() => setApproveAllConfirm(false)}
-                  disabled={approveAllLoading}
-                >
+                <button className={styles.cancelBtn} onClick={() => setApproveAllConfirm(false)} disabled={approveAllLoading}>
                   CANCEL
                 </button>
               </div>
@@ -555,61 +611,57 @@ export default function AdminDashboard() {
             <div className={styles.tableWrap}>
               <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
                 <table className={styles.table}>
-                <thead>
-                  <tr>
-                    {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
-                      <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.length === 0 ? (
+                  <thead>
                     <tr>
-                      <td colSpan={8} className={styles.emptyRow}>No registrants found.</td>
+                      {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
+                        <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                      ))}
                     </tr>
-                  ) : filtered.map((reg, i) => (
-                    <tr
-                      key={reg.id}
-                      className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''}`}
-                      onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); }}
-                    >
-                      <td className={styles.td}>{i + 1}</td>
-                      <td className={styles.td}>{reg.fullName}</td>
-                      <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
-                      <td className={styles.td}>{reg.university}</td>
-                      <td className={`${styles.td} ${styles.mono}`}>
-                        <a
-                          href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.cfLink}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {reg.codeforcesHandle}
-                        </a>
-                      </td>
-                      <td className={`${styles.td} ${styles.mono}`}>{reg.phoneNumber ? `+91 ${reg.phoneNumber}` : '—'}</td>
-                      <td className={styles.td}>
-                        <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
-                          {reg.dataConsent ? 'YES' : 'NO'}
-                        </span>
-                      </td>
-                      <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(reg.submittedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {filtered.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className={styles.emptyRow}>No registrants found.</td>
+                      </tr>
+                    ) : filtered.map((reg, i) => (
+                      <tr
+                        key={reg.id}
+                        className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''}`}
+                        onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); }}
+                      >
+                        <td className={styles.td}>{i + 1}</td>
+                        <td className={styles.td}>{reg.fullName}</td>
+                        <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
+                        <td className={styles.td}>{reg.university}</td>
+                        <td className={`${styles.td} ${styles.mono}`}>
+                          <a
+                            href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.cfLink}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {reg.codeforcesHandle}
+                          </a>
+                        </td>
+                        <td className={`${styles.td} ${styles.mono}`}>{reg.phoneNumber ? `+91 ${reg.phoneNumber}` : '—'}</td>
+                        <td className={styles.td}>
+                          <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
+                            {reg.dataConsent ? 'YES' : 'NO'}
+                          </span>
+                        </td>
+                        <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(reg.submittedAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {hasMore && (
             <div className={styles.loadMoreWrap}>
-              <button
-                className={styles.loadMoreBtn}
-                onClick={loadMore}
-                disabled={loadingMore}
-              >
+              <button className={styles.loadMoreBtn} onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? <span className={styles.loadingDots}>Loading</span> : 'LOAD MORE'}
               </button>
             </div>
@@ -739,18 +791,10 @@ export default function AdminDashboard() {
             <div className={styles.panelActions}>
               {r.status === 'pending' ? (
                 <div className={styles.panelStatusActions}>
-                  <button
-                    className={styles.approveBtn}
-                    disabled={statusLoading}
-                    onClick={() => handleStatusUpdate('approved')}
-                  >
+                  <button className={styles.approveBtn} disabled={statusLoading} onClick={() => handleStatusUpdate('approved')}>
                     {statusLoading ? '...' : 'APPROVE'}
                   </button>
-                  <button
-                    className={styles.rejectBtn}
-                    disabled={statusLoading}
-                    onClick={() => handleStatusUpdate('rejected')}
-                  >
+                  <button className={styles.rejectBtn} disabled={statusLoading} onClick={() => handleStatusUpdate('rejected')}>
                     {statusLoading ? '...' : 'REJECT'}
                   </button>
                 </div>
