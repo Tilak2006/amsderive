@@ -151,6 +151,73 @@
   color: #2e2e2e;
 }
 
+/* ── Campus Ambassador Leaderboard enhancements ─────────────────────────────
+   These classes are only used by campus-ambassador-leaderboard.jsx.
+   The /rank/a9x3k7f1.jsx leaderboard is unaffected.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@keyframes rowSlide {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rowAnimate {
+  opacity: 0;
+  animation: rowSlide 0.42s ease forwards;
+}
+
+/* Rank-specific left accent borders */
+.rowFirst {
+  background: rgba(212, 175, 55, 0.045);
+  border-left: 2px solid rgba(212, 175, 55, 0.5);
+}
+
+.rowSecond {
+  border-left: 2px solid rgba(192, 192, 192, 0.28);
+}
+
+.rowThird {
+  border-left: 2px solid rgba(205, 127, 50, 0.28);
+}
+
+/* Larger rank numbers for top 3 */
+.rankHero {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+/* Brighter institution name for top 3 */
+.instNameHero {
+  color: #ece8e1;
+  font-weight: 600;
+  font-size: 0.93rem;
+}
+
+/* Larger, colored count for top 3 */
+.countHero {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+/* Thicker bar for #1 */
+.barTrackHero {
+  height: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* "Last refreshed by admin" note */
+.refreshNote {
+  text-align: center;
+  margin-top: 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.04em;
+  color: #252525;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .page {

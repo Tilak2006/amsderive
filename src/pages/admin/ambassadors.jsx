@@ -7,6 +7,15 @@ import { auth } from '../../firebase/firebaseConfig';
 import { AMBASSADOR_REF_MAP } from '../../lib/ambassador-codes';
 import styles from '../../styles/admin.module.css';
 
+function normalizeInstitution(name) {
+  return name.replace(/\s*\(Ambassador \d+\)$/, '').trim();
+}
+
+// All unique institution names from the ref map (multi-ambassador colleges merged)
+const ALL_KNOWN_INSTITUTIONS = new Set(
+  Object.values(AMBASSADOR_REF_MAP).map(normalizeInstitution)
+);
+
 function formatDate(isoString) {
   if (!isoString) return '—';
   const d = new Date(isoString);
@@ -43,6 +52,16 @@ async function getAuthHeader(currentUser) {
   return { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
+const INPUT_STYLE = {
+  background: '#111',
+  border: '1px solid #333',
+  color: '#D4AF37',
+  padding: '3px 6px',
+  fontFamily: 'var(--font-mono), monospace',
+  fontSize: '0.78rem',
+  borderRadius: '2px',
+};
+
 export default function AdminAmbassadors() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -50,6 +69,14 @@ export default function AdminAmbassadors() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [expandedCode, setExpandedCode] = useState(null);
+  const [offsets, setOffsets] = useState({});
+  const [pendingOffsets, setPendingOffsets] = useState({});
+  const [savingOffset, setSavingOffset] = useState({});
+  const [newInstName, setNewInstName] = useState('');
+  const [newInstOffset, setNewInstOffset] = useState(0);
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [refreshingLeaderboard, setRefreshingLeaderboard] = useState(false);
+  const [leaderboardRefreshedAt, setLeaderboardRefreshedAt] = useState(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -66,13 +93,16 @@ export default function AdminAmbassadors() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const headers = await getAuthHeader(user);
-    const res = await fetch('/api/admin/get-ambassador-stats', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({}),
-    });
-    const result = await res.json();
-    setData(result);
+    const [statsRes, offsetsRes] = await Promise.all([
+      fetch('/api/admin/get-ambassador-stats', { method: 'POST', headers, body: JSON.stringify({}) }),
+      fetch('/api/admin/get-ambassador-offsets', { method: 'GET', headers }),
+    ]);
+    const statsResult = await statsRes.json();
+    const offsetsResult = await offsetsRes.json();
+    setData(statsResult);
+    const loaded = offsetsResult.offsets || {};
+    setOffsets(loaded);
+    setPendingOffsets(loaded);
     setLoading(false);
   }, [user]);
 
@@ -91,6 +121,79 @@ export default function AdminAmbassadors() {
       emails: g.emails,
     }));
   }, [data]);
+
+  // All institutions: every known ref-map institution + any custom ones from offsets,
+  // pre-filled with actual pre-registration counts where applicable.
+  const institutionData = useMemo(() => {
+    const map = {};
+
+    // Seed with all known institutions at zero
+    for (const inst of ALL_KNOWN_INSTITUTIONS) {
+      map[inst] = { institution: inst, actualCount: 0, isCustom: false };
+    }
+
+    // Fill in actual counts from pre_registrations grouped by ref code
+    for (const row of tableData) {
+      const inst = normalizeInstitution(row.institution);
+      if (map[inst]) {
+        map[inst].actualCount += row.count;
+      } else {
+        map[inst] = { institution: inst, actualCount: row.count, isCustom: false };
+      }
+    }
+
+    // Add custom institutions stored in offsets that aren't in the ref map
+    for (const inst of Object.keys(offsets)) {
+      if (!map[inst]) {
+        map[inst] = { institution: inst, actualCount: 0, isCustom: true };
+      }
+    }
+
+    return Object.values(map).sort((a, b) => {
+      const dispA = a.actualCount + (offsets[a.institution] || 0);
+      const dispB = b.actualCount + (offsets[b.institution] || 0);
+      return dispB - dispA || b.actualCount - a.actualCount;
+    });
+  }, [tableData, offsets]);
+
+  async function handleSaveOffset(institution) {
+    setSavingOffset((prev) => ({ ...prev, [institution]: true }));
+    const headers = await getAuthHeader(user);
+    const offset = pendingOffsets[institution] ?? 0;
+    await fetch('/api/admin/update-ambassador-offset', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ institution, offset }),
+    });
+    setOffsets((prev) => ({ ...prev, [institution]: offset }));
+    setSavingOffset((prev) => ({ ...prev, [institution]: false }));
+  }
+
+  async function handleAddCustom() {
+    const name = newInstName.trim();
+    if (!name) return;
+    setAddingCustom(true);
+    const headers = await getAuthHeader(user);
+    const offset = newInstOffset;
+    await fetch('/api/admin/update-ambassador-offset', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ institution: name, offset }),
+    });
+    setOffsets((prev) => ({ ...prev, [name]: offset }));
+    setPendingOffsets((prev) => ({ ...prev, [name]: offset }));
+    setNewInstName('');
+    setNewInstOffset(0);
+    setAddingCustom(false);
+  }
+
+  async function handleRefreshLeaderboard() {
+    setRefreshingLeaderboard(true);
+    const headers = await getAuthHeader(user);
+    await fetch('/api/admin/refresh-ambassador-leaderboard', { method: 'POST', headers });
+    setLeaderboardRefreshedAt(new Date());
+    setRefreshingLeaderboard(false);
+  }
 
   async function handleLogout() {
     document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
@@ -222,6 +325,120 @@ export default function AdminAmbassadors() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              {/* Institution leaderboard offset management */}
+              <div style={{ marginTop: '40px' }}>
+                <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap' }}>
+                  <div>
+                    <span className={styles.statLabel} style={{ fontSize: '0.7rem', letterSpacing: '0.18em' }}>
+                      CAMPUS AMBASSADOR LEADERBOARD — OFFSET MANAGEMENT
+                    </span>
+                    <p style={{ fontSize: '0.7rem', color: '#555', marginTop: '6px', fontFamily: 'var(--font-mono), monospace' }}>
+                      Offset is added to actual count on the public leaderboard. Admin-only.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <button
+                      className={styles.exportBtn}
+                      style={{ fontSize: '0.65rem', whiteSpace: 'nowrap' }}
+                      onClick={handleRefreshLeaderboard}
+                      disabled={refreshingLeaderboard}
+                    >
+                      {refreshingLeaderboard ? 'REFRESHING...' : 'REFRESH LEADERBOARD'}
+                    </button>
+                    {leaderboardRefreshedAt && (
+                      <span style={{ fontSize: '0.6rem', color: '#555', fontFamily: 'var(--font-mono), monospace' }}>
+                        Refreshed {leaderboardRefreshedAt.toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.tableWrap}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        {['Institution', 'Actual', 'Offset', 'Displayed', ''].map((h) => (
+                          <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {institutionData.map((row, i) => {
+                        const pending = pendingOffsets[row.institution] ?? 0;
+                        return (
+                          <tr key={row.institution} className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''}`}>
+                            <td className={styles.td}>
+                              {row.institution}
+                              {row.isCustom && (
+                                <span style={{ fontSize: '0.6rem', color: '#555', marginLeft: '6px', fontFamily: 'var(--font-mono), monospace' }}>
+                                  CUSTOM
+                                </span>
+                              )}
+                            </td>
+                            <td className={styles.td} style={{ fontVariantNumeric: 'tabular-nums' }}>{row.actualCount}</td>
+                            <td className={styles.td}>
+                              <input
+                                type="number"
+                                min="0"
+                                max="1000000"
+                                value={pending}
+                                onChange={(e) => {
+                                  const val = Math.max(0, parseInt(e.target.value) || 0);
+                                  setPendingOffsets((prev) => ({ ...prev, [row.institution]: val }));
+                                }}
+                                style={{ ...INPUT_STYLE, width: '72px' }}
+                              />
+                            </td>
+                            <td className={styles.td} style={{ fontVariantNumeric: 'tabular-nums', color: '#D4AF37' }}>
+                              {row.actualCount + pending}
+                            </td>
+                            <td className={styles.td} style={{ textAlign: 'center' }}>
+                              <button
+                                className={styles.exportBtn}
+                                style={{ fontSize: '0.62rem', padding: '3px 10px' }}
+                                onClick={() => handleSaveOffset(row.institution)}
+                                disabled={savingOffset[row.institution]}
+                              >
+                                {savingOffset[row.institution] ? 'SAVING...' : 'SAVE'}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Add custom institution */}
+                <div style={{ marginTop: '16px', display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="text"
+                    placeholder="New institution name"
+                    value={newInstName}
+                    onChange={(e) => setNewInstName(e.target.value)}
+                    maxLength={100}
+                    style={{ ...INPUT_STYLE, width: '220px', color: '#ccc' }}
+                  />
+                  <input
+                    type="number"
+                    min="0"
+                    max="1000000"
+                    placeholder="0"
+                    value={newInstOffset}
+                    onChange={(e) => setNewInstOffset(Math.max(0, parseInt(e.target.value) || 0))}
+                    style={{ ...INPUT_STYLE, width: '80px' }}
+                  />
+                  <button
+                    className={styles.exportBtn}
+                    style={{ fontSize: '0.65rem' }}
+                    onClick={handleAddCustom}
+                    disabled={!newInstName.trim() || addingCustom}
+                  >
+                    {addingCustom ? 'ADDING...' : '+ ADD INSTITUTION'}
+                  </button>
                 </div>
               </div>
             </>

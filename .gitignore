@@ -1,33 +1,50 @@
-# Environment
+# ─── Environment ────────────────────────────────────────────────────────────────
+.env
 .env.local
 .env.*.local
-.env
 
-# Next.js build
+# ─── Next.js ────────────────────────────────────────────────────────────────────
+# Vercel rebuilds .next/ on every deploy — never commit it
 .next/
 out/
 
-# Dependencies
+# ─── Dependencies ───────────────────────────────────────────────────────────────
 node_modules/
 
-# Claude workspace (no need to commit this)
-claude/
+# ─── Firebase ───────────────────────────────────────────────────────────────────
+# .firebase/ is local CLI cache — not needed in repo
+.firebase/
+firebase-debug.log
+firebase-debug.*.log*
+# .firebaserc ties to a specific Firebase project alias — regenerable via `firebase use`
+.firebaserc
+# firestore.indexes.json is local-only; deploy indexes manually via firebase deploy --only firestore:indexes
+firestore.indexes.json
+# Never commit service account keys — use env vars (FIREBASE_ADMIN_*)
+serviceAccountKey.json
+*.serviceAccount.json
 
-# OS
+# ─── Dangerous scripts ──────────────────────────────────────────────────────────
+# Re-running this WILL overwrite all live distributed ambassador codes.
+# The generated output (src/lib/ambassador-codes.js) IS committed; this generator is not.
+generate-ambassador-codes.js
+
+# ─── Internal docs ──────────────────────────────────────────────────────────────
+# Contain business logic and internal architecture — keep off public repos
+FIRM_PORTAL_PLAN.md
+ambassadors.md
+
+# ─── Claude workspace ───────────────────────────────────────────────────────────
+# claude/ — performance audit & optimization docs
+claude/
+# .claude/agents/ — internal Claude agent configs
+.claude/agents/
+# NOTE: .claude/skills/CLAUDE.md and .claude/lessons.md ARE tracked intentionally
+
+# ─── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Logs
+# ─── Logs ───────────────────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
-
-# Firebase
-.firebase/
-firebase-debug.log
-firebase-debug.*.log
-serviceAccountKey.json
-.firebaserc
-firestore.indexes.json
-  
-# Ambassador tracking data
-ambassadors.md
