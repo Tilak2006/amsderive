@@ -124,11 +124,6 @@ export default function CampusAmbassadorLeaderboard() {
               ? `Updated ${formatComputedAt(computedAt)} IST`
               : 'Refreshed by admin'}
           </p>
-          {computedAt && (
-            <p className={styles.refreshNote}>
-              Data is updated manually — contact admin to refresh
-            </p>
-          )}
         </div>
       </main>
     </>
