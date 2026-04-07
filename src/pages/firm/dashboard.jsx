@@ -79,6 +79,7 @@ export default function FirmDashboard() {
   const [checking, setChecking] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const tabDataLoaded = useRef(new Set());
+  const profileUidRef = useRef(null);
 
   // Talent pool state
   const [finalists, setFinalists] = useState([]);
@@ -99,6 +100,11 @@ export default function FirmDashboard() {
     const unsubscribe = onAuthStateChanged(auth, async (u) => {
       if (!isMounted) return;
       if (u) {
+        // Skip profile re-fetch on token refresh — same user already loaded
+        if (profileUidRef.current === u.uid) {
+          setChecking(false);
+          return;
+        }
         try {
           const token = await u.getIdToken();
           const res = await fetch('/api/firm/get-firm-profile', {
@@ -110,6 +116,7 @@ export default function FirmDashboard() {
             return;
           }
           const profile = await res.json();
+          profileUidRef.current = u.uid;
           setUser(u);
           setFirmProfile(profile);
           setChecking(false);
@@ -117,6 +124,7 @@ export default function FirmDashboard() {
           router.replace('/firm/login');
         }
       } else {
+        profileUidRef.current = null;
         router.replace('/firm/login');
       }
     });

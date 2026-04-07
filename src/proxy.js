@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Edge Middleware — Admin Auth Pre-Check
+ * Edge Proxy — Admin & Firm Auth Pre-Check
  *
  * Runs at the edge (closest CDN node) before any page JS loads.
- * If the user has no `__session` cookie and tries to access /admin/*,
- * they are instantly redirected to /admin/login — no client-side spinner.
- *
- * This is a SOFT guard. The authoritative check remains the client-side
- * Firebase `onAuthStateChanged` call in each admin page. This middleware
- * simply prevents the unnecessary download + render of admin page JS
- * for clearly unauthenticated visitors.
+ * Soft guard only — authoritative check remains client-side Firebase auth.
+ * Prevents unnecessary download + render of protected page JS for
+ * clearly unauthenticated visitors.
  */
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Skip API routes and static assets entirely
@@ -41,7 +37,7 @@ export function middleware(request) {
   return NextResponse.next();
 }
 
-// Run middleware on /admin/* and /firm/* paths
+// Run on /admin/* and /firm/* paths
 export const config = {
   matcher: ['/admin/:path*', '/firm/:path*'],
 };

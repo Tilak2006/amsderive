@@ -43,13 +43,7 @@ const nextConfig = {
 
   async headers() {
     return [
-      // Static assets — immutable forever
-      {
-        source: '/_next/static/(.*)',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
+      // /_next/static/* is handled automatically by Next.js with immutable headers — no override needed.
       // Images and other public static files
       {
         source: '/(favicon.ico|favicon-.*|apple-touch-icon.*|android-chrome-.*|og-image.*|manifest.json|robots.txt|sitemap.xml)',
