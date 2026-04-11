@@ -9,6 +9,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -26,6 +27,7 @@ const db = admin.firestore();
 const VALID_FLAGS = [
   'leaderboard',
   'analytics',
+  'registrantProfiles',
   'finalistProfiles',
   'resumeDownload',
   'linkedinAccess',
@@ -48,6 +50,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
   const { uid, flag, value } = req.body;
 
   if (!uid || typeof uid !== 'string') {
@@ -64,9 +67,16 @@ export default async function handler(req, res) {
     await db.collection('firms').doc(uid).update({
       [`access.${flag}`]: value,
     });
+    logger.info('admin', 'firm_access_updated', {
+      reqId,
+      entityId: uid,
+      actorId: 'admin',
+      detail: { flag, value },
+      status: 'ok',
+    });
     return res.status(200).json({ success: true });
   } catch (err) {
-    console.error('[update-firm-access] Error:', err);
+    logger.error('admin', 'firm_access_update_error', { reqId, entityId: uid, actorId: 'admin', status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

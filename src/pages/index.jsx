@@ -39,6 +39,10 @@ const WhoSection = dynamic(() => import('../components/sections/WhoSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
   ssr: false,
 });
+const SponsorsSection = dynamic(() => import('../components/sections/SponsorsSection'), {
+  loading: () => <div style={{ minHeight: '200px' }} />,
+  ssr: false,
+});
 // const SyllabusSection = dynamic(() => import('../components/sections/SyllabusSection'), {
 //   loading: () => <div style={{ minHeight: '400px' }} />,
 //   ssr: false,
@@ -176,6 +180,7 @@ export default function LandingPage() {
         <div className={pageStyles.contentSections}>
           <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
             <FadeInSection><AboutSection /></FadeInSection>
+            <FadeInSection><SponsorsSection /></FadeInSection>
             <FadeInSection><CompetitionSection /></FadeInSection>
             {/* <FadeInSection><SyllabusSection /></FadeInSection> */}
             <FadeInSection><TimelineSection /></FadeInSection>

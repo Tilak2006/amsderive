@@ -144,7 +144,7 @@ export default function FileUpload({
         ) : (
           <div className={styles.fileUploadEmpty}>
             <span className={styles.fileUploadPrompt}>Click to upload or drag and drop</span>
-            <span className={styles.fileUploadFormats}>JPG, PNG or PDF &middot; Max 5MB</span>
+            <span className={styles.fileUploadFormats}>PDF only &middot; Max 300KB</span>
           </div>
         )}
       </button>

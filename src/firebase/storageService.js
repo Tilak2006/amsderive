@@ -1,5 +1,5 @@
 import { storage } from './firebaseConfig';
-import { ref, uploadBytes, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, deleteObject, getDownloadURL } from 'firebase/storage';
 
 /**
  * Validate storage URL before using or storing in Firestore.

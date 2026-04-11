@@ -15,6 +15,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -89,6 +90,8 @@ export default async function handler(req, res) {
   const firmSlug = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const access = buildDefaultAccess(tier);
 
+  const reqId = genReqId();
+
   let uid;
   try {
     const userRecord = await admin.auth().createUser({
@@ -97,11 +100,23 @@ export default async function handler(req, res) {
       displayName: trimmedName,
     });
     uid = userRecord.uid;
+    logger.info('admin', 'firm_auth_created', {
+      reqId,
+      entityId: uid,
+      actorId: 'admin',
+      detail: { tier, firmSlug },
+      status: 'ok',
+    });
   } catch (err) {
     if (err.code === 'auth/email-already-exists') {
       return res.status(409).json({ error: 'A Firebase Auth account with this email already exists.' });
     }
-    console.error('[create-firm] Auth createUser error:', err);
+    logger.error('admin', 'firm_auth_create_error', {
+      reqId,
+      actorId: 'admin',
+      detail: { tier, firmSlug },
+      status: 'failed',
+    }, err);
     return res.status(500).json({ error: 'Failed to create Firebase Auth account.' });
   }
 
@@ -118,12 +133,25 @@ export default async function handler(req, res) {
       lastLogin: null,
     });
 
+    logger.info('admin', 'firm_created', {
+      reqId,
+      entityId: uid,
+      actorId: 'admin',
+      detail: { tier, firmSlug },
+      status: 'ok',
+    });
     return res.status(200).json({ success: true, uid, firmSlug, firmName: trimmedName });
   } catch (err) {
-    console.error('[create-firm] Firestore write error:', err);
+    logger.error('admin', 'firm_firestore_failed', {
+      reqId,
+      entityId: uid,
+      actorId: 'admin',
+      detail: { tier, firmSlug },
+      status: 'failed',
+    }, err);
     // Attempt cleanup — Auth user was created but Firestore failed
     admin.auth().deleteUser(uid).catch((e) =>
-      console.error('[create-firm] Cleanup deleteUser failed:', e.message)
+      logger.error('admin', 'firm_cleanup_failed', { reqId, entityId: uid, actorId: 'admin', status: 'failed' }, e)
     );
     return res.status(500).json({
       error: 'Firm created in Auth but Firestore write failed. Please retry or manually add the Firestore document.',

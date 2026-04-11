@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
   const { docId, round } = req.body;
 
   if (!docId || typeof docId !== 'string') {
@@ -57,10 +59,16 @@ export default async function handler(req, res) {
       roundUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    console.info(`[update-registrant-round] ${docId} → ${round}`);
+    logger.info('admin', 'round_updated', {
+      reqId,
+      entityId: docId,
+      actorId: 'admin',
+      detail: { round },
+      status: 'ok',
+    });
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('[update-registrant-round] Error:', error);
+    logger.error('admin', 'round_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update round.' });
   }
 }

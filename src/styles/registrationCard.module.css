@@ -9,8 +9,8 @@
 
 .cardLabel {
   font-family: var(--font-mono), monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.18em;
   color: #444;
   text-transform: uppercase;
   margin: 0;
@@ -34,7 +34,7 @@
 
 .actionBtn {
   font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-size: var(--text-eyebrow);
   letter-spacing: 0.06em;
   color: #D4AF37;
   background: transparent;

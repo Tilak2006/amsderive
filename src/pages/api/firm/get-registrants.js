@@ -1,13 +1,16 @@
 /**
- * POST /api/firm/get-finalists
+ * POST /api/firm/get-registrants
  *
- * Returns finalist registrant data for the authenticated firm.
- * Access is gated by the firm's Firestore access flags:
- *   - access.finalistProfiles must be true to get any data
- *   - access.resumeDownload controls whether resumeUrl is included
- *   - access.linkedinAccess controls whether linkedIn is included
+ * Returns all approved registrants (name, institution, round, CF handle)
+ * for authenticated firm partners.
  *
- * Never returns: email, phoneNumber, ipHash, codeforcesHandle.
+ * Access gating:
+ *   - derivation tier: 403 ACCESS_DENIED
+ *   - access.registrantProfiles !== true: 403 ACCESS_LOCKED
+ *
+ * Never returns: email, phoneNumber, ipHash, resumeUrl, linkedIn.
+ *
+ * Supports cursor-based pagination via `after` (last doc ID) and `limit` (default 50).
  */
 
 import * as admin from 'firebase-admin';
@@ -46,7 +49,6 @@ export default async function handler(req, res) {
 
   const reqId = genReqId();
 
-  // Fetch firm profile and check access flags
   let firmData;
   try {
     const firmSnap = await db.collection('firms').doc(uid).get();
@@ -59,9 +61,8 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Internal server error' });
   }
 
-  // Derivation tier has no talent pool access at all
   if (firmData.tier === 'derivation') {
-    logger.warn('firms', 'finalists_access_denied', {
+    logger.warn('firms', 'registrants_access_denied', {
       reqId,
       actorId: uid,
       detail: { reason: 'derivation_tier' },
@@ -69,13 +70,12 @@ export default async function handler(req, res) {
     });
     return res.status(403).json({
       error: 'ACCESS_DENIED',
-      message: 'Talent Pool access is not included in the Derivation tier.',
+      message: 'Registrant Profiles access is not included in the Derivation tier.',
     });
   }
 
-  // finalistProfiles flag gates the entire dataset
-  if (!firmData.access?.finalistProfiles) {
-    logger.warn('firms', 'finalists_access_denied', {
+  if (!firmData.access?.registrantProfiles) {
+    logger.warn('firms', 'registrants_access_denied', {
       reqId,
       actorId: uid,
       detail: { reason: 'flag_locked' },
@@ -83,55 +83,68 @@ export default async function handler(req, res) {
     });
     return res.status(403).json({
       error: 'ACCESS_LOCKED',
-      message: 'Finalist profiles have not been unlocked yet. Check back soon.',
+      message: 'Registrant profiles have not been unlocked yet. Check back soon.',
     });
   }
 
-  const { resumeDownload, linkedinAccess } = firmData.access;
+  const { after, limit: limitParam } = req.body;
+  const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
 
   try {
-    // Query registrants designated as Convergence finalists with data consent
     const snapshot = await db
       .collection('registrants')
-      .where('round', '==', 'convergence')
-      .where('dataConsent', '==', true)
       .where('status', '==', 'approved')
-      .orderBy('submittedAt', 'desc')
       .get();
 
-    const finalists = snapshot.docs.map((doc) => {
+    // Sort and filter in-process — avoids any composite index requirement
+    const docs = snapshot.docs
+      .filter((doc) => doc.data().dataConsent === true)
+      .sort((a, b) => {
+        const aT = a.data().submittedAt?.toMillis?.() ?? 0;
+        const bT = b.data().submittedAt?.toMillis?.() ?? 0;
+        return bT - aT;
+      });
+
+    // Apply cursor-based pagination in-process
+    let startIdx = 0;
+    if (after) {
+      const idx = docs.findIndex((doc) => doc.id === after);
+      if (idx !== -1) startIdx = idx + 1;
+    }
+    const page = docs.slice(startIdx, startIdx + limit);
+    const hasMore = startIdx + limit < docs.length;
+
+    const registrants = page.map((doc) => {
       const d = doc.data();
-      const entry = {
+      return {
         id: doc.id,
         fullName: d.fullName,
         university: d.university,
-        round: d.round,
+        round: d.round || null,
+        codeforcesHandle: d.codeforcesHandle,
+        submittedAt: d.submittedAt,
       };
-      if (resumeDownload && d.resumeUrl) {
-        entry.resumeUrl = d.resumeUrl;
-      }
-      if (linkedinAccess && d.linkedIn) {
-        entry.linkedIn = d.linkedIn;
-      }
-      return entry;
     });
 
-    logger.info('firms', 'finalists_fetched', {
+    logger.info('firms', 'registrants_fetched', {
       reqId,
       actorId: uid,
-      detail: { count: finalists.length, resumeDownload: !!resumeDownload, linkedinAccess: !!linkedinAccess },
+      detail: { count: page.length, hasMore, total: docs.length },
       status: 'ok',
     });
     return res.status(200).json({
-      finalists,
-      count: finalists.length,
-      access: {
-        resumeDownload: !!resumeDownload,
-        linkedinAccess: !!linkedinAccess,
-      },
+      registrants,
+      count: docs.length,
+      hasMore,
+      lastId: page.length > 0 ? page[page.length - 1].id : null,
     });
   } catch (err) {
-    logger.error('firms', 'finalists_query_error', { reqId, actorId: uid, status: 'failed' }, err);
-    return res.status(500).json({ error: 'Internal server error' });
+    logger.error('firms', 'registrants_query_error', {
+      reqId,
+      actorId: uid,
+      detail: { code: err.code ?? null },
+      status: 'failed',
+    }, err);
+    return res.status(500).json({ error: 'Internal server error', detail: err.message });
   }
 }

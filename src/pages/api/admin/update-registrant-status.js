@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import { resend } from '../../../lib/resend';
 import { statusUpdateEmail } from '../../../emails/templates';
+import logger, { genReqId, maskEmail } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
   const { docId, status } = req.body;
 
   if (!docId || typeof docId !== 'string') {
@@ -62,18 +64,38 @@ export default async function handler(req, res) {
       statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    logger.info('admin', 'status_updated', {
+      reqId,
+      entityId: docId,
+      actorId: 'admin',
+      detail: { newStatus: status },
+      status: 'ok',
+    });
+
     // Send email — failure must NOT fail the API response
     try {
       const { from, subject, html } = statusUpdateEmail({ fullName: data.fullName, status });
       await resend.emails.send({ from, to: data.email, subject, html });
-      console.info(`[update-registrant-status] Email sent: ${data.email} → ${status}`);
+      logger.info('admin', 'status_update_email_sent', {
+        reqId,
+        entityId: docId,
+        actorId: 'admin',
+        detail: { emailMasked: maskEmail(data.email), newStatus: status },
+        status: 'ok',
+      });
     } catch (emailErr) {
-      console.error(`[update-registrant-status] Email failed: ${data.email} → ${status}`, emailErr.message);
+      logger.warn('admin', 'status_update_email_failed', {
+        reqId,
+        entityId: docId,
+        actorId: 'admin',
+        detail: { emailMasked: maskEmail(data.email), newStatus: status, message: emailErr.message },
+        status: 'degraded',
+      });
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error('[update-registrant-status] Error:', error);
+    logger.error('admin', 'status_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update status.' });
   }
 }

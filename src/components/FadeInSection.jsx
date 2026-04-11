@@ -3,20 +3,25 @@ import styles from './FadeInSection.module.css';
 
 const FadeInSection = ({ children }) => {
   const [isVisible, setVisible] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const domRef = useRef();
 
   useEffect(() => {
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          setVisible(true);
+          setHasMounted(true);
+          // Small rAF delay so the mount doesn't compete with scroll paint
+          requestAnimationFrame(() => setVisible(true));
           observer.unobserve(entry.target);
           setTimeout(() => {
             if (entry.target) entry.target.style.willChange = 'auto';
           }, 1100);
         }
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.05, rootMargin: '200px' });
+    // rootMargin: '200px' starts loading the section's JS bundle 200px before
+    // it enters the viewport, so content is ready before the user scrolls to it.
 
     const { current } = domRef;
     if (current) observer.observe(current);
@@ -31,7 +36,7 @@ const FadeInSection = ({ children }) => {
       className={`${styles.reveal} ${isVisible ? styles.visible : ''}`}
       ref={domRef}
     >
-      {children}
+      {hasMounted ? children : null}
     </div>
   );
 };

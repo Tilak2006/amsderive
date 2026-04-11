@@ -2,6 +2,7 @@ import * as admin from 'firebase-admin';
 import crypto from 'crypto';
 import { resend } from '../../lib/resend';
 import { registrationConfirmationEmail } from '../../emails/templates';
+import logger, { genReqId, maskEmail } from '../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -15,12 +16,15 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 3000;
+const MAX_REGISTRATIONS = 1500;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  const reqId = genReqId();
+  const handlerStart = Date.now();
 
   // Generate IP hash server-side — never trust client-provided fingerprint
   const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
@@ -55,10 +59,12 @@ export default async function handler(req, res) {
     });
 
     if (!rateResult.allowed) {
+      logger.warn('registration', 'rate_limit_exceeded', { reqId, actorId: ipHash, status: 'blocked' });
       return res.status(429).json({ success: false, error: rateResult.error });
     }
+    logger.info('registration', 'rate_limit_checked', { reqId, actorId: ipHash, status: 'ok' });
   } catch (error) {
-    console.error('[submit-registration] Rate limit error:', error);
+    logger.error('registration', 'rate_limit_error', { reqId, actorId: ipHash, status: 'failed' }, error);
     return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
   }
 
@@ -69,9 +75,34 @@ export default async function handler(req, res) {
   } = req.body;
 
   // Server-side validation — never trust client
+  // linkedIn is required but handled separately so we can return a field-level error
   if (!fullName || !email || !university || !codeforcesHandle || !phoneNumber ||
-    !resumeUrl || !transcriptUrl || !linkedIn || dataConsent !== true) {
+    !resumeUrl || !transcriptUrl || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
+  }
+
+  if (!linkedIn || !linkedIn.trim()) {
+    return res.status(400).json({
+      success: false,
+      error: 'LinkedIn profile is required.',
+      field: 'linkedIn',
+    });
+  }
+  try {
+    const liUrl = new URL(linkedIn.trim());
+    if (!liUrl.hostname.endsWith('linkedin.com')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Please enter a valid LinkedIn profile URL.',
+        field: 'linkedIn',
+      });
+    }
+  } catch {
+    return res.status(400).json({
+      success: false,
+      error: 'Please enter a valid LinkedIn profile URL.',
+      field: 'linkedIn',
+    });
   }
 
   // Validate URL safety — strict hostname check to prevent domain spoofing
@@ -93,7 +124,7 @@ export default async function handler(req, res) {
   const capCheckPromise = db.collection('registrants').count().get()
     .then((snap) => snap.data().count)
     .catch((err) => {
-      console.error('[submit-registration] Cap check failed:', err);
+      logger.warn('registration', 'cap_check_error', { reqId, actorId: ipHash, status: 'degraded' }, err);
       return null; // Continue if count fails — don't block registration on metadata failure
     });
 
@@ -116,7 +147,12 @@ export default async function handler(req, res) {
       }
     } catch (error) {
       // Fail open — log warning and proceed if CF API is flaky, down, or times out
-      console.warn(`[submit-registration] Codeforces API check failed for handle '${cfHandle}':`, error.message);
+      logger.warn('registration', 'cf_check_skipped', {
+        reqId,
+        actorId: ipHash,
+        detail: { reason: error.message?.slice(0, 100) },
+        status: 'degraded',
+      });
     }
     return { valid: true };
   })();
@@ -155,13 +191,28 @@ export default async function handler(req, res) {
       submittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    logger.info('registration', 'registration_submitted', {
+      reqId,
+      entityId: docRef.id,
+      actorId: ipHash,
+      detail: { emailMasked: maskEmail(normalizedEmail), university: university.trim() },
+      status: 'ok',
+      durationMs: Date.now() - handlerStart,
+    });
+
     // Fire off stats update and confirmation email concurrently — failures must NOT fail the registration
     await Promise.allSettled([
       db.collection('stats').doc('leaderboard').set(
         { [university.trim()]: admin.firestore.FieldValue.increment(1) },
         { merge: true }
       ).catch((statsErr) => {
-        console.error('[submit-registration] Leaderboard stats update failed:', statsErr.message);
+        logger.warn('registration', 'stats_update_failed', {
+          reqId,
+          entityId: docRef.id,
+          actorId: ipHash,
+          detail: { message: statsErr.message },
+          status: 'degraded',
+        });
       }),
       (async () => {
         try {
@@ -171,16 +222,28 @@ export default async function handler(req, res) {
             university: university.trim(),
           });
           await resend.emails.send({ from, to: normalizedEmail, subject, html });
-          console.info(`[submit-registration] Confirmation email sent: ${normalizedEmail}`);
+          logger.info('registration', 'confirmation_email_sent', {
+            reqId,
+            entityId: docRef.id,
+            actorId: ipHash,
+            detail: { emailMasked: maskEmail(normalizedEmail) },
+            status: 'ok',
+          });
         } catch (emailErr) {
-          console.error(`[submit-registration] Confirmation email failed: ${normalizedEmail}`, emailErr.message);
+          logger.warn('registration', 'confirmation_email_failed', {
+            reqId,
+            entityId: docRef.id,
+            actorId: ipHash,
+            detail: { emailMasked: maskEmail(normalizedEmail), message: emailErr.message },
+            status: 'degraded',
+          });
         }
       })(),
     ]);
 
     return res.status(200).json({ success: true, id: docRef.id });
   } catch (error) {
-    console.error('[submit-registration] Error:', error);
+    logger.error('registration', 'registration_failed', { reqId, actorId: ipHash, status: 'failed' }, error);
     return res.status(500).json({ success: false, error: 'Registration failed. Please try again.' });
   }
 }

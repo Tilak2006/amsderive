@@ -131,18 +131,21 @@ function WireframeMesh() {
     const container = containerRef.current;
     if (!container) return;
 
-    // Respect prefers-reduced-motion preference
+    // Respect prefers-reduced-motion preference — apply immediately, no defer needed
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // Apply static background gradient instead of animation
       container.style.background = 'radial-gradient(ellipse at 50% 60%, rgba(212, 160, 23, 0.15) 0%, rgba(0, 0, 0, 0) 70%), linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 1) 100%)';
       return;
     }
 
+    // Defer heavy Three.js init off the critical rendering path.
+    // This gives React hydration and FCP a clear 300ms window before
+    // the geometry build + WebGL context creation hits the main thread.
+    let initTimer = setTimeout(() => {
     const isMobile = window.innerWidth < 768;
-    const gridSize = isMobile ? 256 : 128;
+    const gridSize = 256;
     const gridExtent = 10;
     const meshYOffset = 1.0;
-    const pCount = isMobile ? 35 : 55;
+    const pCount = isMobile ? 20 : 55;
     const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
@@ -166,7 +169,10 @@ function WireframeMesh() {
       alpha: true,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const dpr = isMobile
+      ? Math.min(window.devicePixelRatio, 1.5)
+      : Math.min(window.devicePixelRatio, 2);
+    renderer.setPixelRatio(dpr);
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setClearColor(0x000000, 0);
 
@@ -491,6 +497,9 @@ function WireframeMesh() {
         container.removeChild(renderer.domElement);
       }
     };
+    }, 300); // end of deferred init
+
+    return () => clearTimeout(initTimer);
   }, []);
 
   return <div ref={containerRef} className={styles.wireframeMeshContainer} />;

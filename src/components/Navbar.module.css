@@ -146,34 +146,16 @@
   color: #D4AF37;
   text-decoration: none;
   cursor: pointer;
-  position: relative;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.3s ease;
-}
-
-.navLink::after {
-  content: '';
-  position: absolute;
-  bottom: 8px; /* Offset to sit nicely under the text */
-  left: 50%;
-  width: 0;
-  height: 1px;
-  background: #D4AF37;
-  transition: width 0.3s ease, left 0.3s ease;
-  transform: translateX(-50%);
+  transition: color 0.2s ease;
 }
 
 @media (hover: hover) {
   .navLink:hover {
-    color: #f0ede6;
-    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4));
-  }
-
-  .navLink:hover::after {
-    width: 80%; /* Only grow to cover most of the text width */
+    color: #ffffff;
   }
 }
 
@@ -252,11 +234,7 @@
   .navLink {
     font-size: 1.1rem;
     letter-spacing: 0.2em;
-  }
-
-  .navLink::after {
-    bottom: -4px;
-    height: 2px;
+    color: #D4AF37;
   }
 
   .menuToggle {

@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import { resend } from '../../../lib/resend';
 import { statusUpdateEmail } from '../../../emails/templates';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -40,6 +41,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
+  const handlerStart = Date.now();
+
   try {
     // 1. Fetch all pending registrants (email + fullName only for efficiency)
     const snapshot = await db
@@ -68,7 +72,12 @@ export default async function handler(req, res) {
         });
       }
       await batch.commit();
-      console.info(`[approve-all] DB batch ${Math.floor(i / FIRESTORE_CHUNK) + 1} committed`);
+      logger.info('admin', 'bulk_approve_db_batch_committed', {
+        reqId,
+        actorId: 'admin',
+        detail: { batchNumber: Math.floor(i / FIRESTORE_CHUNK) + 1, count: pending.slice(i, i + FIRESTORE_CHUNK).length },
+        status: 'ok',
+      });
     }
 
     // 3. Send approval emails in batches — failures are logged, not fatal
@@ -82,9 +91,19 @@ export default async function handler(req, res) {
       try {
         await resend.batch.send(chunk);
         emailsSent += chunk.length;
-        console.info(`[approve-all] Email batch ${Math.floor(i / EMAIL_CHUNK) + 1}: sent ${chunk.length}`);
+        logger.info('admin', 'bulk_approve_email_batch_sent', {
+          reqId,
+          actorId: 'admin',
+          detail: { batchNumber: Math.floor(i / EMAIL_CHUNK) + 1, count: chunk.length },
+          status: 'ok',
+        });
       } catch (err) {
-        console.error(`[approve-all] Email batch ${Math.floor(i / EMAIL_CHUNK) + 1} failed:`, err.message);
+        logger.warn('admin', 'bulk_approve_email_batch_failed', {
+          reqId,
+          actorId: 'admin',
+          detail: { batchNumber: Math.floor(i / EMAIL_CHUNK) + 1, message: err.message },
+          status: 'degraded',
+        });
       }
 
       if (i + EMAIL_CHUNK < pending.length) {
@@ -92,10 +111,16 @@ export default async function handler(req, res) {
       }
     }
 
-    console.info(`[approve-all] Done. Approved: ${pending.length}, Emailed: ${emailsSent}`);
+    logger.info('admin', 'bulk_approve_complete', {
+      reqId,
+      actorId: 'admin',
+      detail: { approved: pending.length, emailsSent },
+      status: 'ok',
+      durationMs: Date.now() - handlerStart,
+    });
     return res.status(200).json({ success: true, approved: pending.length, emailsSent });
   } catch (error) {
-    console.error('[approve-all] Error:', error);
+    logger.error('admin', 'bulk_approve_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Bulk approval failed.' });
   }
 }

@@ -11,6 +11,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -39,6 +40,8 @@ export default async function handler(req, res) {
   } catch {
     return res.status(401).json({ error: 'Unauthorized' });
   }
+
+  const reqId = genReqId();
 
   try {
     // Paginated fetch of all pre_registrations
@@ -102,6 +105,12 @@ export default async function handler(req, res) {
       }))
       .sort((a, b) => b.emails.length - a.emails.length);
 
+    logger.info('admin', 'ambassador_stats_fetched', {
+      reqId,
+      actorId: 'admin',
+      detail: { totalOverall: allDocs.length, totalWithRef, refGroupCount: refGroups.length },
+      status: 'ok',
+    });
     return res.status(200).json({
       totalOverall: allDocs.length,
       totalWithRef,
@@ -109,7 +118,7 @@ export default async function handler(req, res) {
       refGroups,
     });
   } catch (error) {
-    console.error('[get-ambassador-stats] Error:', error);
+    logger.error('admin', 'ambassador_stats_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to fetch ambassador stats.' });
   }
 }

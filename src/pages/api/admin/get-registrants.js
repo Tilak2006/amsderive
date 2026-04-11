@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
   const { lastDocId } = req.body;
 
   try {
@@ -70,13 +72,19 @@ export default async function handler(req, res) {
       };
     });
 
+    logger.info('admin', 'registrants_fetched', {
+      reqId,
+      actorId: 'admin',
+      detail: { count: pageDocs.length, hasMore, cursor: lastDocId || null },
+      status: 'ok',
+    });
     return res.status(200).json({
       registrants,
       lastDocId: hasMore ? pageDocs[pageDocs.length - 1].id : null,
       hasMore,
     });
   } catch (error) {
-    console.error('[get-registrants] Error:', error);
+    logger.error('admin', 'registrants_fetch_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to fetch registrants.' });
   }
 }

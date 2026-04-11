@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -12,6 +13,12 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
+
+// 2-minute in-process cache — admin stats don't need sub-minute freshness.
+// Dashboard polls every 5 min anyway, so this just prevents burst reads.
+let cachedStats = null;
+let cacheTime = 0;
+const CACHE_TTL = 2 * 60 * 1000;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -29,6 +36,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Serve from cache if fresh
+  if (cachedStats && Date.now() - cacheTime < CACHE_TTL) {
+    return res.status(200).json(cachedStats);
+  }
+
   try {
     const ref = db.collection('registrants');
     const now = new Date();
@@ -43,13 +55,23 @@ export default async function handler(req, res) {
       ref.where('submittedAt', '>=', admin.firestore.Timestamp.fromDate(todayUTC)).count().get(),
     ]);
 
-    return res.status(200).json({
+    cachedStats = {
       total: totalSnap.data().count,
       consentGiven: consentSnap.data().count,
       today: todaySnap.data().count,
+    };
+    cacheTime = Date.now();
+
+    logger.info('admin', 'stats_fetched', {
+      actorId: 'admin',
+      detail: { total: cachedStats.total, today: cachedStats.today, fromCache: false },
+      status: 'ok',
     });
+    return res.status(200).json(cachedStats);
   } catch (error) {
-    console.error('[get-stats] Error:', error);
-      return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });
+    logger.error('admin', 'stats_fetch_error', { actorId: 'admin', status: 'failed' }, error);
+    // Return stale if available
+    if (cachedStats) return res.status(200).json(cachedStats);
+    return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });
   }
 }

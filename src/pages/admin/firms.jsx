@@ -10,6 +10,7 @@ import styles from '../../styles/firm.module.css';
 const ACCESS_FLAGS = [
   { key: 'leaderboard', label: 'Live Leaderboard' },
   { key: 'analytics', label: 'Performance Analytics' },
+  { key: 'registrantProfiles', label: 'Registrant Profiles' },
   { key: 'finalistProfiles', label: 'Finalist Profiles' },
   { key: 'resumeDownload', label: 'Resume Download' },
   { key: 'linkedinAccess', label: 'LinkedIn Access' },

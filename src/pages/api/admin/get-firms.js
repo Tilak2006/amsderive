@@ -6,6 +6,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -35,6 +36,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
+
   try {
     const snapshot = await db.collection('firms').orderBy('createdAt', 'desc').get();
     const firms = snapshot.docs.map((doc) => {
@@ -53,9 +56,15 @@ export default async function handler(req, res) {
       };
     });
 
+    logger.info('admin', 'firms_listed', {
+      reqId,
+      actorId: 'admin',
+      detail: { count: firms.length },
+      status: 'ok',
+    });
     return res.status(200).json({ firms });
   } catch (err) {
-    console.error('[get-firms] Error:', err);
+    logger.error('admin', 'firms_list_error', { reqId, actorId: 'admin', status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import styles from './Footer.module.css';
 
 const Footer = () => {
@@ -44,6 +45,16 @@ const Footer = () => {
               <span className={styles.contactLabel}>PARTNERS &amp; SPONSORS</span>
               <a href="mailto:partnership@amsociety.in" className={styles.contactEmail}>partnership@amsociety.in</a>
             </div>
+          </div>
+
+          {/* Legal column */}
+          <div className={styles.linkCol}>
+            <h3 className={styles.colTitle}>LEGAL</h3>
+            <ul className={styles.linkList}>
+              <li><Link href="/terms">Terms of Service</Link></li>
+              <li><Link href="/privacy">Privacy Policy</Link></li>
+              <li><Link href="/rules">Rules &amp; Guidelines</Link></li>
+            </ul>
           </div>
         </div>
       </div>

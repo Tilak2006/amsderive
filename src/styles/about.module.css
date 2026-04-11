@@ -35,7 +35,7 @@
 
 .missionLead {
   font-family: var(--font-serif);
-  font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+  font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: 700;
   color: #D4AF37;
   letter-spacing: 0.08em;
@@ -45,7 +45,7 @@
 
 .missionText {
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   color: #a0a0a0;
   line-height: 1.8;
   margin-bottom: 16px;
@@ -63,10 +63,10 @@
 /* ── Subsection Label ── */
 .subsectionLabel {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: #D4AF37;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 40px;
   text-align: center;
@@ -98,7 +98,7 @@
 
 .researchIndex {
   font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   font-weight: 700;
   color: #D4AF37;
   opacity: 0.6;
@@ -108,9 +108,9 @@
 
 .researchText {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: #f0ede6;
-  line-height: 1.5;
+  line-height: 1.7;
 }
 
 /* ── Stats Row ── */
@@ -146,7 +146,7 @@
 
 .statLabel {
   font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-size: var(--text-eyebrow);
   font-weight: 600;
   color: #f0ede6;
   letter-spacing: 0.15em;
@@ -156,9 +156,9 @@
 
 .statDesc {
   font-family: var(--font-sans);
-  font-size: 0.8rem;
+  font-size: var(--text-sm);
   color: #8A8A8A;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 /* ── Join Block ── */
@@ -170,7 +170,7 @@
 
 .joinText {
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   color: #a0a0a0;
   line-height: 1.8;
   margin-bottom: 32px;
@@ -185,7 +185,7 @@
 
 .communityBtn {
   font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -240,7 +240,7 @@
 
 .ambassadorLabel {
   font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-size: var(--text-eyebrow);
   font-weight: 600;
   color: #D4AF37;
   letter-spacing: 0.2em;
@@ -251,18 +251,18 @@
 
 .ambassadorTitle {
   font-family: var(--font-serif);
-  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  font-size: clamp(1.125rem, 2.5vw, 1.625rem);
   font-weight: 700;
   color: #FFFFFF;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   margin-bottom: 16px;
 }
 
 .ambassadorDesc {
   font-family: var(--font-sans);
-  font-size: 0.9rem;
+  font-size: var(--text-base);
   color: #8A8A8A;
-  line-height: 1.6;
+  line-height: 1.7;
   margin-bottom: 32px;
   max-width: 500px;
   margin-left: auto;
@@ -274,7 +274,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--text-eyebrow);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -301,8 +301,9 @@
   }
 
   .pageTitle {
-    font-size: clamp(1.4rem, 6vw, 2.25rem);
+    font-size: clamp(1.375rem, 6vw, 2rem);
     margin-bottom: 60px;
+    letter-spacing: 0.08em;
   }
 
   .missionBlock {

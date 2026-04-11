@@ -33,6 +33,12 @@ const Navbar = () => {
           <Link href="/syllabus" className={styles.navLink} onClick={closeMenu}>
             SYLLABUS
           </Link>
+          <Link href="/rules" className={styles.navLink} onClick={closeMenu}>
+            RULES
+          </Link>
+          <Link href="/competition" className={styles.navLink} onClick={closeMenu}>
+            COMPETITION
+          </Link>
           <Link href="/about" className={styles.navLink} onClick={closeMenu}>
             ABOUT US
           </Link>

@@ -19,12 +19,12 @@
 
 .sectionTitle {
   font-family: var(--font-serif);
-  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-size: clamp(1.25rem, 2.5vw, 1.625rem);
   font-weight: 700;
   color: #FFFFFF;
   text-align: center;
   margin-bottom: 60px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
 }
 
@@ -44,10 +44,10 @@
 
 .subsectionTitle {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: #D4AF37;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 24px;
   text-align: center;
@@ -55,7 +55,7 @@
 
 .subsectionNote {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: var(--text-lg);
   color: #D4AF37;
   font-style: italic;
   text-align: center;
@@ -105,16 +105,16 @@
 
 .cardIcon {
   color: #D4AF37;
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   margin-bottom: 8px;
   font-family: var(--font-mono);
-  letter-spacing: 0.15em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .cardTitle {
   font-family: var(--font-serif);
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   font-weight: 700;
   color: #D4AF37;
   letter-spacing: 0.08em;
@@ -123,7 +123,7 @@
 
 .cardSubtitle {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   color: #f0ede6;
   letter-spacing: 0.08em;
   opacity: 0.7;
@@ -132,9 +132,9 @@
 
 .cardText {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: var(--text-base);
   color: #a0a0a0;
-  line-height: 1.625;
+  line-height: 1.7;
 }
 
 .timeline {
@@ -154,7 +154,7 @@
 
 .timelineDate {
   font-family: var(--font-mono), monospace;
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   font-weight: 600;
   color: #D4AF37;
   letter-spacing: 0.15em;
@@ -163,17 +163,18 @@
 }
 
 .timelineTitle {
-  font-family: var(--font-cinzel), serif;
-  font-size: 1.1rem;
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
   color: #FFFFFF;
   margin-bottom: 8px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
 }
 
 .timelineDesc {
-  font-family: var(--font-pt-serif), serif;
-  font-size: 0.9rem;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
   color: #8A8A8A;
+  line-height: 1.7;
 }
 
 @media (max-width: 900px) {
@@ -188,9 +189,9 @@
   }
 
   .sectionTitle {
-    font-size: clamp(1.4rem, 6vw, 2.25rem);
+    font-size: clamp(1.1rem, 5vw, 1.375rem);
     margin-bottom: 40px;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.1em;
   }
 
   .grid {
@@ -203,11 +204,11 @@
   }
 
   .cardTitle {
-    font-size: 1.25rem;
+    font-size: var(--text-2xl);
   }
 
   .cardText {
-    font-size: 0.9375rem;
+    font-size: var(--text-base);
   }
 
   .timelineItem {
@@ -227,7 +228,7 @@
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   color: var(--color-text-secondary);
 }
 
@@ -235,6 +236,6 @@
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  font-size: 0.75rem;
+  font-size: var(--text-eyebrow);
   color: var(--color-text-secondary);
 }

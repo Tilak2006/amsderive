@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -12,13 +13,14 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 3000;
+const MAX_REGISTRATIONS = 1500;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  const reqId = genReqId();
   const { email, codeforcesHandle } = req.body;
 
   // Validate inputs
@@ -36,7 +38,7 @@ export default async function handler(req, res) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
     return res.status(400).json({ allowed: false, error: 'Invalid email format.' });
   }
-  if (!/^[a-zA-Z0-9_]+$/.test(normalizedHandle) || normalizedHandle.length > 24) {
+  if (!/^[a-zA-Z0-9_-]+$/.test(normalizedHandle) || normalizedHandle.length > 24) {
     return res.status(400).json({ allowed: false, error: 'Invalid Codeforces handle format.' });
   }
 
@@ -57,15 +59,25 @@ export default async function handler(req, res) {
 
     // Duplicate checks
     if (!emailSnap.empty) {
+      logger.warn('registration', 'duplicate_check_blocked', {
+        reqId,
+        detail: { reason: 'email_exists' },
+        status: 'blocked',
+      });
       return res.status(200).json({ allowed: false, error: 'This email is already registered.' });
     }
     if (!cfSnap.empty) {
+      logger.warn('registration', 'duplicate_check_blocked', {
+        reqId,
+        detail: { reason: 'cf_handle_exists' },
+        status: 'blocked',
+      });
       return res.status(200).json({ allowed: false, error: 'This Codeforces handle is already registered.' });
     }
 
     return res.status(200).json({ allowed: true });
   } catch (error) {
-    console.error('[check-registration] Error:', error);
+    logger.error('registration', 'duplicate_check_error', { reqId, status: 'failed' }, error);
     return res.status(500).json({ allowed: false, error: 'Failed to verify registration. Please try again.' });
   }
 }

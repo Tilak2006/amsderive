@@ -19,8 +19,8 @@
 
 .eyebrow {
   font-family: var(--font-mono), monospace;
-  font-size: 0.62rem;
-  letter-spacing: 0.28em;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
   color: #D4AF37;
   text-transform: uppercase;
   margin-bottom: 14px;
@@ -29,27 +29,27 @@
 
 .title {
   font-family: var(--font-serif);
-  font-size: clamp(2.2rem, 6vw, 3.8rem);
+  font-size: clamp(2rem, 5vw, 3.25rem);
   font-weight: 700;
   color: #ffffff;
-  letter-spacing: 0.15em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 12px;
-  line-height: 1;
+  line-height: 1.05;
 }
 
 .subtitle {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   color: #555;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 20px;
 }
 
 .totalBadge {
   display: inline-block;
   font-family: var(--font-mono), monospace;
-  font-size: 0.7rem;
+  font-size: var(--text-eyebrow);
   letter-spacing: 0.08em;
   color: #D4AF37;
   background: rgba(212, 175, 55, 0.08);
@@ -63,7 +63,7 @@
   text-align: center;
   color: #444;
   font-family: var(--font-mono), monospace;
-  font-size: 0.85rem;
+  font-size: var(--text-sm);
   padding: 80px 0;
   letter-spacing: 0.05em;
 }
@@ -95,7 +95,7 @@
 
 .rank {
   font-family: var(--font-mono), monospace;
-  font-size: 0.8rem;
+  font-size: var(--text-caption);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-align: right;
@@ -111,7 +111,7 @@
 
 .instName {
   font-family: var(--font-sans);
-  font-size: 0.88rem;
+  font-size: var(--text-sm);
   color: #d8d8d8;
   font-weight: 500;
   white-space: nowrap;
@@ -134,7 +134,7 @@
 
 .count {
   font-family: var(--font-mono), monospace;
-  font-size: 0.82rem;
+  font-size: var(--text-caption);
   color: #666;
   text-align: right;
   font-weight: 600;
@@ -146,7 +146,7 @@
   text-align: center;
   margin-top: 28px;
   font-family: var(--font-mono), monospace;
-  font-size: 0.65rem;
+  font-size: var(--text-eyebrow);
   letter-spacing: 0.04em;
   color: #2e2e2e;
 }
@@ -182,7 +182,7 @@
 
 /* Larger rank numbers for top 3 */
 .rankHero {
-  font-size: 1.05rem;
+  font-size: var(--text-base);
   font-weight: 900;
   letter-spacing: 0.02em;
 }
@@ -191,12 +191,12 @@
 .instNameHero {
   color: #ece8e1;
   font-weight: 600;
-  font-size: 0.93rem;
+  font-size: var(--text-base);
 }
 
 /* Larger, colored count for top 3 */
 .countHero {
-  font-size: 0.95rem;
+  font-size: var(--text-sm);
   font-weight: 700;
 }
 
@@ -213,7 +213,7 @@
   text-align: center;
   margin-top: 10px;
   font-family: var(--font-mono), monospace;
-  font-size: 0.6rem;
+  font-size: var(--text-eyebrow);
   letter-spacing: 0.04em;
   color: #252525;
 }

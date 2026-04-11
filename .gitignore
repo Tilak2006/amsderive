@@ -31,8 +31,7 @@ generate-ambassador-codes.js
 
 # ─── Internal docs ──────────────────────────────────────────────────────────────
 # Contain business logic and internal architecture — keep off public repos
-FIRM_PORTAL_PLAN.md
-ambassadors.md
+*.md
 
 # ─── Claude workspace ───────────────────────────────────────────────────────────
 # claude/ — performance audit & optimization docs

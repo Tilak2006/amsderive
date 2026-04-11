@@ -1,0 +1,205 @@
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* ── Tier block ── */
+.tier {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 64px;
+}
+
+.tier:last-child {
+  margin-bottom: 0;
+}
+
+.tierLabel {
+  font-family: var(--font-mono);
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.tierLabel::before,
+.tierLabel::after {
+  content: '';
+  display: block;
+  height: 1px;
+  width: 48px;
+}
+
+/* Apex — gold rule + glow */
+.tierLabel_apex {
+  color: #D4AF37;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+}
+
+.tierLabel_apex::before,
+.tierLabel_apex::after {
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.6));
+}
+
+.tierLabel_apex::before {
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.6));
+}
+
+.tierLabel_apex::after {
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.6), transparent);
+}
+
+/* Convergence — silver */
+.tierLabel_convergence {
+  color: #a8a8a8;
+}
+
+.tierLabel_convergence::before {
+  background: linear-gradient(90deg, transparent, rgba(168, 168, 168, 0.4));
+}
+
+.tierLabel_convergence::after {
+  background: linear-gradient(90deg, rgba(168, 168, 168, 0.4), transparent);
+}
+
+/* Derivation — bronze */
+.tierLabel_derivation {
+  color: #8b6343;
+}
+
+.tierLabel_derivation::before {
+  background: linear-gradient(90deg, transparent, rgba(139, 99, 67, 0.4));
+}
+
+.tierLabel_derivation::after {
+  background: linear-gradient(90deg, rgba(139, 99, 67, 0.4), transparent);
+}
+
+/* ── Logo rows ── */
+.logoRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 40px;
+  overflow: visible;
+  padding: 48px 0;
+}
+
+/* ── Wrapper ── */
+.cardWrapper {
+  position: relative;
+  display: inline-flex;
+  padding: 48px;
+  margin: -48px;
+}
+
+/* ── Card base ── */
+.logoCard {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
+  border-radius: 2px;
+  text-decoration: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Size variants */
+.logoCard_lg {
+  padding: 36px 64px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.logoCard_md {
+  padding: 28px 48px;
+  border: 1px solid rgba(168, 168, 168, 0.15);
+}
+
+.logoCard_sm {
+  padding: 22px 36px;
+  border: 1px solid rgba(139, 99, 67, 0.15);
+}
+
+/* Hover glow — apex */
+.logoCard_lg.logoCardHovered {
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow:
+    0 0 28px rgba(212, 175, 55, 0.15),
+    0 0 70px rgba(212, 175, 55, 0.07);
+}
+
+/* Hover glow — convergence */
+.logoCard_md.logoCardHovered {
+  border-color: rgba(168, 168, 168, 0.35);
+  box-shadow:
+    0 0 20px rgba(168, 168, 168, 0.1),
+    0 0 50px rgba(168, 168, 168, 0.05);
+}
+
+/* Hover glow — derivation */
+.logoCard_sm.logoCardHovered {
+  border-color: rgba(139, 99, 67, 0.35);
+  box-shadow:
+    0 0 16px rgba(139, 99, 67, 0.1),
+    0 0 40px rgba(139, 99, 67, 0.05);
+}
+
+/* ── Logo image ── */
+.logoImg {
+  object-fit: contain;
+  opacity: 0.8;
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+.logoCardHovered .logoImg {
+  opacity: 1;
+  filter: drop-shadow(0 0 14px rgba(212, 175, 55, 0.45));
+}
+
+/* ── Particles ── */
+.mathParticle {
+  position: absolute;
+  z-index: 10;
+  font-family: var(--font-mono);
+  color: rgba(212, 175, 55, 0.55);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+  animation: particleFly linear forwards;
+}
+
+@keyframes particleFly {
+  0% {
+    transform: translate(-50%, -50%) translateX(0) translateY(0) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) translateX(var(--tx)) translateY(var(--ty)) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .logoCard_lg { padding: 28px 40px; }
+  .logoCard_md { padding: 22px 32px; }
+  .logoCard_sm { padding: 18px 28px; }
+}

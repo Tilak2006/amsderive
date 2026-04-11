@@ -41,6 +41,7 @@ const TIER_DESCRIPTIONS = {
 const ACCESS_FEATURES = [
   { key: 'leaderboard', label: 'Live Leaderboard' },
   { key: 'analytics', label: 'Performance Analytics' },
+  { key: 'registrantProfiles', label: 'Registrant Profiles' },
   { key: 'finalistProfiles', label: 'Finalist Profiles' },
   { key: 'resumeDownload', label: 'Resume Download' },
   { key: 'linkedinAccess', label: 'LinkedIn Access' },
@@ -94,6 +95,21 @@ export default function FirmDashboard() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  // Registrants state
+  const [registrants, setRegistrants] = useState([]);
+  const [registrantsLoading, setRegistrantsLoading] = useState(false);
+  const [registrantsAccessError, setRegistrantsAccessError] = useState(null);
+  const [registrantsTotal, setRegistrantsTotal] = useState(null);
+  const [registrantsHasMore, setRegistrantsHasMore] = useState(false);
+  const [registrantsLastId, setRegistrantsLastId] = useState(null);
+  const [registrantsSearch, setRegistrantsSearch] = useState('');
+
+  // Leaderboard state
+  const [leaderboardData, setLeaderboardData] = useState(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState(null);
+  const leaderboardIntervalRef = useRef(null);
+
   // Auth check on mount
   useEffect(() => {
     let isMounted = true;
@@ -146,8 +162,45 @@ export default function FirmDashboard() {
       tabDataLoaded.current.add('analytics');
       fetchAnalytics();
     }
+    if (activeTab === 'registrants' && !tabDataLoaded.current.has('registrants')) {
+      tabDataLoaded.current.add('registrants');
+      fetchRegistrants();
+    }
+    if (activeTab === 'leaderboard' && !tabDataLoaded.current.has('leaderboard')) {
+      tabDataLoaded.current.add('leaderboard');
+      fetchLeaderboard();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user, firmProfile]);
+
+  const fetchRegistrants = useCallback(async (after = null) => {
+    setRegistrantsLoading(true);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-registrants', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ limit: 50, after }),
+      });
+      const data = await res.json();
+      if (res.status === 403) {
+        setRegistrantsAccessError(data.message || 'Access denied');
+        return;
+      }
+      if (!res.ok) {
+        setRegistrantsAccessError(data.error || 'Failed to load registrant data.');
+        return;
+      }
+      setRegistrants((prev) => (after ? [...prev, ...data.registrants] : data.registrants));
+      setRegistrantsTotal(data.count);
+      setRegistrantsHasMore(data.hasMore);
+      setRegistrantsLastId(data.lastId);
+    } catch {
+      setRegistrantsAccessError('Failed to load registrant data.');
+    } finally {
+      setRegistrantsLoading(false);
+    }
+  }, [user]);
 
   const fetchFinalists = useCallback(async () => {
     setFinalistsLoading(true);
@@ -169,6 +222,38 @@ export default function FirmDashboard() {
       setFinalistsLoading(false);
     }
   }, [user]);
+
+  const fetchLeaderboard = useCallback(async () => {
+    setLeaderboardLoading(true);
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({}) });
+      const data = await res.json();
+      if (res.status === 403) {
+        setLeaderboardError(data.message || 'Access denied');
+        return;
+      }
+      if (!res.ok) {
+        setLeaderboardError(data.error || 'Failed to load leaderboard');
+        return;
+      }
+      setLeaderboardData(data);
+      setLeaderboardError(null);
+    } catch (err) {
+      setLeaderboardError('Failed to load leaderboard');
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, [user]);
+
+  // Auto-refresh leaderboard every 30s while on the tab
+  useEffect(() => {
+    if (activeTab !== 'leaderboard' || !firmProfile) return;
+    leaderboardIntervalRef.current = setInterval(fetchLeaderboard, 30000);
+    return () => {
+      if (leaderboardIntervalRef.current) clearInterval(leaderboardIntervalRef.current);
+    };
+  }, [activeTab, firmProfile, fetchLeaderboard]);
 
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -205,9 +290,8 @@ export default function FirmDashboard() {
   }, [finalists]);
 
   const chartData = useMemo(() => {
-    if (!analyticsData?.leaderboard) return [];
-    return Object.entries(analyticsData.leaderboard)
-      .map(([name, count]) => ({ name, count }))
+    if (!analyticsData?.institutions?.length) return [];
+    return [...analyticsData.institutions]
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
   }, [analyticsData]);
@@ -275,7 +359,9 @@ export default function FirmDashboard() {
             {[
               { key: 'overview', label: 'OVERVIEW' },
               { key: 'talent', label: 'TALENT POOL' },
+              { key: 'registrants', label: 'REGISTRANTS' },
               { key: 'analytics', label: 'ANALYTICS' },
+              { key: 'leaderboard', label: 'LEADERBOARD' },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -285,29 +371,93 @@ export default function FirmDashboard() {
                 {label}
               </button>
             ))}
-            <span
-              className={styles.tabDisabled}
-              title="Coming soon — Codeforces private gym integration"
-            >
-              LEADERBOARD
-            </span>
           </div>
 
           {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
             <div>
-              <div className={styles.welcomeSection}>
-                <p className={styles.welcomeEyebrow}>AMS DERIVE 2026 — PARTNER PORTAL</p>
-                <h1 className={styles.welcomeTitle}>
-                  Welcome,{' '}
-                  <span className={styles.welcomeGold}>{firmProfile?.firmName}</span>
-                </h1>
-                <p className={styles.tierDescription}>
-                  {TIER_DESCRIPTIONS[firmProfile?.tier] || ''}
-                </p>
+              {/* Hero */}
+              <div className={styles.overviewHero}>
+                <div className={styles.overviewHeroInner}>
+                  <p className={styles.welcomeEyebrow}>AMS DERIVE 2026 — PARTNER PORTAL</p>
+                  <h1 className={styles.welcomeTitle}>
+                    Welcome,{' '}
+                    <span className={styles.welcomeGold}>{firmProfile?.firmName}</span>
+                  </h1>
+                  <p className={styles.tierDescription}>
+                    {TIER_DESCRIPTIONS[firmProfile?.tier] || ''}
+                  </p>
+                </div>
+                <div className={styles.overviewHeroRule} />
               </div>
 
-              <p className={styles.sectionLabel}>Your Access</p>
+              {/* Quick Actions */}
+              <p className={styles.sectionLabel} style={{ marginBottom: 16 }}>Quick Access</p>
+              <div className={styles.quickActionGrid}>
+                <button
+                  className={styles.quickActionCard}
+                  onClick={() => setActiveTab('talent')}
+                  disabled={firmProfile?.tier === 'derivation'}
+                >
+                  <span className={styles.quickActionIcon}>◈</span>
+                  <span className={styles.quickActionTitle}>Talent Pool</span>
+                  <span className={styles.quickActionDesc}>
+                    {firmProfile?.tier === 'derivation'
+                      ? 'Convergence & Apex only'
+                      : 'Browse finalist profiles, resumes, and LinkedIn'}
+                  </span>
+                  <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
+                </button>
+
+                <button
+                  className={styles.quickActionCard}
+                  onClick={() => setActiveTab('analytics')}
+                >
+                  <span className={styles.quickActionIcon}>◉</span>
+                  <span className={styles.quickActionTitle}>Analytics</span>
+                  <span className={styles.quickActionDesc}>
+                    Registrant breakdowns, institution stats, and participation data
+                  </span>
+                  <span className={styles.quickActionArrow}>→</span>
+                </button>
+
+                <button
+                  className={styles.quickActionCard}
+                  onClick={() => setActiveTab('leaderboard')}
+                  disabled={firmProfile?.tier === 'derivation'}
+                >
+                  <span className={styles.quickActionIcon}>◎</span>
+                  <span className={styles.quickActionTitle}>Live Leaderboard</span>
+                  <span className={styles.quickActionDesc}>
+                    {firmProfile?.tier === 'derivation'
+                      ? 'Convergence & Apex only'
+                      : 'Real-time PRIOR contest standings via Codeforces Gym'}
+                  </span>
+                  <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
+                </button>
+              </div>
+
+              {/* Contest Timeline */}
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 16 }}>Contest Timeline</p>
+              <div className={styles.timelineStrip}>
+                {[
+                  { round: 'PRIOR', name: 'Round 1', date: '23 May 2026', desc: 'Individual · Codeforces Gym · ICPC format' },
+                  { round: 'POSTERIOR', name: 'Round 2', desc: 'Individual · Advanced quantitative problems', date: '21 Jun 2026' },
+                  { round: 'CONVERGENCE', name: 'Round 3', date: '11 Jul 2026', desc: 'Teams of 3 · Offline at IIT Bombay' },
+                ].map((item, i) => (
+                  <div key={item.round} className={styles.timelineItem}>
+                    <div className={styles.timelineIndex}>{String(i + 1).padStart(2, '0')}</div>
+                    <div className={styles.timelineBody}>
+                      <p className={styles.timelineRound}>{item.round}</p>
+                      <p className={styles.timelineDate}>{item.date}</p>
+                      <p className={styles.timelineDesc}>{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Access Matrix */}
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 16 }}>Your Access</p>
               <div className={styles.accessGrid}>
                 {ACCESS_FEATURES.map((feature) => {
                   const enabled = firmProfile?.access?.[feature.key];
@@ -326,6 +476,14 @@ export default function FirmDashboard() {
                   );
                 })}
               </div>
+
+              {/* Contact line */}
+              <p className={styles.overviewContact}>
+                Questions about your partnership?{' '}
+                <a href="mailto:partnership@amsociety.in" className={styles.overviewContactLink}>
+                  partnership@amsociety.in
+                </a>
+              </p>
             </div>
           )}
 
@@ -459,6 +617,236 @@ export default function FirmDashboard() {
             </div>
           )}
 
+          {/* ── REGISTRANTS TAB ── */}
+          {activeTab === 'registrants' && (
+            <div>
+              {firmProfile?.tier === 'derivation' ? (
+                <div className={styles.accessDenied}>
+                  <div className={styles.accessDeniedIcon}>🔒</div>
+                  <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
+                  <p className={styles.accessDeniedText}>
+                    Registrant Profiles access is available to Convergence and Apex partners. Contact{' '}
+                    <a href="mailto:partnership@amsociety.in" style={{ color: '#D4AF37' }}>
+                      partnership@amsociety.in
+                    </a>{' '}
+                    to upgrade your partnership.
+                  </p>
+                </div>
+              ) : registrantsAccessError ? (
+                <div className={styles.lockedCard}>
+                  <div className={styles.lockedCardIcon}>🔒</div>
+                  <p className={styles.lockedCardTitle}>Registrant Profiles Locked</p>
+                  <p className={styles.lockedCardText}>{registrantsAccessError}</p>
+                </div>
+              ) : registrantsLoading && registrants.length === 0 ? (
+                <div className={styles.tableLoading}>Loading registrant data...</div>
+              ) : (
+                <>
+                  <div className={styles.talentFilterBar}>
+                    <input
+                      type="text"
+                      className={styles.searchInput}
+                      placeholder="Search name or institution..."
+                      value={registrantsSearch}
+                      onChange={(e) => setRegistrantsSearch(e.target.value)}
+                    />
+                    {registrantsTotal !== null && (
+                      <span className={styles.resultCount}>
+                        {registrantsSearch.trim()
+                          ? `${registrants.filter(
+                              (r) =>
+                                r.fullName?.toLowerCase().includes(registrantsSearch.toLowerCase()) ||
+                                r.university?.toLowerCase().includes(registrantsSearch.toLowerCase())
+                            ).length} / `
+                          : ''}
+                        {registrantsTotal} registrant{registrantsTotal !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className={styles.leaderboardTableWrap}>
+                    <table className={styles.leaderboardTable}>
+                      <thead>
+                        <tr className={styles.leaderboardThead}>
+                          <th className={styles.leaderboardTh}>#</th>
+                          <th className={styles.leaderboardTh}>Name</th>
+                          <th className={styles.leaderboardTh}>Institution</th>
+                          <th className={styles.leaderboardTh}>Round</th>
+                          <th className={styles.leaderboardTh}>CF Handle</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registrants
+                          .filter((r) => {
+                            if (!registrantsSearch.trim()) return true;
+                            const q = registrantsSearch.toLowerCase();
+                            return (
+                              r.fullName?.toLowerCase().includes(q) ||
+                              r.university?.toLowerCase().includes(q)
+                            );
+                          })
+                          .map((r, i) => (
+                            <tr key={r.id} className={styles.leaderboardTr}>
+                              <td className={styles.leaderboardTd}>
+                                <span className={styles.rankMuted}>{i + 1}</span>
+                              </td>
+                              <td className={styles.leaderboardTd}>{r.fullName}</td>
+                              <td className={styles.leaderboardTd}>{r.university}</td>
+                              <td className={styles.leaderboardTd}>
+                                {r.round ? (
+                                  <span style={{ textTransform: 'uppercase', color: '#D4AF37', fontSize: '0.75rem' }}>
+                                    {r.round}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#3a3a3a' }}>—</span>
+                                )}
+                              </td>
+                              <td className={styles.leaderboardTd}>
+                                {r.codeforcesHandle ? (
+                                  <a
+                                    href={`https://codeforces.com/profile/${r.codeforcesHandle}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={styles.handleLink}
+                                  >
+                                    {r.codeforcesHandle}
+                                  </a>
+                                ) : (
+                                  <span style={{ color: '#3a3a3a' }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {registrantsHasMore && (
+                    <div style={{ marginTop: 16, textAlign: 'center' }}>
+                      <button
+                        className={styles.refreshBtn}
+                        onClick={() => fetchRegistrants(registrantsLastId)}
+                        disabled={registrantsLoading}
+                      >
+                        {registrantsLoading ? 'Loading...' : 'LOAD MORE'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── LEADERBOARD TAB ── */}
+          {activeTab === 'leaderboard' && (
+            <div>
+              {/* Derivation tier — no leaderboard access */}
+              {firmProfile?.tier === 'derivation' ? (
+                <div className={styles.accessDenied}>
+                  <div className={styles.accessDeniedIcon}>🔒</div>
+                  <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
+                  <p className={styles.accessDeniedText}>
+                    Live Leaderboard access is available to Convergence and Apex partners. Contact{' '}
+                    <a href="mailto:partnership@amsociety.in" style={{ color: '#D4AF37' }}>
+                      partnership@amsociety.in
+                    </a>{' '}
+                    to upgrade your partnership.
+                  </p>
+                </div>
+              ) : leaderboardError ? (
+                <div className={styles.lockedCard}>
+                  <div className={styles.lockedCardIcon}>🔒</div>
+                  <p className={styles.lockedCardTitle}>Leaderboard Locked</p>
+                  <p className={styles.lockedCardText}>{leaderboardError}</p>
+                </div>
+              ) : leaderboardLoading && !leaderboardData ? (
+                <div className={styles.tableLoading}>Loading leaderboard...</div>
+              ) : (
+                <>
+                  {/* Header bar */}
+                  <div className={styles.leaderboardHeader}>
+                    <div className={styles.leaderboardMeta}>
+                      <span className={styles.liveIndicator} />
+                      <span className={styles.leaderboardTitle}>PRIOR — LIVE STANDINGS</span>
+                      {leaderboardData?.updatedAt && (
+                        <span className={styles.leaderboardUpdated}>
+                          Last updated:{' '}
+                          {new Date(leaderboardData.updatedAt).toLocaleTimeString('en-IN', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                          {leaderboardData.stale && (
+                            <span className={styles.staleTag}> (cached)</span>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      className={styles.refreshBtn}
+                      onClick={fetchLeaderboard}
+                      disabled={leaderboardLoading}
+                    >
+                      {leaderboardLoading ? '...' : 'REFRESH'}
+                    </button>
+                  </div>
+
+                  {/* Standings table */}
+                  {!leaderboardData || leaderboardData.standings.length === 0 ? (
+                    <div className={styles.accessDenied}>
+                      <p className={styles.accessDeniedTitle}>
+                        {leaderboardData?.notStarted ? 'Contest has not started yet' : 'No standings yet'}
+                      </p>
+                      <p className={styles.accessDeniedText}>
+                        {leaderboardData?.notStarted
+                          ? 'PRIOR begins on 23 May 2026. Live standings will appear here once the contest starts.'
+                          : 'No submissions recorded yet. Check back soon.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={styles.leaderboardTableWrap}>
+                      <table className={styles.leaderboardTable}>
+                        <thead>
+                          <tr className={styles.leaderboardThead}>
+                            <th className={styles.leaderboardTh}>Rank</th>
+                            <th className={styles.leaderboardTh}>Handle</th>
+                            <th className={styles.leaderboardTh}>Score</th>
+                            <th className={styles.leaderboardTh}>Penalty</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leaderboardData.standings.map((row, i) => (
+                            <tr
+                              key={row.handle}
+                              className={`${styles.leaderboardTr} ${i < 3 ? styles.leaderboardTrTop : ''}`}
+                            >
+                              <td className={styles.leaderboardTd}>
+                                <span className={i < 3 ? styles.rankGold : styles.rankMuted}>
+                                  {row.rank}
+                                </span>
+                              </td>
+                              <td className={styles.leaderboardTd}>
+                                <a
+                                  href={`https://codeforces.com/profile/${row.handle}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles.handleLink}
+                                >
+                                  {row.handle}
+                                </a>
+                              </td>
+                              <td className={styles.leaderboardTd}>{row.points}</td>
+                              <td className={styles.leaderboardTd}>{row.penalty}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* ── ANALYTICS TAB ── */}
           {activeTab === 'analytics' && (
             <div>
@@ -472,11 +860,11 @@ export default function FirmDashboard() {
                     {[
                       {
                         label: 'Total Registrants',
-                        value: analyticsData.total ?? Object.values(analyticsData.leaderboard || {}).reduce((a, b) => a + b, 0),
+                        value: (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0),
                       },
                       {
                         label: 'Participating Institutions',
-                        value: Object.keys(analyticsData.leaderboard || {}).length,
+                        value: (analyticsData.institutions || []).length,
                       },
                     ].map((s) => (
                       <div key={s.label} className={styles.statCard}>
