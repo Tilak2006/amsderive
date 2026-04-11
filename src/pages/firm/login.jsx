@@ -45,18 +45,18 @@ export default function FirmLogin() {
           if (user) {
             try {
               const token = await user.getIdToken();
-              const res = await fetch('/api/firm/get-firm-profile', {
+              // Exchange ID token for an HttpOnly server-side session cookie.
+              // /api/auth/session also verifies the firms Firestore doc exists.
+              const res = await fetch('/api/auth/session', {
                 method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'firm' }),
               });
               if (res.ok) {
-                document.cookie = `__firmSession=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
                 router.replace('/firm/dashboard');
               } else {
-                // Signed in as non-firm account — show form
+                // Signed in but not a firm account — sign out and show form
+                await signOut(auth);
                 setChecking(false);
               }
             } catch {
@@ -136,16 +136,15 @@ export default function FirmLogin() {
       const cred = await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
       const token = await cred.user.getIdToken();
 
-      // Confirm this Firebase user is a registered firm
-      const profileRes = await fetch('/api/firm/get-firm-profile', {
+      // Exchange for an HttpOnly server-side session cookie.
+      // The session endpoint also verifies the firms Firestore doc exists.
+      const sessionRes = await fetch('/api/auth/session', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'firm' }),
       });
 
-      if (!profileRes.ok) {
+      if (!sessionRes.ok) {
         // Valid Firebase credentials, but not a firm account
         await signOut(auth);
         setError('This account is not registered as a partner. Contact AMS Derive if you believe this is an error.');
@@ -153,7 +152,6 @@ export default function FirmLogin() {
         return;
       }
 
-      document.cookie = `__firmSession=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
       router.push('/firm/dashboard');
     } catch {
       setError('Invalid credentials.');

@@ -1588,4 +1588,105 @@
   .statsGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .splitLayout {
+    flex-direction: column;
+  }
+
+  .detailPanel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(212, 175, 55, 0.15);
+  }
+}
+
+/* ── Registrants Split Layout ── */
+.splitLayout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.splitLayout > *:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailPanel {
+  width: 360px;
+  flex-shrink: 0;
+  background: #0e0e0e;
+  border-left: 1px solid rgba(212, 175, 55, 0.15);
+  display: flex;
+  flex-direction: column;
+  min-height: 320px;
+  align-self: stretch;
+}
+
+.panelTitle {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f0ede6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panelRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #141414;
+}
+
+.panelFileActions {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px;
+  margin-top: auto;
+}
+
+.panelActionBtn {
+  flex: 1;
+  height: 38px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+@media (hover: hover) {
+  .panelActionBtn:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.08);
+    border-color: #D4AF37;
+  }
+}
+
+.panelActionBtn:disabled {
+  color: #3a3a3a;
+  border-color: #1a1a1a;
+  cursor: not-allowed;
+}
+
+.panelLockedNote {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #3a3a3a;
+  padding: 16px 20px;
+  margin: 0;
+}
+
+/* ── Selected table row ── */
+.leaderboardTrSelected {
+  background: rgba(212, 175, 55, 0.06);
+  border-left: 2px solid #D4AF37;
 }

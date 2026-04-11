@@ -234,7 +234,15 @@ export default function AdminDashboard() {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   async function handleLogout() {
-    document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin' }),
+      });
+    } catch {
+      // Proceed with client-side logout even if server call fails
+    }
     await signOut(auth);
     router.push('/admin/login');
   }
@@ -247,7 +255,11 @@ export default function AdminDashboard() {
       body: JSON.stringify({ fileUrl }),
     });
     const data = await res.json();
-    if (data.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    if (data.signedUrl) {
+      window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      alert('File not found in storage. The stored URL may be stale — check Firebase Storage manually.');
+    }
   }
 
   async function handleStatusUpdate(newStatus) {

@@ -32,27 +32,31 @@
     height: 52px;
   }
 
-  .logo {
-    font-size: 0.9rem;
+  .logoSvg {
+    height: 20px;
   }
 }
 
 .logo {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #FFFFFF;
-  letter-spacing: 0.15em;
+  display: flex;
+  align-items: center;
   text-decoration: none;
   cursor: pointer;
-  transition: opacity 0.3s ease, filter 0.3s ease, text-shadow 0.3s ease;
+  transition: filter 0.3s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 @media (hover: hover) {
   .logo:hover {
-    text-decoration: none;
     filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4));
   }
+}
+
+.logoSvg {
+  height: 32px;
+  width: auto;
+  display: block;
 }
 
 .notifyBtn {
@@ -99,11 +103,6 @@
     height: 60px;
   }
 
-  .logo {
-    font-size: 1rem;
-    letter-spacing: 0.1em;
-  }
-
   .notifyBtn {
     font-size: 0.7rem;
     padding: 8px 16px;
@@ -115,18 +114,14 @@
     padding: 0 16px;
   }
 
-  .logo {
-    font-size: 0.9rem;
+  .logoSvg {
+    height: 18px;
   }
 
   .notifyBtn {
     font-size: 0.65rem;
     padding: 6px 12px;
   }
-}
-
-.logoDerive {
-  color: #D4AF37;
 }
 
 .navLinks {
@@ -243,7 +238,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .navLink, .navLinks, .hamburger span {
+
+  .navLink,
+  .navLinks,
+  .hamburger span {
     transition: none;
   }
 }

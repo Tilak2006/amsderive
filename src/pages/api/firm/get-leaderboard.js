@@ -65,7 +65,7 @@ async function fetchFromCodeforces() {
   const url = `https://codeforces.com/api/contest.standings?${paramString}&apiSig=${apiSig}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 10000);
 
   try {
     const res = await fetch(url, { signal: controller.signal });
@@ -198,6 +198,26 @@ export default async function handler(req, res) {
     if (err.code === 'NOT_STARTED') {
       logger.warn('firms', 'leaderboard_cf_not_started', { reqId, actorId: uid, status: 'degraded' });
       return res.status(200).json({ standings: [], updatedAt: new Date().toISOString(), notStarted: true });
+    }
+
+    // Codeforces timed out — treat like a transient failure
+    if (err.name === 'AbortError' || err.code === 20) {
+      if (cachedStandings !== null) {
+        logger.warn('firms', 'leaderboard_cf_timeout_stale', {
+          reqId,
+          actorId: uid,
+          detail: { stale: true },
+          status: 'degraded',
+        });
+        return res.status(200).json({
+          standings: cachedStandings.standings,
+          updatedAt: cachedStandings.updatedAt,
+          fromCache: true,
+          stale: true,
+        });
+      }
+      logger.warn('firms', 'leaderboard_cf_timeout_no_cache', { reqId, actorId: uid, status: 'degraded' });
+      return res.status(200).json({ standings: [], updatedAt: new Date().toISOString(), notStarted: false, timedOut: true });
     }
 
     // Graceful degrade: return stale cache if available

@@ -10,13 +10,17 @@ Keep this updated whenever a new page or API route is added.
 | URL | File | Notes |
 |---|---|---|
 | `/` | `src/pages/index.jsx` | Landing page — Three.js hero, countdown, sections |
-| `/about` | `src/pages/about.jsx` | About AMS page |
+| `/about` | `src/pages/about.jsx` | About AMS |
 | `/ams-derive` | `src/pages/ams-derive.jsx` | About the contest (detailed) |
 | `/problems` | `src/pages/problems.jsx` | Problem set info |
 | `/syllabus` | `src/pages/syllabus.jsx` | Contest syllabus |
-| `/register` | `src/pages/register.jsx` | Registration form — date-gated (opens Apr 20 2026) |
-| `/check-registration` | `src/pages/check-registration.jsx` | Look up registration status by email/handle |
-| `/campus-ambassador-leaderboard` | `src/pages/campus-ambassador-leaderboard.jsx` | Top 5 institutions by ambassador pre-reg count + offsets |
+| `/rules` | `src/pages/rules.jsx` | Competition rules |
+| `/terms` | `src/pages/terms.jsx` | Terms of service |
+| `/privacy` | `src/pages/privacy.jsx` | Privacy policy |
+| `/competition` | `src/pages/competition.jsx` | Competition info |
+| `/register` | `src/pages/register.jsx` | Registration form — date-gated (opens Apr 20 2026 00:00 IST) |
+| `/check-registration` | `src/pages/check-registration.jsx` | Public status lookup by email + name |
+| `/campus-ambassador-leaderboard` | `src/pages/campus-ambassador-leaderboard.jsx` | Top-5 institutions by ambassador pre-reg count + offsets |
 | `/rank/a9x3k7f1` | `src/pages/rank/a9x3k7f1.jsx` | All institutions ranked by full registration count (60s cache) |
 
 ---
@@ -27,10 +31,10 @@ Keep this updated whenever a new page or API route is added.
 |---|---|---|
 | `/admin` | `src/pages/admin/index.js` | Redirects to `/admin/dashboard` |
 | `/admin/login` | `src/pages/admin/login.jsx` | Email/password Firebase login |
-| `/admin/dashboard` | `src/pages/admin/dashboard.jsx` | Paginated registrant table, status management |
+| `/admin/dashboard` | `src/pages/admin/dashboard.jsx` | Registrant table, status management, broadcast, signed URL viewer |
 | `/admin/analytics` | `src/pages/admin/analytics.jsx` | Recharts breakdown by institution, time, etc. |
 | `/admin/ambassadors` | `src/pages/admin/ambassadors.jsx` | Per-refCode pre-reg stats + leaderboard offset management |
-| `/admin/firms` | `src/pages/admin/firms.jsx` | Firm partner account management |
+| `/admin/firms` | `src/pages/admin/firms.jsx` | Firm partner account creation and access flag management |
 
 ---
 
@@ -38,13 +42,22 @@ Keep this updated whenever a new page or API route is added.
 
 | URL | File | Notes |
 |---|---|---|
-| `/firm` | `src/pages/firm/index.js` | Redirects to `/firm/login` or `/firm/dashboard` |
+| `/firm` | `src/pages/firm/index.js` | Redirects to `/firm/dashboard` |
 | `/firm/login` | `src/pages/firm/login.jsx` | Email/password Firebase login |
-| `/firm/dashboard` | `src/pages/firm/dashboard.jsx` | Finalist profiles, access-tier gated |
+| `/firm/dashboard` | `src/pages/firm/dashboard.jsx` | Tabs: Overview, Registrants, Talent Pool, Analytics, Leaderboard |
+
+### Firm Dashboard Tabs
+| Tab | Access Gate | What It Shows |
+|---|---|---|
+| Overview | Always | Tier info, access matrix, contest timeline, quick links |
+| Registrants | `tier !== derivation` + `access.registrantProfiles` | Clickable table + detail panel (resume/transcript/linkedin based on flags) |
+| Talent Pool | `tier !== derivation` + `access.finalistProfiles` | Convergence-round finalist cards with resume/linkedin |
+| Analytics | Always | Public institution breakdown chart (from `/api/public/inst-stats`) |
+| Leaderboard | `tier !== derivation` + `access.leaderboard` | Live Codeforces PRIOR standings (auto-refreshes 30s) |
 
 ---
 
-## Dev-Only Pages (not for production traffic)
+## Dev-Only Pages
 
 | URL | File | Notes |
 |---|---|---|
@@ -58,15 +71,15 @@ Keep this updated whenever a new page or API route is added.
 |---|---|---|---|
 | `GET` | `/api/registration-count` | `api/registration-count.js` | Returns `{ count, isOpen, isFull }`. 60s CDN cache. |
 | `GET` | `/api/get-ip` | `api/get-ip.js` | Returns client IP — used for rate limit fingerprinting |
-| `GET` | `/api/campus-ambassador-leaderboard` | `api/campus-ambassador-leaderboard.js` | Institutions ranked by pre-reg refCode count + admin offsets. 1hr CDN cache + 1hr in-memory cache. Top-N sorted. |
-| `GET` | `/api/public/inst-stats` | `api/public/inst-stats.js` | Institutions ranked by full registration count (from `stats/leaderboard`). 60s CDN cache. |
-| `POST` | `/api/notify` | `api/notify.js` | Pre-registration: writes `pre_registrations` doc + sends Resend confirmation. Accepts `{ email, refCode }`. Rate limited. |
-| `POST` | `/api/submit-registration` | `api/submit-registration.js` | Full registration. Rate limited 3/hr/device. Writes `registrants` doc. |
-| `POST` | `/api/check-registration` | `api/check-registration.js` | Checks cap + duplicate (email, CF handle, phone). No writes. |
-| `POST` | `/api/check-registration-gate` | `api/check-registration-gate.js` | Returns whether registration is currently open (date check). |
-| `POST` | `/api/check-rate-limit` | `api/check-rate-limit.js` | Login attempt rate limit check (5/15min/IP). Used by admin login. |
-| `POST` | `/api/check-status` | `api/check-status.js` | Checks rate limit status by IP+UA fingerprint. |
-| `POST` | `/api/test-registration` | `api/test-registration.js` | **Dev gate bypass only.** Validates `x-admin-key` header against `ADMIN_KEY` env var, sets `admin_bypass` cookie (1hr). |
+| `GET` | `/api/campus-ambassador-leaderboard` | `api/campus-ambassador-leaderboard.js` | Top-N institutions by pre-reg refCode count + offsets. 1hr CDN + 1hr in-memory cache. |
+| `GET` | `/api/public/inst-stats` | `api/public/inst-stats.js` | Institutions ranked by full registration count (`stats/leaderboard`). 60s CDN cache. |
+| `POST` | `/api/notify` | `api/notify.js` | Pre-registration: writes `pre_registrations` doc + sends Resend confirmation. Rate limited. |
+| `POST` | `/api/submit-registration` | `api/submit-registration.js` | Full registration. Rate limited 3/hr/device. Writes `registrants` doc with `status: pending`. |
+| `POST` | `/api/check-registration` | `api/check-registration.js` | Cap check + duplicate check (email, CF handle, phone). No writes. |
+| `POST` | `/api/check-registration-gate` | `api/check-registration-gate.js` | Returns whether registration is currently open. |
+| `POST` | `/api/check-rate-limit` | `api/check-rate-limit.js` | Login rate limit check (5/15min/IP). Used by admin and firm login pages. |
+| `POST` | `/api/check-status` | `api/check-status.js` | Registration status lookup by email + name (rate limited). |
+| `POST` | `/api/test-registration` | `api/test-registration.js` | **Dev only.** Validates `x-admin-key` header, sets `admin_bypass` cookie (1hr). |
 
 ---
 
@@ -74,29 +87,33 @@ Keep this updated whenever a new page or API route is added.
 
 | Method | Endpoint | File | Notes |
 |---|---|---|---|
-| `POST` | `/api/admin/get-registrants` | `api/admin/get-registrants.js` | Paginated registrant list (50/page). |
-| `POST` | `/api/admin/get-stats` | `api/admin/get-stats.js` | Aggregate counts — total, pending, approved, rejected. |
-| `POST` | `/api/admin/export-registrants` | `api/admin/export-registrants.js` | Download full CSV of all registrants. |
-| `POST` | `/api/admin/update-registrant-status` | `api/admin/update-registrant-status.js` | Set `status` to `pending` / `approved` / `rejected`. |
-| `POST` | `/api/admin/update-registrant-round` | `api/admin/update-registrant-round.js` | Set `round` field on a registrant. |
-| `POST` | `/api/admin/approve-all` | `api/admin/approve-all.js` | Bulk-approve all pending registrants. |
-| `POST` | `/api/admin/send-broadcast` | `api/admin/send-broadcast.js` | Send Resend email to a filtered subset of registrants. |
-| `POST` | `/api/admin/get-ambassador-stats` | `api/admin/get-ambassador-stats.js` | All `pre_registrations` grouped by `refCode` with email list. |
-| `GET` | `/api/admin/get-ambassador-offsets` | `api/admin/get-ambassador-offsets.js` | Read `stats/ambassador-offsets` doc. |
-| `POST` | `/api/admin/update-ambassador-offset` | `api/admin/update-ambassador-offset.js` | Write offset for one institution. Accepts any valid string name (custom institutions allowed). |
-| `POST` | `/api/admin/get-firms` | `api/admin/get-firms.js` | List all firm accounts. |
-| `POST` | `/api/admin/create-firm` | `api/admin/create-firm.js` | Create a new firm account. |
-| `POST` | `/api/admin/update-firm-access` | `api/admin/update-firm-access.js` | Toggle access flags on a firm. |
-| `POST` | `/api/admin/get-signed-url` | `api/admin/get-signed-url.js` | Generate signed Firebase Storage URL for a registrant document. |
+| `POST` | `/api/admin/get-registrants` | `admin/get-registrants.js` | Paginated (50/page, cursor via `lastDocId`). Returns all fields including email/phone. |
+| `POST` | `/api/admin/get-stats` | `admin/get-stats.js` | Aggregate counts — total, pending, approved, rejected. 2min cache. |
+| `POST` | `/api/admin/export-registrants` | `admin/export-registrants.js` | JSON export (500/request, cursor pagination). |
+| `POST` | `/api/admin/update-registrant-status` | `admin/update-registrant-status.js` | Set `status` → `pending / approved / rejected`. Sends Resend email on approve/reject. |
+| `POST` | `/api/admin/update-registrant-round` | `admin/update-registrant-round.js` | Set `round` → `prior / posterior / convergence`. |
+| `POST` | `/api/admin/approve-all` | `admin/approve-all.js` | Bulk-approve all pending registrants. Batched Resend emails. |
+| `POST` | `/api/admin/send-broadcast` | `admin/send-broadcast.js` | Send Resend email to all registrants or filtered by round. |
+| `POST` | `/api/admin/get-ambassador-stats` | `admin/get-ambassador-stats.js` | `pre_registrations` grouped by `refCode` with counts. |
+| `GET` | `/api/admin/get-ambassador-offsets` | `admin/get-ambassador-offsets.js` | Read `stats/ambassador-offsets` doc. |
+| `POST` | `/api/admin/update-ambassador-offset` | `admin/update-ambassador-offset.js` | Write offset for one institution (custom names allowed, `merge: true`). |
+| `POST` | `/api/admin/refresh-ambassador-leaderboard` | `admin/refresh-ambassador-leaderboard.js` | Rebuild `stats/ambassador-leaderboard-cache`. |
+| `POST` | `/api/admin/get-firms` | `admin/get-firms.js` | List all firm accounts ordered by `createdAt` desc. |
+| `POST` | `/api/admin/create-firm` | `admin/create-firm.js` | Create firm Firebase Auth user + `firms` doc. Validates email domain + 12-char password. |
+| `POST` | `/api/admin/update-firm-access` | `admin/update-firm-access.js` | Toggle a single access flag on a firm doc. |
+| `POST` | `/api/admin/get-signed-url` | `admin/get-signed-url.js` | 15-min GCS signed URL for any file. Strips `?alt=media` from path before lookup. |
 
 ---
 
-## Firm API Endpoints (`Authorization: Bearer <Firebase ID token>` + firm profile required)
+## Firm API Endpoints (`Authorization: Bearer <Firebase ID token>` + `firms/{uid}` doc required)
 
-| Method | Endpoint | File | Notes |
-|---|---|---|---|
-| `POST` | `/api/firm/get-firm-profile` | `api/firm/get-firm-profile.js` | Verify token + return firm profile and access tier. |
-| `POST` | `/api/firm/get-finalists` | `api/firm/get-finalists.js` | Return registrant subset based on firm's `access` flags. |
+| Method | Endpoint | File | Gate | Notes |
+|---|---|---|---|---|
+| `POST` | `/api/firm/get-firm-profile` | `firm/get-firm-profile.js` | Token only | Returns `firmName, tier, access, logoUrl`. Updates `lastLogin`. |
+| `POST` | `/api/firm/get-registrants` | `firm/get-registrants.js` | `tier !== derivation` + `access.registrantProfiles` | Approved + consented registrants. Conditional resume/linkedin fields. Cursor pagination. |
+| `POST` | `/api/firm/get-finalists` | `firm/get-finalists.js` | `tier !== derivation` + `access.finalistProfiles` | `round === convergence` registrants. Same conditional fields. |
+| `POST` | `/api/firm/get-leaderboard` | `firm/get-leaderboard.js` | `tier !== derivation` + `access.leaderboard` | Live Codeforces PRIOR contest standings. 30s server cache. |
+| `POST` | `/api/firm/get-signed-url` | `firm/get-signed-url.js` | `access.resumeDownload` | 15-min GCS signed URL. Path must start with `registrants/`. |
 
 ---
 
@@ -104,9 +121,21 @@ Keep this updated whenever a new page or API route is added.
 
 | Collection / Doc | What's stored |
 |---|---|
-| `registrants/{id}` | Full registration data — email, handle, university, resume/transcript URLs, status, refCode |
+| `registrants/{id}` | Full registration — email, handle, university, resumeUrl, transcriptUrl, status, round, refCode, ipHash, etc. |
 | `pre_registrations/{id}` | Email + optional refCode + timestamp |
-| `firms/{id}` | Firm name, tier, access flags, primary email |
-| `stats/leaderboard` | `{ "IIT Bombay": 42, ... }` — updated on each full registration |
-| `stats/ambassador-offsets` | `{ "IIT Bombay": 10, ... }` — admin-set display offsets for campus amb. leaderboard |
-| `_rate_limits/{fingerprint}` | Array of submission timestamps for rate limiting |
+| `firms/{uid}` | firmName, tier (derivation/convergence/apex), access flags map, logoUrl, lastLogin |
+| `stats/leaderboard` | `{ "IIT Bombay": 42, ... }` — updated on each registration |
+| `stats/ambassador-offsets` | `{ "IIT Bombay": 10, ... }` — admin-set display offsets |
+| `stats/ambassador-leaderboard-cache` | Pre-computed campus ambassador leaderboard results |
+| `_rate_limits/{fingerprint}` | Array of submission timestamps |
+
+---
+
+## Rate Limits
+
+| Action | Limit | Fingerprint |
+|---|---|---|
+| Registration submission | 3/hr/device | SHA-256(IP + User-Agent) |
+| Admin/firm login | 5 attempts/15min/IP | IP only |
+| Pre-registration notify | 3/hr/device | SHA-256(IP + User-Agent) |
+| Status check | 5/12hr/device | SHA-256(IP + User-Agent) |

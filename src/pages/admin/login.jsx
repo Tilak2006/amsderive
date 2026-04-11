@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import Link from 'next/link';
-import { signInWithEmailAndPassword, onAuthStateChanged } from 'firebase/auth';
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
 
@@ -49,11 +49,21 @@ export default function AdminLogin() {
 
           if (user) {
             try {
-              // Ensure __session cookie is set before navigating,
-              // otherwise Edge Middleware will redirect back here
+              // Exchange ID token for an HttpOnly server-side session cookie.
+              // The cookie is set by the server — JS never touches it.
               const token = await user.getIdToken();
-              document.cookie = `__session=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
-              router.replace('/admin/dashboard');
+              const res = await fetch('/api/auth/session', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: 'admin' }),
+              });
+              if (res.ok) {
+                router.replace('/admin/dashboard');
+              } else {
+                // Token valid but no admin claim — sign out and show form
+                await signOut(auth);
+                setChecking(false);
+              }
             } catch {
               setChecking(false);
             }
@@ -131,9 +141,20 @@ export default function AdminLogin() {
 
     try {
       const cred = await signInWithEmailAndPassword(auth, cleanEmail, cleanPassword);
-      // Set a lightweight session cookie for Edge Middleware pre-check
       const token = await cred.user.getIdToken();
-      document.cookie = `__session=${token}; path=/; max-age=${8 * 60 * 60}; SameSite=Strict; Secure`;
+      // Exchange for an HttpOnly server-side session cookie
+      const sessionRes = await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin' }),
+      });
+      if (!sessionRes.ok) {
+        // Signed in but not an admin — sign out and show error
+        await signOut(auth);
+        setError('This account does not have admin access.');
+        setLoading(false);
+        return;
+      }
       router.push('/admin/dashboard');
     } catch {
       setError('Invalid credentials.');

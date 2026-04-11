@@ -1,14 +1,14 @@
 /**
  * POST /api/firm/get-registrants
  *
- * Returns all approved registrants (name, institution, round, CF handle)
- * for authenticated firm partners.
- *
- * Access gating:
+ * Returns all approved registrants for authenticated firm partners.
+ * Access is gated by the firm's Firestore access flags:
  *   - derivation tier: 403 ACCESS_DENIED
  *   - access.registrantProfiles !== true: 403 ACCESS_LOCKED
+ *   - access.resumeDownload: controls whether resumeUrl/transcriptUrl are included
+ *   - access.linkedinAccess: controls whether linkedIn is included
  *
- * Never returns: email, phoneNumber, ipHash, resumeUrl, linkedIn.
+ * Never returns: email, phoneNumber, ipHash.
  *
  * Supports cursor-based pagination via `after` (last doc ID) and `limit` (default 50).
  */
@@ -87,6 +87,8 @@ export default async function handler(req, res) {
     });
   }
 
+  const { resumeDownload, linkedinAccess } = firmData.access || {};
+
   const { after, limit: limitParam } = req.body;
   const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
 
@@ -116,14 +118,25 @@ export default async function handler(req, res) {
 
     const registrants = page.map((doc) => {
       const d = doc.data();
-      return {
+      const entry = {
         id: doc.id,
         fullName: d.fullName,
         university: d.university,
         round: d.round || null,
         codeforcesHandle: d.codeforcesHandle,
-        submittedAt: d.submittedAt,
+        gitHub: d.gitHub || null,
+        submittedAt: d.submittedAt?.toDate?.()?.toISOString?.() ?? null,
       };
+      if (resumeDownload) {
+        entry.resumeUrl = d.resumeUrl || null;
+        entry.resumeFileName = d.resumeFileName || null;
+        entry.transcriptUrl = d.transcriptUrl || null;
+        entry.transcriptFileName = d.transcriptFileName || null;
+      }
+      if (linkedinAccess) {
+        entry.linkedIn = d.linkedIn || null;
+      }
+      return entry;
     });
 
     logger.info('firms', 'registrants_fetched', {
@@ -137,6 +150,10 @@ export default async function handler(req, res) {
       count: docs.length,
       hasMore,
       lastId: page.length > 0 ? page[page.length - 1].id : null,
+      access: {
+        resumeDownload: !!resumeDownload,
+        linkedinAccess: !!linkedinAccess,
+      },
     });
   } catch (err) {
     logger.error('firms', 'registrants_query_error', {

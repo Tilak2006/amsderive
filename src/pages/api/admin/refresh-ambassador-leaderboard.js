@@ -8,6 +8,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import { requireAdmin } from '../../../lib/adminAuth';
 import { AMBASSADOR_REF_MAP } from '../../../lib/ambassador-codes';
 
 if (!admin.apps.length) {
@@ -32,14 +33,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
   }
 
   try {

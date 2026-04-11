@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Edge Proxy — Admin & Firm Auth Pre-Check
+ * Edge Middleware — Admin & Firm Auth Pre-Check
  *
- * Runs at the edge (closest CDN node) before any page JS loads.
- * Soft guard only — authoritative check remains client-side Firebase auth.
- * Prevents unnecessary download + render of protected page JS for
- * clearly unauthenticated visitors.
+ * The __session and __firmSession cookies are now Firebase session cookies
+ * minted server-side (HttpOnly). The edge runtime cannot run the Admin SDK,
+ * so this remains a soft structural guard (cookie presence check).
+ *
+ * The authoritative check is performed by every API route via requireAdmin()
+ * (admin.auth().verifyIdToken) and by each page's first API call which
+ * validates the session cookie server-side via admin.auth().verifySessionCookie().
+ *
+ * Because cookies are now HttpOnly, they cannot be set or read by client JS,
+ * so an attacker cannot forge them via XSS.
  */
 export function proxy(request) {
   const { pathname } = request.nextUrl;
@@ -16,7 +22,7 @@ export function proxy(request) {
     return NextResponse.next();
   }
 
-  // Guard /admin/* (soft pre-check, authoritative check is client-side Firebase auth)
+  // Guard /admin/* — redirect to login if no session cookie present
   if (pathname.startsWith('/admin/')) {
     if (pathname === '/admin/login') return NextResponse.next();
     const session = request.cookies.get('__session');
@@ -25,7 +31,7 @@ export function proxy(request) {
     }
   }
 
-  // Guard /firm/* (soft pre-check, authoritative check is client-side Firebase auth)
+  // Guard /firm/* — redirect to login if no firm session cookie present
   if (pathname.startsWith('/firm/')) {
     if (pathname === '/firm/login') return NextResponse.next();
     const firmSession = request.cookies.get('__firmSession');

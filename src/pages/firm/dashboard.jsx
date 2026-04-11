@@ -103,6 +103,8 @@ export default function FirmDashboard() {
   const [registrantsHasMore, setRegistrantsHasMore] = useState(false);
   const [registrantsLastId, setRegistrantsLastId] = useState(null);
   const [registrantsSearch, setRegistrantsSearch] = useState('');
+  const [registrantsAccess, setRegistrantsAccess] = useState(null);
+  const [selectedRegistrant, setSelectedRegistrant] = useState(null);
 
   // Leaderboard state
   const [leaderboardData, setLeaderboardData] = useState(null);
@@ -195,6 +197,7 @@ export default function FirmDashboard() {
       setRegistrantsTotal(data.count);
       setRegistrantsHasMore(data.hasMore);
       setRegistrantsLastId(data.lastId);
+      if (data.access) setRegistrantsAccess(data.access);
     } catch {
       setRegistrantsAccessError('Failed to load registrant data.');
     } finally {
@@ -297,7 +300,15 @@ export default function FirmDashboard() {
   }, [analyticsData]);
 
   async function handleLogout() {
-    document.cookie = '__firmSession=; path=/; max-age=0; SameSite=Strict; Secure';
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'firm' }),
+      });
+    } catch {
+      // Proceed with client-side logout even if server call fails
+    }
     await signOut(auth);
     router.push('/firm/login');
   }
@@ -309,6 +320,18 @@ export default function FirmDashboard() {
   async function handleViewResume(finalist) {
     if (!finalist.resumeUrl) return;
     window.open(finalist.resumeUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  async function handleViewFile(fileUrl) {
+    if (!fileUrl) return;
+    const headers = await getAuthHeader(user);
+    const res = await fetch('/api/firm/get-signed-url', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fileUrl }),
+    });
+    const data = await res.json();
+    if (data.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
   }
 
   function getTierBadgeClass(tier) {
@@ -619,7 +642,7 @@ export default function FirmDashboard() {
 
           {/* ── REGISTRANTS TAB ── */}
           {activeTab === 'registrants' && (
-            <div>
+            <div className={selectedRegistrant ? styles.splitLayout : undefined}>
               {firmProfile?.tier === 'derivation' ? (
                 <div className={styles.accessDenied}>
                   <div className={styles.accessDeniedIcon}>🔒</div>
@@ -686,7 +709,12 @@ export default function FirmDashboard() {
                             );
                           })
                           .map((r, i) => (
-                            <tr key={r.id} className={styles.leaderboardTr}>
+                            <tr
+                              key={r.id}
+                              className={`${styles.leaderboardTr} ${selectedRegistrant?.id === r.id ? styles.leaderboardTrSelected : ''}`}
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => setSelectedRegistrant(selectedRegistrant?.id === r.id ? null : r)}
+                            >
                               <td className={styles.leaderboardTd}>
                                 <span className={styles.rankMuted}>{i + 1}</span>
                               </td>
@@ -708,6 +736,7 @@ export default function FirmDashboard() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className={styles.handleLink}
+                                    onClick={(e) => e.stopPropagation()}
                                   >
                                     {r.codeforcesHandle}
                                   </a>
@@ -733,6 +762,100 @@ export default function FirmDashboard() {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* Detail panel — shown when a registrant row is selected */}
+              {selectedRegistrant && (
+                <aside className={styles.detailPanel}>
+                  <div className={styles.panelHeader}>
+                    <span className={styles.panelTitle}>{selectedRegistrant.fullName}</span>
+                    <button
+                      className={styles.panelClose}
+                      onClick={() => setSelectedRegistrant(null)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Institution</span>
+                    <span className={styles.panelValue}>{selectedRegistrant.university || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Round</span>
+                    <span className={styles.panelValue} style={{ textTransform: 'uppercase', color: '#D4AF37' }}>
+                      {selectedRegistrant.round || '—'}
+                    </span>
+                  </div>
+
+                  {selectedRegistrant.codeforcesHandle && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>CF Handle</span>
+                      <a
+                        href={`https://codeforces.com/profile/${selectedRegistrant.codeforcesHandle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        {selectedRegistrant.codeforcesHandle}
+                      </a>
+                    </div>
+                  )}
+
+                  {selectedRegistrant.gitHub && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>GitHub</span>
+                      <a
+                        href={selectedRegistrant.gitHub}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        {selectedRegistrant.gitHub.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
+                      </a>
+                    </div>
+                  )}
+
+                  {registrantsAccess?.linkedinAccess && selectedRegistrant.linkedIn && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>LinkedIn</span>
+                      <a
+                        href={selectedRegistrant.linkedIn}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        View Profile
+                      </a>
+                    </div>
+                  )}
+
+                  <div className={styles.panelFileActions}>
+                    {registrantsAccess?.resumeDownload ? (
+                      <>
+                        <button
+                          className={styles.panelActionBtn}
+                          disabled={!selectedRegistrant.resumeUrl}
+                          onClick={() => handleViewFile(selectedRegistrant.resumeUrl)}
+                        >
+                          VIEW RESUME
+                        </button>
+                        <button
+                          className={styles.panelActionBtn}
+                          disabled={!selectedRegistrant.transcriptUrl}
+                          onClick={() => handleViewFile(selectedRegistrant.transcriptUrl)}
+                        >
+                          VIEW TRANSCRIPT
+                        </button>
+                      </>
+                    ) : (
+                      <p className={styles.panelLockedNote}>
+                        Resume &amp; transcript access not included in your tier.
+                      </p>
+                    )}
+                  </div>
+                </aside>
               )}
             </div>
           )}
