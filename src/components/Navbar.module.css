@@ -8,7 +8,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 60px;
-  background: transparent;
+  background: rgba(5, 5, 5, 0.72); /* fallback for browsers without backdrop-filter */
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(212, 175, 55, 0.08);
   z-index: 1000;

@@ -55,7 +55,10 @@
     height: 100% !important;
     pointer-events: none;
     touch-action: none;
-    /* will-change set in JS on renderer.domElement for better timing */
+    /* will-change is set immediately in JS on renderer.domElement right after
+       the WebGL context is created, promoting the canvas to its own GPU
+       compositor layer before any DOM updates (e.g. countdown ticks) can
+       trigger a repaint on it. */
 }
 
 /*

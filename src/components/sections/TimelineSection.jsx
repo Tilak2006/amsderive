@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import Link from 'next/link';
 import styles from '../../styles/timeline.module.css';
 
@@ -45,29 +46,27 @@ function getPhase(timestamp) {
 }
 
 const TimelineSection = () => {
-  const now = new Date();
-  const phases = EVENTS.map(e => getPhase(e.timestamp));
+  const { now, phases, goldWidthPct } = useMemo(() => {
+    const n = new Date();
+    const ph = EVENTS.map(e => getPhase(e.timestamp));
 
-  // How many columns are "past" — drives the gold line fill
-  const pastCount = phases.filter(p => p === 'past').length;
-  const activeIdx = phases.indexOf('active');
+    const pastCount = ph.filter(p => p === 'past').length;
+    const activeIdx = ph.indexOf('active');
 
-  // gold line covers: all past nodes + half-step to active node centre
-  // each col is 25% wide, node centre is at col-midpoint = (i + 0.5) * 25%
-  // track line spans col 0 centre → col 3 centre = 75% of track width
-  // expressed as % of track::after width space (which is 75% of container)
-  let goldFraction = 0;
-  if (pastCount > 0 || activeIdx >= 0) {
-    const lastFilledIdx = activeIdx >= 0 ? activeIdx : pastCount - 1;
-    // node centres: col i → position (i * 25 + 12.5)% across the full container
-    // but track::after starts at 12.5% and ends at 87.5% (75% total)
-    // gold fill = distance from first node to current node / total span
-    const totalSpan = 75; // percent: from 12.5% to 87.5%
-    const filledSpan = lastFilledIdx * 25;
-    goldFraction = Math.min(filledSpan / totalSpan, 1);
-  }
+    let goldFraction = 0;
+    if (pastCount > 0 || activeIdx >= 0) {
+      const lastFilledIdx = activeIdx >= 0 ? activeIdx : pastCount - 1;
+      const totalSpan = 75;
+      const filledSpan = lastFilledIdx * 25;
+      goldFraction = Math.min(filledSpan / totalSpan, 1);
+    }
 
-  const goldWidthPct = `${Math.round(goldFraction * 100)}%`;
+    return {
+      now: n,
+      phases: ph,
+      goldWidthPct: `${Math.round(goldFraction * 100)}%`,
+    };
+  }, []);
 
   return (
     <section id="timeline" className={styles.timelineSection}>

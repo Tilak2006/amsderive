@@ -109,6 +109,7 @@ function SponsorCard({ sponsor, size, isApex }) {
           width={imgW}
           height={imgH}
           className={s.logoImg}
+          priority={isApex}
         />
       </a>
     </div>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useState, Suspense, useEffect } from 'react';
+import { memo, useCallback, useState, Suspense, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
@@ -94,10 +94,12 @@ const HeroContent = memo(function HeroContent() {
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function LandingPage() {
-  const [isHydrated, setIsHydrated] = useState(false);
+  const sectionsRef = useRef(null);
 
   useEffect(() => {
-    setIsHydrated(true);
+    if (sectionsRef.current) {
+      sectionsRef.current.dataset.hydrated = 'true';
+    }
   }, []);
 
   return (
@@ -176,19 +178,17 @@ export default function LandingPage() {
         <span className={styles.heroTopoLabel} />
       </main>
 
-      {isHydrated && (
-        <div className={pageStyles.contentSections}>
-          <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
-            <FadeInSection><AboutSection /></FadeInSection>
-            <FadeInSection><SponsorsSection /></FadeInSection>
-            <FadeInSection><CompetitionSection /></FadeInSection>
-            {/* <FadeInSection><SyllabusSection /></FadeInSection> */}
-            <FadeInSection><TimelineSection /></FadeInSection>
-            <FadeInSection><WhoSection /></FadeInSection>
-            {/* <FadeInSection><AMSAboutSection /></FadeInSection> */}
-          </Suspense>
-        </div>
-      )}
+      <div ref={sectionsRef} className={pageStyles.contentSections}>
+        <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
+          <FadeInSection><AboutSection /></FadeInSection>
+          <FadeInSection><SponsorsSection /></FadeInSection>
+          <FadeInSection><CompetitionSection /></FadeInSection>
+          {/* <FadeInSection><SyllabusSection /></FadeInSection> */}
+          <FadeInSection><TimelineSection /></FadeInSection>
+          <FadeInSection><WhoSection /></FadeInSection>
+          {/* <FadeInSection><AMSAboutSection /></FadeInSection> */}
+        </Suspense>
+      </div>
 
       <Footer />
     </>

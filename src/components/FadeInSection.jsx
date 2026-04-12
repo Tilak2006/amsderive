@@ -7,6 +7,10 @@ const FadeInSection = ({ children }) => {
   const domRef = useRef();
 
   useEffect(() => {
+    // rootMargin: eagerly triggers bundle load before section enters viewport.
+    // 200px was too aggressive on mobile — loads 2-3 sections simultaneously
+    // on a 375px screen. 100px desktop / 60px mobile is sufficient lookahead.
+    const rootMargin = window.innerWidth < 768 ? '60px' : '100px';
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -19,9 +23,7 @@ const FadeInSection = ({ children }) => {
           }, 1100);
         }
       });
-    }, { threshold: 0.05, rootMargin: '200px' });
-    // rootMargin: '200px' starts loading the section's JS bundle 200px before
-    // it enters the viewport, so content is ready before the user scrolls to it.
+    }, { threshold: 0.05, rootMargin });
 
     const { current } = domRef;
     if (current) observer.observe(current);

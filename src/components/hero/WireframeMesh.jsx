@@ -137,10 +137,22 @@ function WireframeMesh() {
       return;
     }
 
-    // Defer heavy Three.js init off the critical rendering path.
-    // This gives React hydration and FCP a clear 300ms window before
-    // the geometry build + WebGL context creation hits the main thread.
-    let initTimer = setTimeout(() => {
+    // Defer heavy Three.js init to genuine browser idle time so it never
+    // competes with React hydration or FCP.  requestIdleCallback fires when
+    // the main thread has spare capacity; the 2000ms timeout is a hard
+    // upper-bound fallback (also covers Safari which lacks rIC).
+    const scheduleInit = (cb) => {
+      if (typeof requestIdleCallback === 'function') {
+        return { type: 'ric', id: requestIdleCallback(cb, { timeout: 2000 }) };
+      }
+      return { type: 'timeout', id: setTimeout(cb, 0) };
+    };
+    const cancelInit = (handle) => {
+      if (handle.type === 'ric') cancelIdleCallback(handle.id);
+      else clearTimeout(handle.id);
+    };
+
+    let initHandle = scheduleInit(() => {
     const isMobile = window.innerWidth < 768;
     const gridSize = 256;
     const gridExtent = 10;
@@ -497,9 +509,9 @@ function WireframeMesh() {
         container.removeChild(renderer.domElement);
       }
     };
-    }, 300); // end of deferred init
+    }); // end of deferred init
 
-    return () => clearTimeout(initTimer);
+    return () => cancelInit(initHandle);
   }, []);
 
   return <div ref={containerRef} className={styles.wireframeMeshContainer} />;
