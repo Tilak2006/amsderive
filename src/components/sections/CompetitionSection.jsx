@@ -1,39 +1,54 @@
-import styles from '../../styles/sections.module.css';
+import styles from '../../styles/competition.module.css';
 
-const CompetitionSection = () => {
-  return (
-    <section id="competition" className={styles.section}>
-      <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>3-Round Structure</h2>
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>01</div>
-            <div className={styles.cardTitle}>PRIOR</div>
-            <div className={styles.cardSubtitle}>Mathematical Modeling · Online · May 23, 2026</div>
-            <p className={styles.cardText}>
-              Problems drawn from probability, stochastic processes, expected value, and distribution theory. No templates provided. Individual participation. Build models from first principles, show your reasoning in full.
-            </p>
+const ROUNDS = [
+  {
+    num: '01',
+    title: 'PRIOR',
+    tags: ['Individual', 'Online'],
+    what: 'Mathematical Modeling',
+    text: 'Problems drawn from probability theory, stochastic processes, expected value, and distribution theory. No templates provided. Build models from first principles and show your full reasoning, partial credit awarded for methodology.',
+  },
+  {
+    num: '02',
+    title: 'POSTERIOR',
+    tags: ['Individual', 'Online'],
+    what: 'Algorithmic + Quant Thinking',
+    text: 'Competitive-programming problems with a quantitative layer. Correct answers alone are not enough, solutions must be efficient and handle edge cases under tight constraints. Filters verified Round 1 performers.',
+  },
+  {
+    num: '03',
+    title: 'CONVERGENCE',
+    tags: ['Teams of 3', 'Offline Finals'],
+    what: 'Open-Ended Firm Problems',
+    text: 'Real-world problems co-designed with partner firms. No single correct answer. Evaluated on problem framing, reasoning depth, execution quality, and communication. Finals hosted at one of the prestigious IITs.',
+  },
+];
+
+const CompetitionSection = () => (
+  <section id="competition" className={styles.section}>
+    <div className={styles.container}>
+      <span className={styles.eyebrow}>What You Will Face</span>
+      <h2 className={styles.title}>3-Round Structure</h2>
+      <div className={styles.rows}>
+        {ROUNDS.map(({ num, title, tags, what, text }) => (
+          <div key={num} className={styles.row}>
+            <div className={styles.rowLeft}>
+              <span className={styles.num}>{num}</span>
+              <div className={styles.roundName}>{title}</div>
+              <div className={styles.what}>{what}</div>
+              <div className={styles.tags}>
+                {tags.map(t => (
+                  <span key={t} className={styles.tag}>{t}</span>
+                ))}
+              </div>
+            </div>
+            <div className={styles.dividerVert} />
+            <p className={styles.text}>{text}</p>
           </div>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>02</div>
-            <div className={styles.cardTitle}>POSTERIOR</div>
-            <div className={styles.cardSubtitle}>Algorithmic + Quant Thinking · Online · June 21, 2026</div>
-            <p className={styles.cardText}>
-              Competitive-programming style problems with a quantitative layer. Correct answers are not enough — solutions must be efficient and handle edge cases under constraints. Individual participation.
-            </p>
-          </div>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>03</div>
-            <div className={styles.cardTitle}>CONVERGENCE</div>
-            <div className={styles.cardSubtitle}>Final Round · In-Person, Offline · July 11, 2026</div>
-            <p className={styles.cardText}>
-              Open-ended, real-world problems co-designed with partner firms. Teams formed on-site. No single correct answer — evaluated on problem framing, reasoning depth, execution, and communication.
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default CompetitionSection;

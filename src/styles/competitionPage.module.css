@@ -1,0 +1,488 @@
+/* ── Competition Page ── */
+.page {
+  padding: 120px 24px 80px;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 860px;
+  width: 100%;
+}
+
+/* ── Header ── */
+.header {
+  margin-bottom: 64px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
+  color: rgba(212, 175, 55, 0.45);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #555;
+  line-height: 1.8;
+  max-width: 640px;
+}
+
+/* ── Section label ── */
+.sectionLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
+  color: rgba(212, 175, 55, 0.4);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  display: block;
+}
+
+/* ── Round cards ── */
+.roundCard {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 2px;
+  margin-bottom: 2px;
+  display: grid;
+  grid-template-columns: 240px 1px 1fr;
+  transition: border-color 0.25s ease, background 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.roundCard::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: #D4AF37;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.roundCard:hover::before { opacity: 1; }
+.roundCard:hover { background: #111111; border-color: rgba(212, 175, 55, 0.22); }
+
+/* Left column */
+.roundLeft {
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roundNum {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.2em;
+  color: rgba(212, 175, 55, 0.3);
+  text-transform: uppercase;
+}
+
+.roundName {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: #D4AF37;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.roundWhat {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  color: #f0ede6;
+  opacity: 0.4;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+/* Pill badges */
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.badge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #888;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+
+/* Vertical divider */
+.colDivider {
+  background: rgba(212, 175, 55, 0.08);
+  align-self: stretch;
+}
+
+/* Right column */
+.roundRight {
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+.roundBody {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #909090;
+  line-height: 1.85;
+  margin: 0;
+}
+
+.evaluatedRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.evaluatedLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.55);
+  margin-right: 4px;
+}
+
+.evalBadge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #666;
+  background: #131313;
+  border: 1px solid #222;
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+
+/* ── Philosophy card ── */
+.card {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 2px;
+  padding: 40px 44px;
+  margin-bottom: 2px;
+}
+
+.cardTitle {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #D4AF37;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  opacity: 0.8;
+}
+
+/* Philosophy items */
+.philoList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.philoItem {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.philoBullet {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  color: #D4AF37;
+  opacity: 0.6;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.philoText {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #777;
+  line-height: 1.85;
+}
+
+.philoText strong {
+  color: #e8e8e8;
+  font-weight: 600;
+}
+
+/* Rewarded / not rewarded rows */
+.rewardRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.rewardRow + .rewardRow {
+  border-top: none;
+  padding-top: 8px;
+}
+
+.rewardLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(212, 175, 55, 0.55);
+  margin-right: 4px;
+}
+
+.rewardLabelMuted {
+  color: rgba(255, 255, 255, 0.15);
+}
+
+.rewardBadge {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+  background: #111;
+  border: 1px solid #1e1e1e;
+  border-radius: 2px;
+  padding: 3px 8px;
+}
+
+/* ── Timeline ── */
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineRow {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 24px;
+  align-items: baseline;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.timelineRow:last-child { border-bottom: none; }
+
+.tlDate {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  color: #D4AF37;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.tlEvent {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #888;
+  line-height: 1.6;
+}
+
+.timelineNote {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: #3a3a3a;
+  line-height: 1.7;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.timelineNote a {
+  color: #D4AF37;
+  text-decoration: none;
+}
+
+/* ── Final round card ── */
+.finalList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.finalItem {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.finalBullet {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  color: #D4AF37;
+  opacity: 0.5;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.finalText {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #888;
+  line-height: 1.8;
+}
+
+/* ── CTA block ── */
+.ctaBlock {
+  margin-top: 48px;
+  padding: 44px 44px 40px;
+  background: linear-gradient(180deg, #0e0e0e 0%, #0a0a0a 100%);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.ctaLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
+  color: rgba(212, 175, 55, 0.35);
+  text-transform: uppercase;
+}
+
+.ctaButtons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ctaPrimary {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #D4AF37;
+  padding: 14px 36px;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: opacity 0.2s ease;
+}
+
+.ctaPrimary:hover { opacity: 0.85; color: #0a0a0a; }
+
+.ctaSecondary {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  padding: 13px 28px;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.ctaSecondary:hover { border-color: rgba(212, 175, 55, 0.7); color: #D4AF37; }
+
+.ctaTertiary {
+  display: inline-block;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #444;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 13px 28px;
+  text-decoration: none;
+  border-radius: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.ctaTertiary:hover { color: #888; border-color: rgba(255, 255, 255, 0.15); }
+
+/* ── Back link ── */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.08em;
+  color: #3a3a3a;
+  text-decoration: none;
+  margin-top: 32px;
+  transition: color 0.2s ease;
+}
+
+.backLink:hover { color: #D4AF37; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page { padding: 80px 24px 60px; }
+
+  .roundCard {
+    grid-template-columns: 1fr;
+  }
+
+  .colDivider {
+    height: 1px;
+    width: 100%;
+  }
+
+  .roundLeft { padding: 28px 24px 20px; }
+  .roundRight { padding: 20px 24px 28px; }
+
+  .card { padding: 28px 24px; }
+
+  .timelineRow {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 16px 0;
+  }
+
+  .ctaBlock { padding: 32px 24px; }
+
+  .ctaButtons { flex-direction: column; align-items: flex-start; }
+  .ctaPrimary, .ctaSecondary, .ctaTertiary { width: 100%; text-align: center; }
+}

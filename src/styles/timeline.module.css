@@ -1,0 +1,338 @@
+/* ── Timeline Section ── */
+.timelineSection {
+  padding: 120px 24px;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 1px solid rgba(212, 175, 55, 0.05);
+}
+
+.container {
+  max-width: 1100px;
+  width: 100%;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
+  color: rgba(212, 175, 55, 0.5);
+  text-transform: uppercase;
+  text-align: center;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: clamp(1.25rem, 2.5vw, 1.625rem);
+  font-weight: 700;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 72px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+/* ── Connector track (desktop) ── */
+.track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Horizontal line running through all node centres */
+.track::before {
+  content: '';
+  position: absolute;
+  top: 20px; /* vertically centred on the 40px node */
+  left: calc(12.5%); /* start at centre of col 1 */
+  right: calc(12.5%); /* end at centre of col 4 */
+  height: 1px;
+  background: rgba(212, 175, 55, 0.15);
+  z-index: 0;
+}
+
+/* Gold fill — width set via inline CSS var */
+.track::after {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: calc(12.5%);
+  width: var(--gold-width, 0%);
+  height: 1px;
+  background: #D4AF37;
+  z-index: 0;
+  transition: width 0.6s ease;
+}
+
+/* ── Each column ── */
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+  cursor: default;
+  transition: transform 0.3s ease;
+}
+
+.col:hover {
+  transform: translateY(-4px);
+}
+
+/* ── Node ── */
+.node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  color: rgba(212, 175, 55, 0.35);
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 2;
+  transition: border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  flex-shrink: 0;
+}
+
+.nodePast {
+  border-color: #D4AF37;
+  background: #D4AF37;
+  color: #0a0a0a;
+}
+
+.nodeActive {
+  border-color: #D4AF37;
+  background: #0a0a0a;
+  color: #D4AF37;
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.12), 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+/* ── Card body ── */
+.card {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.08);
+  border-radius: 2px;
+  padding: 28px 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+/* top accent line */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #D4AF37;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.col:hover .card::before {
+  opacity: 1;
+}
+
+.col:hover .card {
+  border-color: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* past card — solid gold border */
+.cardPast {
+  border-color: rgba(212, 175, 55, 0.2);
+}
+
+/* active card — gold glow */
+.cardActive {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: #101008;
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.15), 0 8px 40px rgba(212, 175, 55, 0.08);
+}
+
+.cardActive::before {
+  opacity: 1;
+}
+
+/* future card — dimmed */
+.cardFuture {
+  border-color: rgba(255, 255, 255, 0.04);
+  opacity: 0.65;
+}
+
+.col:hover .cardFuture {
+  opacity: 1;
+}
+
+/* ── Card content ── */
+.date {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  font-weight: 600;
+  color: #D4AF37;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.dateFuture {
+  color: rgba(212, 175, 55, 0.4);
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: #f0ede6;
+  letter-spacing: 0.04em;
+  margin-bottom: 12px;
+}
+
+.cardTitleFuture {
+  color: #555;
+}
+
+.cardDesc {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #888;
+  line-height: 1.75;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  margin-top: auto;
+}
+
+/* ── Active badge ── */
+.activeBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  margin-bottom: 10px;
+}
+
+.activeDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #D4AF37;
+  animation: pulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0); }
+}
+
+/* ── CTA button inside first card ── */
+.ctaBtn {
+  display: inline-block;
+  margin-top: 16px;
+  padding: 8px 16px;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #D4AF37;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  align-self: flex-start;
+}
+
+.ctaBtn:hover {
+  opacity: 0.85;
+  text-decoration: none;
+  color: #0a0a0a;
+}
+
+.ctaBtnDisabled {
+  background: rgba(212, 175, 55, 0.15);
+  color: rgba(212, 175, 55, 0.5);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Mobile: vertical timeline ── */
+@media (max-width: 768px) {
+  .timelineSection {
+    padding: 80px 24px;
+  }
+
+  .title {
+    margin-bottom: 48px;
+  }
+
+  .track {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* vertical line on the left */
+  .track::before {
+    top: 20px;
+    left: 19px; /* centre of 40px node */
+    right: auto;
+    bottom: 20px;
+    width: 1px;
+    height: auto;
+  }
+
+  .track::after {
+    top: 20px;
+    left: 19px;
+    right: auto;
+    bottom: auto;
+    width: 1px;
+    height: var(--gold-height, 0px);
+    transition: height 0.6s ease;
+  }
+
+  .col {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
+    padding-bottom: 24px;
+  }
+
+  .col:hover {
+    transform: none;
+  }
+
+  .col:last-child {
+    padding-bottom: 0;
+  }
+
+  .node {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .card {
+    flex: 1;
+  }
+}

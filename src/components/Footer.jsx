@@ -51,6 +51,7 @@ const Footer = () => {
           <div className={styles.linkCol}>
             <h3 className={styles.colTitle}>LEGAL</h3>
             <ul className={styles.linkList}>
+              <li><Link href="/faq">FAQ</Link></li>
               <li><Link href="/terms">Terms of Service</Link></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
               <li><Link href="/rules">Rules &amp; Guidelines</Link></li>

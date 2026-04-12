@@ -1,33 +1,39 @@
 import styles from '../../styles/sections.module.css';
 
-const AboutSection = () => {
-  return (
-    <section id="about" className={styles.section}>
-      <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>About AMS DERIVE</h2>
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>First Principles Thinking</div>
-            <p className={styles.cardText}>
-              Problems derived from probability theory, Bayesian inference, and market microstructure. No standard DSA templates applicable.
-            </p>
+const CARDS = [
+  {
+    index: '01',
+    title: 'First Principles Thinking',
+    text: 'Problems derived from probability theory, Bayesian inference, and market microstructure. No standard DSA templates applicable.',
+  },
+  {
+    index: '02',
+    title: 'Structured Problem Solving',
+    text: 'Stochastic processes, options pricing, and reasoning under uncertainty. Build strategies that survive market constraints.',
+  },
+  {
+    index: '03',
+    title: 'Derivation, Not Pattern Recognition',
+    text: 'AMS evaluates how you think, not just what you produce. Process matters. Reasoning ability. Communication.',
+  },
+];
+
+const AboutSection = () => (
+  <section id="about" className={styles.section}>
+    <div className={styles.container}>
+      <span className={styles.sectionEyebrow}>What We Test</span>
+      <h2 className={styles.sectionTitle}>About AMS Derive</h2>
+      <div className={styles.grid}>
+        {CARDS.map(({ index, title, text }) => (
+          <div key={index} className={styles.card}>
+            <span className={styles.cardIndex}>{index}</span>
+            <div className={styles.cardTitle}>{title}</div>
+            <p className={styles.cardText}>{text}</p>
           </div>
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>Structured Problem Solving</div>
-            <p className={styles.cardText}>
-              Stochastic processes, options pricing, and reasoning under uncertainty. Build strategies that survive market constraints.
-            </p>
-          </div>
-          <div className={styles.card}>
-            <div className={styles.cardTitle}>Derivation, Not Pattern Recognition</div>
-            <p className={styles.cardText}>
-              AMS evaluates how you think, not just what you produce. Process matters. Reasoning ability. Communication.
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default AboutSection;
