@@ -1,16 +1,18 @@
 import { Html, Head, Main, NextScript } from 'next/document';
-import { ptSerif, ibmPlexMono } from '../lib/fonts';
+import { ptSerif, ibmPlexMono, jetBrainsMono, oswald, inter } from '../lib/fonts';
 
 export default function Document() {
   return (
-    <Html lang="en" className={`${ptSerif.variable} ${ibmPlexMono.variable}`}>
+    <Html
+      lang="en"
+      className={`${ptSerif.variable} ${ibmPlexMono.variable} ${jetBrainsMono.variable} ${inter.variable} ${oswald.variable}`}
+    >
       <Head>
         <meta name="theme-color" content="#0a0a0a" />
-        
 
         {/* DNS prefetch for Firebase domain resolution */}
         <link rel="dns-prefetch" href="https://firebaseapp.com" />
-        
+
         {/* Prefetch registration page for instant navigation */}
         <link rel="prefetch" href="/register" as="document" />
       </Head>

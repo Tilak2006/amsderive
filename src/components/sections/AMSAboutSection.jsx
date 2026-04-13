@@ -1,63 +1,133 @@
+import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import styles from '../../styles/about.module.css';
+import sponsorStyles from '../../styles/sponsors.module.css';
 
-const researchAreas = [
-  { id: '01', text: 'Stochastic processes & probabilistic modeling' },
-  { id: '02', text: 'Algorithmic game theory & market mechanisms' },
-  { id: '03', text: 'High-performance computing & architecture' },
-  { id: '04', text: 'Advanced combinatorics & number theory' },
-  { id: '05', text: 'Competitive programming with mathematical depth' },
-  { id: '06', text: 'Quantitative finance & strategy simulation' },
+const SYMBOLS = [
+  'σ', 'μ', '∂', '∫', 'Σ', 'Δ', 'λ', '∇', 'π', 'ℝ',
+  'E[X]', 'P(A|B)', '∞', 'α', 'β', 'γ', 'θ', '≈', '∈', '→',
 ];
 
+function randomBetween(a, b) {
+  return a + Math.random() * (b - a);
+}
+
+function spawnParticle(id) {
+  const edge = Math.floor(Math.random() * 4);
+  const symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+  const duration = randomBetween(1.6, 2.8);
+  const size = randomBetween(0.6, 0.95);
+
+  if (edge === 0) {
+    return { id, symbol, duration, size, left: randomBetween(0, 100), top: 0, tx: randomBetween(-20, 20), ty: randomBetween(-60, -100) };
+  } else if (edge === 1) {
+    return { id, symbol, duration, size, left: 100, top: randomBetween(0, 100), tx: randomBetween(40, 80), ty: randomBetween(-30, 30) };
+  } else if (edge === 2) {
+    return { id, symbol, duration, size, left: randomBetween(0, 100), top: 100, tx: randomBetween(-20, 20), ty: randomBetween(60, 100) };
+  } else {
+    return { id, symbol, duration, size, left: 0, top: randomBetween(0, 100), tx: randomBetween(-40, -80), ty: randomBetween(-30, 30) };
+  }
+}
+
+function AMSLogoCard() {
+  const [hovered, setHovered] = useState(false);
+  const [particles, setParticles] = useState([]);
+  const intervalRef = useRef(null);
+  const idRef = useRef(0);
+  const s = sponsorStyles;
+
+  useEffect(() => {
+    if (hovered) {
+      const spawn = () => {
+        const id = idRef.current++;
+        setParticles((prev) => [...prev.slice(-20), spawnParticle(id)]);
+      };
+      spawn();
+      intervalRef.current = setInterval(spawn, 180);
+    } else {
+      clearInterval(intervalRef.current);
+      setTimeout(() => setParticles([]), 2800);
+    }
+    return () => clearInterval(intervalRef.current);
+  }, [hovered]);
+
+  return (
+    <div
+      className={`${s.cardWrapper} ${hovered ? s.cardWrapperHovered : ''}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {particles.map((p) => (
+        <span
+          key={p.id}
+          className={s.mathParticle}
+          style={{
+            left: `${p.left}%`,
+            top: `${p.top}%`,
+            animationDuration: `${p.duration}s`,
+            fontSize: `${p.size}rem`,
+            '--tx': `${p.tx}px`,
+            '--ty': `${p.ty}px`,
+          }}
+        >
+          {p.symbol}
+        </span>
+      ))}
+      <div className={`${s.logoCard} ${s.logoCard_lg} ${hovered ? s.logoCardHovered : ''} ${styles.overrideLogoCard}`}>
+        <Image
+          src="/Derive_Logo.svg"
+          alt="AMS Derive"
+          width={300}
+          height={80}
+          className={s.logoImg}
+          style={{ height: 'auto' }}
+        />
+      </div>
+    </div>
+  );
+}
+
 const stats = [
-  { number: '1000+', label: 'High-Signal Members', desc: 'Curated network of top problem solvers.' },
-  { number: '1500+', label: 'Problems Solved', desc: 'Hours of deep computational work.' },
-  { number: '01', label: 'Global Contest', desc: 'Rigorous monthly algorithmic events.' },
+  { number: '2000+', label: 'High-Signal Members' },
+  { number: '1500+', label: 'Problems Solved' },
+  { number: '01', label: 'Global Contest' },
 ];
 
 const AMSAboutSection = () => {
   return (
     <section id="ams-about" className={styles.aboutPage}>
       <div className={styles.container}>
-        {/* ── Title ── */}
-        <h1 className={styles.pageTitle}>About AMS</h1>
+        {/* ── Section Title ── */}
+        <h2 className={styles.pageTitle}>About Us</h2>
 
-        {/* ── Mission ── */}
-        <div className={styles.missionBlock}>
-          <h2 className={styles.missionLead}>High-signal meritocracy.</h2>
-          <p className={styles.missionText}>
-            There are no passive observers here. Members engage in &ldquo;intellectual sparring&rdquo; dissecting problems, debating approaches, and designing their own market simulations. We value the thrill of the solve over the prestige of the rank.
-          </p>
-          <p className={styles.missionText}>
-            Beyond standard algorithms, we explore how code behaves in volatile environments. We analyze the trade-offs between theoretical purity and system performance, mirroring the intellectual demands of top-tier quantitative research firms.
-          </p>
-        </div>
-
-        <hr className={styles.divider} />
-
-        {/* ── Research & Application ── */}
-        <h2 className={styles.subsectionLabel}>Research &amp; Application</h2>
-        <div className={styles.researchGrid}>
-          {researchAreas.map((area) => (
-            <div key={area.id} className={styles.researchCard}>
-              <span className={styles.researchIndex}>{area.id}</span>
-              <span className={styles.researchText}>{area.text}</span>
+        {/* ── Top Block ── */}
+        <div className={styles.topBlock}>
+          <div className={styles.premiumHero}>
+            <div className={styles.heroLogo}>
+              <AMSLogoCard />
             </div>
-          ))}
-        </div>
-
-        <hr className={styles.divider} />
-
-        {/* ── The Talent Pool ── */}
-        <h2 className={styles.subsectionLabel}>The Talent Pool</h2>
-        <div className={styles.statsRow}>
-          {stats.map((stat, i) => (
-            <div key={i} className={styles.statCard}>
-              <div className={styles.statNumber}>{stat.number}</div>
-              <div className={styles.statLabel}>{stat.label}</div>
-              <p className={styles.statDesc}>{stat.desc}</p>
+            <div className={styles.heroContent}>
+              <div className={styles.heroText}>
+                <h1 className={styles.heroTitle}>High-Signal Meritocracy</h1>
+              </div>
+              <div className={styles.heroDescription}>
+                <p>
+                  For those who find standard algorithms insufficient. For those who think in markets, systems, and first principles.
+                </p>
+                <p>
+                  We don&apos;t rank by participation. We identify by rigor. Members engage in intellectual sparring, dissecting problems, debating approaches, designing simulations. We value the thrill of the solve over prestige.
+                </p>
+              </div>
+              <div className={styles.heroStats}>
+                {stats.map((s) => (
+                  <div key={s.label} className={styles.heroStat}>
+                    <span className={styles.heroStatNumber}>{s.number}</span>
+                    <span className={styles.heroStatLabel}>{s.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
+          </div>
         </div>
 
         <hr className={styles.divider} />

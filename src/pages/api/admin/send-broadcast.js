@@ -1,6 +1,8 @@
 import * as admin from 'firebase-admin';
 import { resend } from '../../../lib/resend';
 import { broadcastEmail } from '../../../emails/templates';
+import logger, { genReqId } from '../../../utils/logger';
+import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -29,17 +31,14 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth check — verify Firebase ID token
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
   }
 
+  const reqId = genReqId();
+  const handlerStart = Date.now();
   const { subject, body, roundFilter } = req.body;
 
   if (!subject?.trim() || !body?.trim()) {
@@ -79,9 +78,19 @@ export default async function handler(req, res) {
       try {
         await resend.batch.send(chunk);
         sent += chunk.length;
-        console.info(`[send-broadcast] Batch ${Math.floor(i / BATCH_SIZE) + 1}: sent ${chunk.length} emails`);
+        logger.info('admin', 'broadcast_batch_sent', {
+          reqId,
+          actorId: 'admin',
+          detail: { batchNumber: Math.floor(i / BATCH_SIZE) + 1, count: chunk.length, filter },
+          status: 'ok',
+        });
       } catch (batchErr) {
-        console.error(`[send-broadcast] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, batchErr.message);
+        logger.warn('admin', 'broadcast_batch_failed', {
+          reqId,
+          actorId: 'admin',
+          detail: { batchNumber: Math.floor(i / BATCH_SIZE) + 1, message: batchErr.message, filter },
+          status: 'degraded',
+        });
       }
 
       // Delay between batches to respect rate limits (skip after final batch)
@@ -90,10 +99,16 @@ export default async function handler(req, res) {
       }
     }
 
-    console.info(`[send-broadcast] Complete: ${sent}/${recipients.length} emails sent`);
+    logger.info('admin', 'broadcast_complete', {
+      reqId,
+      actorId: 'admin',
+      detail: { sent, total: recipients.length, filter },
+      status: 'ok',
+      durationMs: Date.now() - handlerStart,
+    });
     return res.status(200).json({ success: true, sent });
   } catch (error) {
-    console.error('[send-broadcast] Error:', error);
+    logger.error('admin', 'broadcast_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Broadcast failed.' });
   }
 }

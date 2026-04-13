@@ -10,9 +10,11 @@ import styles from '../../styles/firm.module.css';
 const ACCESS_FLAGS = [
   { key: 'leaderboard', label: 'Live Leaderboard' },
   { key: 'analytics', label: 'Performance Analytics' },
+  { key: 'registrantProfiles', label: 'Registrant Profiles' },
   { key: 'finalistProfiles', label: 'Finalist Profiles' },
   { key: 'resumeDownload', label: 'Resume Download' },
   { key: 'linkedinAccess', label: 'LinkedIn Access' },
+  { key: 'csvExport', label: 'CSV Export' },
   { key: 'psCoDesign', label: 'PS Co-Design (Apex)' },
   { key: 'namingRights', label: 'Naming Rights (Apex)' },
 ];
@@ -106,7 +108,15 @@ export default function AdminFirms() {
   }, [user, loadFirms]);
 
   async function handleLogout() {
-    document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin' }),
+      });
+    } catch {
+      // Proceed with client-side logout even if server call fails
+    }
     await signOut(auth);
     router.push('/admin/login');
   }

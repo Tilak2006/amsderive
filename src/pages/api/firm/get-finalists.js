@@ -11,6 +11,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -43,6 +44,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
+
   // Fetch firm profile and check access flags
   let firmData;
   try {
@@ -52,12 +55,18 @@ export default async function handler(req, res) {
     }
     firmData = firmSnap.data();
   } catch (err) {
-    console.error('[get-finalists] Firm lookup error:', err);
+    logger.error('firms', 'firm_lookup_error', { reqId, actorId: uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 
   // Derivation tier has no talent pool access at all
   if (firmData.tier === 'derivation') {
+    logger.warn('firms', 'finalists_access_denied', {
+      reqId,
+      actorId: uid,
+      detail: { reason: 'derivation_tier' },
+      status: 'blocked',
+    });
     return res.status(403).json({
       error: 'ACCESS_DENIED',
       message: 'Talent Pool access is not included in the Derivation tier.',
@@ -66,6 +75,12 @@ export default async function handler(req, res) {
 
   // finalistProfiles flag gates the entire dataset
   if (!firmData.access?.finalistProfiles) {
+    logger.warn('firms', 'finalists_access_denied', {
+      reqId,
+      actorId: uid,
+      detail: { reason: 'flag_locked' },
+      status: 'blocked',
+    });
     return res.status(403).json({
       error: 'ACCESS_LOCKED',
       message: 'Finalist profiles have not been unlocked yet. Check back soon.',
@@ -101,6 +116,12 @@ export default async function handler(req, res) {
       return entry;
     });
 
+    logger.info('firms', 'finalists_fetched', {
+      reqId,
+      actorId: uid,
+      detail: { count: finalists.length, resumeDownload: !!resumeDownload, linkedinAccess: !!linkedinAccess },
+      status: 'ok',
+    });
     return res.status(200).json({
       finalists,
       count: finalists.length,
@@ -110,7 +131,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-    console.error('[get-finalists] Query error:', err);
+    logger.error('firms', 'finalists_query_error', { reqId, actorId: uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

@@ -6,6 +6,8 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
+import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -25,15 +27,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
   }
+
+  const reqId = genReqId();
 
   try {
     const snapshot = await db.collection('firms').orderBy('createdAt', 'desc').get();
@@ -53,9 +53,15 @@ export default async function handler(req, res) {
       };
     });
 
+    logger.info('admin', 'firms_listed', {
+      reqId,
+      actorId: 'admin',
+      detail: { count: firms.length },
+      status: 'ok',
+    });
     return res.status(200).json({ firms });
   } catch (err) {
-    console.error('[get-firms] Error:', err);
+    logger.error('admin', 'firms_list_error', { reqId, actorId: 'admin', status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

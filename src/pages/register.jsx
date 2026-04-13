@@ -37,21 +37,36 @@ export default function Register() {
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [countData, setCountData] = useState(null);
 
-  // Fetch registration count on load
+  // Fetch registration count on load.
+  // sessionStorage caches for 60s so navigating back doesn't re-hit the API.
   useEffect(() => {
+    const CACHE_KEY = 'reg_count_cache';
+    const CACHE_TTL = 60 * 1000;
+
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) {
+          setCountData(data);
+          if (data.full) setRegistrationClosed(true);
+          return;
+        }
+      }
+    } catch { /* sessionStorage unavailable */ }
+
     fetch('/api/registration-count')
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data) {
           setCountData(data);
-          if (data.full) {
-            setRegistrationClosed(true);
-          }
+          if (data.full) setRegistrationClosed(true);
+          try {
+            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+          } catch { /* quota exceeded or unavailable */ }
         }
       })
-      .catch(() => {
-        // Fail silently if the API fails
-      });
+      .catch(() => { /* fail silently */ });
   }, []);
 
   // Ensure hydration matches between server and client
@@ -169,7 +184,7 @@ export default function Register() {
               transcriptFileName: uploadResult.transcriptFileName,
               codeforcesHandle: data.codeforcesHandle.trim(),
               phoneNumber: data.phoneNumber.trim(),
-              linkedIn: data.linkedIn.trim() || null,
+              linkedIn: data.linkedIn.trim(),
               gitHub: data.gitHub.trim() || null,
               dataConsent: data.dataConsent,
               ipHash: fingerprint,
@@ -180,6 +195,12 @@ export default function Register() {
       );
 
       if (!regResult.success) {
+        // Field-level error — route back into the form so user doesn't lose progress
+        if (regResult.field === 'linkedIn') {
+          setStatus('idle');
+          setFieldErrors({ linkedIn: regResult.error });
+          return;
+        }
         setStatus('error');
         setErrorMessage(regResult.error || 'Registration failed. Please try again.');
         return;
@@ -221,7 +242,7 @@ export default function Register() {
         {countData?.warning && !countData?.full && (
           <div className={styles.warningBanner}>
             <span className={styles.warningIcon}>⚡</span>
-            <span>Only <strong>{3000 - countData.count} spots remaining</strong>. Registration closes at 3,000 participants.</span>
+            <span>Only <strong>{1000 - countData.count} spots remaining</strong>. Registration closes at 1,000 participants.</span>
           </div>
         )}
 

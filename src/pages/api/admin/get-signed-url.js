@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -16,14 +17,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
   }
 
   const { fileUrl } = req.body;
@@ -33,17 +30,23 @@ export default async function handler(req, res) {
   }
 
   const validDomains = ['firebasestorage.googleapis.com', 'storage.googleapis.com'];
-  if (!validDomains.some(d => fileUrl.includes(d))) {
+  let urlObj;
+  try {
+    urlObj = new URL(fileUrl);
+  } catch {
+    return res.status(400).json({ error: 'Invalid file URL.' });
+  }
+  if (!validDomains.includes(urlObj.hostname)) {
     return res.status(400).json({ error: 'Invalid file URL.' });
   }
 
   try {
-    const urlObj = new URL(fileUrl);
     const pathMatch = urlObj.pathname.match(/\/o\/(.+)$/);
     if (!pathMatch) {
       return res.status(400).json({ error: 'Could not parse file path.' });
     }
-    const filePath = decodeURIComponent(pathMatch[1]);
+    // decodeURIComponent only the path segment — strip query params first
+    const filePath = decodeURIComponent(pathMatch[1].split('?')[0]);
 
     const bucket = admin.storage().bucket();
     const [signedUrl] = await bucket.file(filePath).getSignedUrl({

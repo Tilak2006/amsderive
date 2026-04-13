@@ -1,39 +1,54 @@
-import styles from '../../styles/sections.module.css';
+import styles from '../../styles/competition.module.css';
 
-const CompetitionSection = () => {
-  return (
-    <section id="competition" className={styles.section}>
-      <div className={styles.container}>
-        <h2 className={styles.sectionTitle}>3-Round Structure</h2>
-        <div className={styles.grid}>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>01</div>
-            <div className={styles.cardTitle}>PRIOR</div>
-            <div className={styles.cardSubtitle}>Online Qualifier · May 23, 2026</div>
-            <p className={styles.cardText}>
-              ICPC format on Codeforces Gym. Individual participation. Problems derived from first principles in probability theory, Bayesian inference, and market microstructure.
-            </p>
+const ROUNDS = [
+  {
+    num: '01',
+    title: 'PRIOR',
+    tags: ['Individual', 'Online'],
+    what: 'Mathematical Modeling',
+    text: 'Problems drawn from probability theory, stochastic processes, expected value, and distribution theory. No templates provided. Build models from first principles and show your full reasoning, partial credit awarded for methodology.',
+  },
+  {
+    num: '02',
+    title: 'POSTERIOR',
+    tags: ['Individual', 'Online'],
+    what: 'Algorithmic + Quant Thinking',
+    text: 'Competitive-programming problems with a quantitative layer. Correct answers alone are not enough, solutions must be efficient and handle edge cases under tight constraints. Filters verified Round 1 performers.',
+  },
+  {
+    num: '03',
+    title: 'CONVERGENCE',
+    tags: ['Teams of 3', 'Offline Finals'],
+    what: 'Open-Ended Firm Problems',
+    text: 'Real-world problems co-designed with partner firms. No single correct answer. Evaluated on problem framing, reasoning depth, execution quality, and communication. Finals hosted at one of the prestigious IITs.',
+  },
+];
+
+const CompetitionSection = () => (
+  <section id="competition" className={styles.section}>
+    <div className={styles.container}>
+      <span className={styles.eyebrow}>What You Will Face</span>
+      <h2 className={styles.title}>3-Round Structure</h2>
+      <div className={styles.rows}>
+        {ROUNDS.map(({ num, title, tags, what, text }) => (
+          <div key={num} className={styles.row}>
+            <div className={styles.rowLeft}>
+              <span className={styles.num}>{num}</span>
+              <div className={styles.roundName}>{title}</div>
+              <div className={styles.what}>{what}</div>
+              <div className={styles.tags}>
+                {tags.map(t => (
+                  <span key={t} className={styles.tag}>{t}</span>
+                ))}
+              </div>
+            </div>
+            <div className={styles.dividerVert} />
+            <p className={styles.text}>{text}</p>
           </div>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>02</div>
-            <div className={styles.cardTitle}>POSTERIOR</div>
-            <div className={styles.cardSubtitle}>Online Prelims · June 21, 2026</div>
-            <p className={styles.cardText}>
-              Harder problem set by external problem-setters. Stochastic processes, options pricing, probability under market constraints. Filters verified Round 1 performers.
-            </p>
-          </div>
-          <div className={styles.card}>
-            <div className={styles.cardIcon}>03</div>
-            <div className={styles.cardTitle}>CONVERGENCE</div>
-            <div className={styles.cardSubtitle}>Offline Finals · July 11, 2026</div>
-            <p className={styles.cardText}>
-              Two components: Chess and Poker under evaluation conditions, then a quant build challenge with real market data under p99 latency constraints. Teams of 3. Problem co-designed with Apex Partner.
-            </p>
-          </div>
-        </div>
+        ))}
       </div>
-    </section>
-  );
-};
+    </div>
+  </section>
+);
 
 export default CompetitionSection;

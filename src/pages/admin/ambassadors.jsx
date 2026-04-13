@@ -196,7 +196,15 @@ export default function AdminAmbassadors() {
   }
 
   async function handleLogout() {
-    document.cookie = '__session=; path=/; max-age=0; SameSite=Strict; Secure';
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'admin' }),
+      });
+    } catch {
+      // Proceed with client-side logout even if server call fails
+    }
     await signOut(auth);
     router.push('/admin/login');
   }

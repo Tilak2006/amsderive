@@ -11,6 +11,8 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
+import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -30,15 +32,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
   }
+
+  const reqId = genReqId();
 
   try {
     // Paginated fetch of all pre_registrations
@@ -102,6 +102,12 @@ export default async function handler(req, res) {
       }))
       .sort((a, b) => b.emails.length - a.emails.length);
 
+    logger.info('admin', 'ambassador_stats_fetched', {
+      reqId,
+      actorId: 'admin',
+      detail: { totalOverall: allDocs.length, totalWithRef, refGroupCount: refGroups.length },
+      status: 'ok',
+    });
     return res.status(200).json({
       totalOverall: allDocs.length,
       totalWithRef,
@@ -109,7 +115,7 @@ export default async function handler(req, res) {
       refGroups,
     });
   } catch (error) {
-    console.error('[get-ambassador-stats] Error:', error);
+    logger.error('admin', 'ambassador_stats_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to fetch ambassador stats.' });
   }
 }

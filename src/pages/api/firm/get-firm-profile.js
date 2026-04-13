@@ -7,6 +7,7 @@
  */
 
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -39,6 +40,8 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  const reqId = genReqId();
+
   try {
     const docRef = db.collection('firms').doc(uid);
     const snap = await docRef.get();
@@ -52,8 +55,21 @@ export default async function handler(req, res) {
     // Fire-and-forget lastLogin update — never blocks the response
     docRef
       .update({ lastLogin: admin.firestore.FieldValue.serverTimestamp() })
-      .catch((err) => console.error('[get-firm-profile] lastLogin update failed:', err.message));
+      .catch((err) => logger.warn('firms', 'firm_last_login_failed', {
+        reqId,
+        actorId: uid,
+        entityId: uid,
+        detail: { message: err.message },
+        status: 'degraded',
+      }));
 
+    logger.info('firms', 'firm_profile_fetched', {
+      reqId,
+      actorId: uid,
+      entityId: uid,
+      detail: { tier: data.tier, firmSlug: data.firmSlug },
+      status: 'ok',
+    });
     return res.status(200).json({
       firmName: data.firmName,
       firmSlug: data.firmSlug,
@@ -62,7 +78,7 @@ export default async function handler(req, res) {
       access: data.access,
     });
   } catch (err) {
-    console.error('[get-firm-profile] Error:', err);
+    logger.error('firms', 'firm_profile_error', { reqId, actorId: uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

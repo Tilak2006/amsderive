@@ -39,8 +39,9 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'No query parameters accepted' });
   }
 
-  // Short CDN cache — data only changes on admin refresh, 30s is purely burst protection
-  res.setHeader('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=60');
+  // Data only changes when admin triggers /api/admin/refresh-ambassador-leaderboard.
+  // Cache aggressively — CDN serves for 5 min, then stale-while-revalidate for 1 hr.
+  res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
 
   try {
     const cacheSnap = await db.collection('stats').doc('ambassador-leaderboard-cache').get();

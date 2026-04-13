@@ -113,8 +113,18 @@
 }
 
 /* --- Content sections below hero --- */
+/* Sections always occupy layout space (no CLS). opacity:0 + pointer-events:none
+   hides them visually pre-hydration without removing them from flow. */
 .contentSections {
   width: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contentSections[data-hydrated='true'] {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
 }
 
 /* --- Responsive --- */

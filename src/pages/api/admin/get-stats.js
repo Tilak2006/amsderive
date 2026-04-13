@@ -1,4 +1,6 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
+import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -13,20 +15,26 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// 2-minute in-process cache — admin stats don't need sub-minute freshness.
+// Dashboard polls every 5 min anyway, so this just prevents burst reads.
+let cachedStats = null;
+let cacheTime = 0;
+const CACHE_TTL = 2 * 60 * 1000;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Auth check — verify Firebase ID token
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
   try {
-    await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
-  } catch {
-    return res.status(401).json({ error: 'Unauthorized' });
+    await requireAdmin(req, admin.auth());
+  } catch (e) {
+    return res.status(e.status).json({ error: e.error });
+  }
+
+  // Serve from cache if fresh
+  if (cachedStats && Date.now() - cacheTime < CACHE_TTL) {
+    return res.status(200).json(cachedStats);
   }
 
   try {
@@ -43,13 +51,23 @@ export default async function handler(req, res) {
       ref.where('submittedAt', '>=', admin.firestore.Timestamp.fromDate(todayUTC)).count().get(),
     ]);
 
-    return res.status(200).json({
+    cachedStats = {
       total: totalSnap.data().count,
       consentGiven: consentSnap.data().count,
       today: todaySnap.data().count,
+    };
+    cacheTime = Date.now();
+
+    logger.info('admin', 'stats_fetched', {
+      actorId: 'admin',
+      detail: { total: cachedStats.total, today: cachedStats.today, fromCache: false },
+      status: 'ok',
     });
+    return res.status(200).json(cachedStats);
   } catch (error) {
-    console.error('[get-stats] Error:', error);
-      return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });
+    logger.error('admin', 'stats_fetch_error', { actorId: 'admin', status: 'failed' }, error);
+    // Return stale if available
+    if (cachedStats) return res.status(200).json(cachedStats);
+    return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });
   }
 }

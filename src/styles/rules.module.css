@@ -1,0 +1,120 @@
+/* ── Rules Page ── */
+
+.page {
+  padding: 120px 24px 80px;
+  background: #0a0a0a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 820px;
+  width: 100%;
+}
+
+/* ── Header ── */
+.header {
+  margin-bottom: 56px;
+}
+
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.25em;
+  color: rgba(212, 175, 55, 0.45);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #555;
+  line-height: 1.7;
+}
+
+/* ── Rules Card ── */
+.rulesCard {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 2px;
+  padding: 40px 48px;
+  margin-bottom: 20px;
+}
+
+.rulesSectionTitle {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #D4AF37;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  opacity: 0.8;
+}
+
+.rulesList {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.rulesListItem {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  color: #b8b8b8;
+  line-height: 1.85;
+  padding-left: 20px;
+  position: relative;
+}
+
+.rulesListItem::before {
+  content: '·';
+  color: #D4AF37;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* ── Back link ── */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.08em;
+  color: #3a3a3a;
+  text-decoration: none;
+  margin-top: 40px;
+  transition: color 0.2s ease;
+}
+
+.backLink:hover {
+  color: #D4AF37;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .page {
+    padding: 80px 24px 60px;
+  }
+
+  .rulesCard {
+    padding: 28px 24px;
+  }
+}

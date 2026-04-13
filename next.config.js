@@ -44,9 +44,16 @@ const nextConfig = {
   async headers() {
     return [
       // /_next/static/* is handled automatically by Next.js with immutable headers — no override needed.
-      // Images and other public static files
+      // Near-static files — 30-day cache, stale-while-revalidate for edge nodes
       {
-        source: '/(favicon.ico|favicon-.*|apple-touch-icon.*|android-chrome-.*|og-image.*|manifest.json|robots.txt|sitemap.xml)',
+        source: '/(favicon.ico|favicon-.*|apple-touch-icon.*|android-chrome-.*|manifest.json|robots.txt|sitemap.xml)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=2592000, stale-while-revalidate=86400' },
+        ],
+      },
+      // og-image may change per campaign — keep at 1 day
+      {
+        source: '/og-image\\.jpg',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=86400' },
         ],

@@ -58,6 +58,15 @@ const sections = [
   }
 ];
 
+const researchAreas = [
+  { id: '01', text: 'Stochastic processes & probabilistic modeling' },
+  { id: '02', text: 'Algorithmic game theory & market mechanisms' },
+  { id: '03', text: 'High-performance computing & architecture' },
+  { id: '04', text: 'Advanced combinatorics & number theory' },
+  { id: '05', text: 'Competitive programming with mathematical depth' },
+  { id: '06', text: 'Quantitative finance & strategy simulation' },
+];
+
 const SyllabusSection = () => {
   return (
     <section id="syllabus" className={styles.syllabusPage}>
@@ -80,6 +89,19 @@ const SyllabusSection = () => {
                   </div>
                 ))}
               </div>
+            </div>
+          ))}
+        </div>
+
+        <hr className={styles.divider} />
+
+        {/* ── Research & Application ── */}
+        <h2 className={styles.subsectionLabel}>Research &amp; Application</h2>
+        <div className={styles.researchGrid}>
+          {researchAreas.map((area) => (
+            <div key={area.id} className={styles.researchCard}>
+              <span className={styles.researchIndex}>{area.id}</span>
+              <span className={styles.researchText}>{area.text}</span>
             </div>
           ))}
         </div>

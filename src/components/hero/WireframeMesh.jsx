@@ -131,18 +131,33 @@ function WireframeMesh() {
     const container = containerRef.current;
     if (!container) return;
 
-    // Respect prefers-reduced-motion preference
+    // Respect prefers-reduced-motion preference — apply immediately, no defer needed
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      // Apply static background gradient instead of animation
       container.style.background = 'radial-gradient(ellipse at 50% 60%, rgba(212, 160, 23, 0.15) 0%, rgba(0, 0, 0, 0) 70%), linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 1) 100%)';
       return;
     }
 
+    // Defer heavy Three.js init to genuine browser idle time so it never
+    // competes with React hydration or FCP.  requestIdleCallback fires when
+    // the main thread has spare capacity; the 2000ms timeout is a hard
+    // upper-bound fallback (also covers Safari which lacks rIC).
+    const scheduleInit = (cb) => {
+      if (typeof requestIdleCallback === 'function') {
+        return { type: 'ric', id: requestIdleCallback(cb, { timeout: 2000 }) };
+      }
+      return { type: 'timeout', id: setTimeout(cb, 0) };
+    };
+    const cancelInit = (handle) => {
+      if (handle.type === 'ric') cancelIdleCallback(handle.id);
+      else clearTimeout(handle.id);
+    };
+
+    let initHandle = scheduleInit(() => {
     const isMobile = window.innerWidth < 768;
-    const gridSize = isMobile ? 256 : 128;
+    const gridSize = 256;
     const gridExtent = 10;
     const meshYOffset = 1.0;
-    const pCount = isMobile ? 35 : 55;
+    const pCount = isMobile ? 20 : 55;
     const vertexThrottle = isMobile ? 3 : 2;
 
     // ── Scene ────────────────────────────────────────────────────────────
@@ -166,7 +181,10 @@ function WireframeMesh() {
       alpha: true,
       powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const dpr = isMobile
+      ? Math.min(window.devicePixelRatio, 1.5)
+      : Math.min(window.devicePixelRatio, 2);
+    renderer.setPixelRatio(dpr);
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setClearColor(0x000000, 0);
 
@@ -491,6 +509,9 @@ function WireframeMesh() {
         container.removeChild(renderer.domElement);
       }
     };
+    }); // end of deferred init
+
+    return () => cancelInit(initHandle);
   }, []);
 
   return <div ref={containerRef} className={styles.wireframeMeshContainer} />;
