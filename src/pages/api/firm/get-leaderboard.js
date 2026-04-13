@@ -69,6 +69,14 @@ async function fetchFromCodeforces() {
 
   try {
     const res = await fetch(url, { signal: controller.signal });
+
+    if (!res.ok) {
+      const err = new Error(`Codeforces HTTP ${res.status}`);
+      err.code = 'CF_HTTP_ERROR';
+      err.status = res.status;
+      throw err;
+    }
+
     const json = await res.json();
 
     if (json.status !== 'OK') {
@@ -200,8 +208,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ standings: [], updatedAt: new Date().toISOString(), notStarted: true });
     }
 
-    // Codeforces timed out — treat like a transient failure
-    if (err.name === 'AbortError' || err.code === 20) {
+    // Codeforces timed out or returned non-2xx — treat as transient
+    if (err.name === 'AbortError' || err.code === 20 || err.code === 'CF_HTTP_ERROR') {
       if (cachedStandings !== null) {
         logger.warn('firms', 'leaderboard_cf_timeout_stale', {
           reqId,

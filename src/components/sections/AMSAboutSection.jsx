@@ -88,7 +88,7 @@ function AMSLogoCard() {
 }
 
 const stats = [
-  { number: '1000+', label: 'High-Signal Members' },
+  { number: '2000+', label: 'High-Signal Members' },
   { number: '1500+', label: 'Problems Solved' },
   { number: '01', label: 'Global Contest' },
 ];

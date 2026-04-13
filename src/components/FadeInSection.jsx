@@ -15,12 +15,9 @@ const FadeInSection = ({ children }) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           setHasMounted(true);
-          // Small rAF delay so the mount doesn't compete with scroll paint
+          // Small rAF delay so the visibility toggle doesn't compete with scroll paint
           requestAnimationFrame(() => setVisible(true));
           observer.unobserve(entry.target);
-          setTimeout(() => {
-            if (entry.target) entry.target.style.willChange = 'auto';
-          }, 1100);
         }
       });
     }, { threshold: 0.05, rootMargin });
@@ -37,8 +34,9 @@ const FadeInSection = ({ children }) => {
     <div
       className={`${styles.reveal} ${isVisible ? styles.visible : ''}`}
       ref={domRef}
+      data-mounted={hasMounted || undefined}
     >
-      {hasMounted ? children : null}
+      {children}
     </div>
   );
 };

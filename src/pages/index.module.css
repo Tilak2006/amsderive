@@ -113,18 +113,17 @@
 }
 
 /* --- Content sections below hero --- */
-/* Sections are in the DOM from SSR so there is no layout hole and no CLS.
-   They stay invisible until React hydration sets data-hydrated="true",
-   at which point the opacity transition plays. */
+/* Sections always occupy layout space (no CLS). opacity:0 + pointer-events:none
+   hides them visually pre-hydration without removing them from flow. */
 .contentSections {
   width: 100%;
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
 }
 
 .contentSections[data-hydrated='true'] {
   opacity: 1;
-  visibility: visible;
+  pointer-events: auto;
   transition: opacity 0.2s ease;
 }
 

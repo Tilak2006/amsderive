@@ -35,18 +35,17 @@ const TIER_DESCRIPTIONS = {
   convergence:
     'Convergence Partner — All Derivation benefits, plus finalist profile access, an evaluation panel seat at IIT Bombay finals, in-person attendance, and first access to finalist talent.',
   apex:
-    'Apex Partner — Full access including problem set co-design in your firm\'s flavour, finalist resumes before Convergence partners, naming rights, and custom configuration across all communications.',
+    'Apex Partner | Full access to elite quant and CP talent, early finalist resumes ahead of all other partners, custom filtering, naming rights, and bespoke configuration across all contest communications.',
 };
 
-const ACCESS_FEATURES = [
-  { key: 'leaderboard', label: 'Live Leaderboard' },
-  { key: 'analytics', label: 'Performance Analytics' },
-  { key: 'registrantProfiles', label: 'Registrant Profiles' },
-  { key: 'finalistProfiles', label: 'Finalist Profiles' },
-  { key: 'resumeDownload', label: 'Resume Download' },
-  { key: 'linkedinAccess', label: 'LinkedIn Access' },
-  { key: 'psCoDesign', label: 'PS Co-Design' },
-  { key: 'namingRights', label: 'Naming Rights' },
+const ACCESS_MATRIX = [
+  { key: 'registrantProfiles', label: 'Registrant Profiles', status: 'active', unlockLabel: null },
+  { key: 'analytics', label: 'Performance Analytics', status: 'active', unlockLabel: null },
+  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'active', unlockLabel: null },
+  { key: 'namingRights', label: 'Naming Rights', status: 'active', unlockLabel: null },
+  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Unlocks May 23' },
+  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Unlocks May 24' },
+  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Unlocks Jul 1' },
 ];
 
 function formatDate(isoString) {
@@ -73,6 +72,83 @@ async function getAuthHeader(currentUser) {
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 }
 
+const CONTEST_ROUNDS = [
+  {
+    index: '01',
+    date: 'May 23, 2026',
+    timestamp: new Date('2026-05-23'),
+    title: 'Round 1 | PRIOR',
+    desc: 'Individual · Codeforces Gym · ICPC format. Online qualification across probability theory and market microstructure.',
+  },
+  {
+    index: '02',
+    date: 'June 21, 2026',
+    timestamp: new Date('2026-06-21'),
+    title: 'Round 2 | POSTERIOR',
+    desc: 'Individual · Advanced quantitative problems. Stochastic processes and options pricing. Filters Round 1 performers.',
+  },
+  {
+    index: '03',
+    date: 'July 11, 2026',
+    timestamp: new Date('2026-07-11'),
+    title: 'Round 3 | CONVERGENCE',
+    desc: 'Teams of 3 · Offline at a prestigious IIT. Open-ended quant problems with partner firm evaluation.',
+  },
+];
+
+function getRoundPhase(timestamp) {
+  const now = new Date();
+  const end = new Date(timestamp);
+  end.setDate(end.getDate() + 1);
+  if (now > end) return 'past';
+  const diffDays = (timestamp - now) / (1000 * 60 * 60 * 24);
+  if (diffDays <= 14) return 'active';
+  return 'future';
+}
+
+function FirmTimeline() {
+  const { phases, goldWidthPct } = useMemo(() => {
+    const ph = CONTEST_ROUNDS.map(r => getRoundPhase(r.timestamp));
+    const pastCount = ph.filter(p => p === 'past').length;
+    const activeIdx = ph.indexOf('active');
+    let frac = 0;
+    if (pastCount > 0 || activeIdx >= 0) {
+      const lastIdx = activeIdx >= 0 ? activeIdx : pastCount - 1;
+      frac = Math.min((lastIdx * 50) / 100, 1);
+    }
+    return { phases: ph, goldWidthPct: `${Math.round(frac * 100)}%` };
+  }, []);
+
+  return (
+    <div className={styles.ftTrack} style={{ '--ft-gold-width': goldWidthPct }}>
+      {CONTEST_ROUNDS.map(({ index, date, timestamp, title, desc }, i) => {
+        const phase = phases[i];
+        const isPast = phase === 'past';
+        const isActive = phase === 'active';
+        const isFuture = phase === 'future';
+        return (
+          <div key={index} className={styles.ftCol}>
+            <div className={[styles.ftNode, isPast ? styles.ftNodePast : '', isActive ? styles.ftNodeActive : ''].join(' ')}>
+              {index}
+            </div>
+            <div className={[styles.ftCard, isPast ? styles.ftCardPast : '', isActive ? styles.ftCardActive : '', isFuture ? styles.ftCardFuture : ''].join(' ')}>
+              {isActive && (
+                <span className={styles.ftActiveBadge}>
+                  <span className={styles.ftActiveDot} />
+                  Active
+                </span>
+              )}
+              <div className={[styles.ftDate, isFuture ? styles.ftDateFuture : ''].join(' ')}>{date}</div>
+              <div className={[styles.ftCardTitle, isFuture ? styles.ftCardTitleFuture : ''].join(' ')}>{title}</div>
+              <p className={styles.ftCardDesc}>{desc}</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function FirmDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -95,6 +171,9 @@ export default function FirmDashboard() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
 
+  // Overview stats state
+  const [overviewStats, setOverviewStats] = useState(null);
+
   // Registrants state
   const [registrants, setRegistrants] = useState([]);
   const [registrantsLoading, setRegistrantsLoading] = useState(false);
@@ -105,6 +184,28 @@ export default function FirmDashboard() {
   const [registrantsSearch, setRegistrantsSearch] = useState('');
   const [registrantsAccess, setRegistrantsAccess] = useState(null);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
+
+  // Starred candidates — persisted in localStorage
+  const [starred, setStarred] = useState(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      const raw = localStorage.getItem('ams_derive_starred');
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  function toggleStar(id, e) {
+    if (e) e.stopPropagation();
+    setStarred((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      try { localStorage.setItem('ams_derive_starred', JSON.stringify([...next])); } catch { }
+      return next;
+    });
+  }
 
   // Leaderboard state
   const [leaderboardData, setLeaderboardData] = useState(null);
@@ -156,6 +257,10 @@ export default function FirmDashboard() {
   useEffect(() => {
     if (!user || !firmProfile) return;
 
+    if (activeTab === 'overview' && !tabDataLoaded.current.has('overview')) {
+      tabDataLoaded.current.add('overview');
+      fetchOverviewStats();
+    }
     if (activeTab === 'talent' && !tabDataLoaded.current.has('talent')) {
       tabDataLoaded.current.add('talent');
       fetchFinalists();
@@ -233,17 +338,17 @@ export default function FirmDashboard() {
       const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({}) });
       const data = await res.json();
       if (res.status === 403) {
-        setLeaderboardError(data.message || 'Access denied');
+        setLeaderboardError({ type: 'access', message: data.message || 'Access denied' });
         return;
       }
       if (!res.ok) {
-        setLeaderboardError(data.error || 'Failed to load leaderboard');
+        setLeaderboardError({ type: 'fetch', message: data.error || 'Failed to load leaderboard' });
         return;
       }
       setLeaderboardData(data);
       setLeaderboardError(null);
-    } catch (err) {
-      setLeaderboardError('Failed to load leaderboard');
+    } catch {
+      setLeaderboardError({ type: 'fetch', message: 'Failed to load leaderboard' });
     } finally {
       setLeaderboardLoading(false);
     }
@@ -270,6 +375,18 @@ export default function FirmDashboard() {
       setAnalyticsLoading(false);
     }
   }, []);
+
+  const fetchOverviewStats = useCallback(async () => {
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-overview-stats', { method: 'POST', headers, body: JSON.stringify({}) });
+      if (!res.ok) return;
+      const data = await res.json();
+      setOverviewStats(data);
+    } catch {
+      // non-critical — overview still renders without stats
+    }
+  }, [user]);
 
   const filteredFinalists = useMemo(() => {
     let list = finalists;
@@ -322,6 +439,23 @@ export default function FirmDashboard() {
     window.open(finalist.resumeUrl, '_blank', 'noopener,noreferrer');
   }
 
+  async function handleExportCsv() {
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/export-registrants-csv', { method: 'POST', headers, body: JSON.stringify({}) });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ams-derive-registrants-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // silent — export is non-critical
+    }
+  }
+
   async function handleViewFile(fileUrl) {
     if (!fileUrl) return;
     const headers = await getAuthHeader(user);
@@ -359,10 +493,13 @@ export default function FirmDashboard() {
         {/* Top Bar */}
         <header className={styles.topBar}>
           <div className={styles.topBarLeft}>
-            {firmProfile?.logoUrl && (
+            {firmProfile?.firmName === 'Jane Street' ? (
+              <img src="/Jane_Street.svg" alt="Jane Street" className={styles.firmLogoSvg} />
+            ) : firmProfile?.logoUrl ? (
               <img src={firmProfile.logoUrl} alt="" className={styles.firmLogo} />
+            ) : (
+              <span className={styles.topBarTitle}>{firmProfile?.firmName || 'PARTNER PORTAL'}</span>
             )}
-            <span className={styles.topBarTitle}>{firmProfile?.firmName || 'PARTNER PORTAL'}</span>
             {firmProfile?.tier && (
               <span className={getTierBadgeClass(firmProfile.tier)}>
                 {firmProfile.tier.toUpperCase()} PARTNER
@@ -402,7 +539,13 @@ export default function FirmDashboard() {
               {/* Hero */}
               <div className={styles.overviewHero}>
                 <div className={styles.overviewHeroInner}>
-                  <p className={styles.welcomeEyebrow}>AMS DERIVE 2026 — PARTNER PORTAL</p>
+                  {firmProfile?.firmName === 'Jane Street' && (
+                    <div className={styles.coBrandLockup}>
+                      <img src="/AMS_DERIVE_TEXT.svg" alt="AMS Derive" className={styles.coBrandLogo} />
+                      <span className={styles.coBrandDivider} />
+                      <img src="/Jane_Street.svg" alt="Jane Street" className={styles.coBrandLogo} />
+                    </div>
+                  )}
                   <h1 className={styles.welcomeTitle}>
                     Welcome,{' '}
                     <span className={styles.welcomeGold}>{firmProfile?.firmName}</span>
@@ -414,21 +557,43 @@ export default function FirmDashboard() {
                 <div className={styles.overviewHeroRule} />
               </div>
 
-              {/* Quick Actions */}
-              <p className={styles.sectionLabel} style={{ marginBottom: 16 }}>Quick Access</p>
+              {/* Metrics row */}
+              {overviewStats && (
+                <div className={styles.metricsRow}>
+                  <div className={styles.metricItem}>
+                    <span className={styles.metricValue}>
+                      {overviewStats.total.toLocaleString()}
+                    </span>
+                    <span className={styles.metricLabel}>Total Registrants</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Center */}
+              <p className={styles.sectionLabel} style={{ marginBottom: 16, marginTop: overviewStats ? 32 : 0 }}>Action Center</p>
               <div className={styles.quickActionGrid}>
                 <button
                   className={styles.quickActionCard}
-                  onClick={() => setActiveTab('talent')}
+                  onClick={() => setActiveTab('registrants')}
                   disabled={firmProfile?.tier === 'derivation'}
                 >
-                  <span className={styles.quickActionIcon}>◈</span>
-                  <span className={styles.quickActionTitle}>Talent Pool</span>
-                  <span className={styles.quickActionDesc}>
-                    {firmProfile?.tier === 'derivation'
-                      ? 'Convergence & Apex only'
-                      : 'Browse finalist profiles, resumes, and LinkedIn'}
+                  <span className={styles.quickActionIcon}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                    </svg>
                   </span>
+                  <span className={styles.quickActionTitle}>Newest Candidates</span>
+                  {firmProfile?.tier === 'derivation' ? (
+                    <span className={styles.quickActionDesc}>Convergence & Apex only</span>
+                  ) : overviewStats?.recentNames?.length ? (
+                    <span className={styles.quickActionRecentNames}>
+                      {overviewStats.recentNames.map((name, i) => (
+                        <span key={i} className={styles.quickActionRecentName}>{name}</span>
+                      ))}
+                    </span>
+                  ) : (
+                    <span className={styles.quickActionDesc}>Browse all registrant profiles</span>
+                  )}
                   <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
                 </button>
 
@@ -436,11 +601,28 @@ export default function FirmDashboard() {
                   className={styles.quickActionCard}
                   onClick={() => setActiveTab('analytics')}
                 >
-                  <span className={styles.quickActionIcon}>◉</span>
-                  <span className={styles.quickActionTitle}>Analytics</span>
-                  <span className={styles.quickActionDesc}>
-                    Registrant breakdowns, institution stats, and participation data
+                  <span className={styles.quickActionIcon}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
                   </span>
+                  <span className={styles.quickActionTitle}>Registration Velocity</span>
+                  {overviewStats?.sparkline ? (
+                    <span className={styles.sparklineWrap} aria-hidden="true">
+                      {(() => {
+                        const max = Math.max(...overviewStats.sparkline, 1);
+                        return overviewStats.sparkline.map((v, i) => (
+                          <span
+                            key={i}
+                            className={styles.sparklineBar}
+                            style={{ height: `${Math.max(3, Math.round((v / max) * 32))}px` }}
+                          />
+                        ));
+                      })()}
+                    </span>
+                  ) : (
+                    <span className={styles.quickActionDesc}>8-week registration trend</span>
+                  )}
                   <span className={styles.quickActionArrow}>→</span>
                 </button>
 
@@ -449,52 +631,66 @@ export default function FirmDashboard() {
                   onClick={() => setActiveTab('leaderboard')}
                   disabled={firmProfile?.tier === 'derivation'}
                 >
-                  <span className={styles.quickActionIcon}>◎</span>
+                  <span className={styles.quickActionIcon}>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="12" width="5" height="9" rx="1" /><rect x="10" y="4" width="5" height="17" rx="1" /><rect x="17" y="8" width="5" height="13" rx="1" />
+                    </svg>
+                  </span>
                   <span className={styles.quickActionTitle}>Live Leaderboard</span>
                   <span className={styles.quickActionDesc}>
                     {firmProfile?.tier === 'derivation'
                       ? 'Convergence & Apex only'
-                      : 'Real-time PRIOR contest standings via Codeforces Gym'}
+                      : 'Real-time PRIOR standings · Live 23 May'}
                   </span>
                   <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
                 </button>
               </div>
 
+              {/* Shortlist banner */}
+              <button
+                className={styles.shortlistBanner}
+                onClick={() => { setShowStarredOnly(true); setActiveTab('registrants'); }}
+                disabled={firmProfile?.tier === 'derivation'}
+              >
+                <span className={styles.shortlistBannerLeft}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill={starred.size > 0 ? '#D4AF37' : 'none'} stroke="#D4AF37" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                  </svg>
+                  <span className={styles.shortlistBannerTitle}>Starred</span>
+                  <span className={styles.shortlistBannerCount}>
+                    {starred.size} candidate{starred.size !== 1 ? 's' : ''} starred
+                  </span>
+                </span>
+                <span className={styles.shortlistBannerArrow}>→</span>
+              </button>
+
               {/* Contest Timeline */}
-              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 16 }}>Contest Timeline</p>
-              <div className={styles.timelineStrip}>
-                {[
-                  { round: 'PRIOR', name: 'Round 1', date: '23 May 2026', desc: 'Individual · Codeforces Gym · ICPC format' },
-                  { round: 'POSTERIOR', name: 'Round 2', desc: 'Individual · Advanced quantitative problems', date: '21 Jun 2026' },
-                  { round: 'CONVERGENCE', name: 'Round 3', date: '11 Jul 2026', desc: 'Teams of 3 · Offline at IIT Bombay' },
-                ].map((item, i) => (
-                  <div key={item.round} className={styles.timelineItem}>
-                    <div className={styles.timelineIndex}>{String(i + 1).padStart(2, '0')}</div>
-                    <div className={styles.timelineBody}>
-                      <p className={styles.timelineRound}>{item.round}</p>
-                      <p className={styles.timelineDate}>{item.date}</p>
-                      <p className={styles.timelineDesc}>{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 32 }}>Contest Timeline</p>
+              <FirmTimeline />
 
               {/* Access Matrix */}
-              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 16 }}>Your Access</p>
-              <div className={styles.accessGrid}>
-                {ACCESS_FEATURES.map((feature) => {
-                  const enabled = firmProfile?.access?.[feature.key];
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 0 }}>Your Access</p>
+              <div className={styles.accessMatrix}>
+                {ACCESS_MATRIX.map((item) => {
+                  const granted = firmProfile?.access?.[item.key];
+                  const isActive = item.status === 'active' && granted;
                   return (
-                    <div
-                      key={feature.key}
-                      className={`${styles.accessFeature} ${!enabled ? styles.accessFeatureLocked : ''}`}
-                    >
-                      <span
-                        className={`${styles.accessFeatureIcon} ${!enabled ? styles.accessFeatureIconLocked : ''}`}
-                      >
-                        {enabled ? '✓' : '⎯'}
-                      </span>
-                      <span className={styles.accessFeatureLabel}>{feature.label}</span>
+                    <div key={item.key} className={styles.accessMatrixRow}>
+                      <span className={styles.accessMatrixLabel}>{item.label}</span>
+                      {isActive ? (
+                        <span className={styles.accessBadgeActive}>
+                          <span className={styles.accessBadgeDot} />
+                          Active
+                        </span>
+                      ) : (
+                        <span className={styles.accessBadgeLocked}>
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                          </svg>
+                          {item.unlockLabel || 'Locked'}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -502,7 +698,7 @@ export default function FirmDashboard() {
 
               {/* Contact line */}
               <p className={styles.overviewContact}>
-                Questions about your partnership?{' '}
+                Dedicated Partner Support —{' '}
                 <a href="mailto:partnership@amsociety.in" className={styles.overviewContactLink}>
                   partnership@amsociety.in
                 </a>
@@ -673,16 +869,46 @@ export default function FirmDashboard() {
                       value={registrantsSearch}
                       onChange={(e) => setRegistrantsSearch(e.target.value)}
                     />
+                    <button
+                      className={`${styles.starredFilterPill} ${showStarredOnly ? styles.starredFilterPillActive : ''}`}
+                      onClick={() => setShowStarredOnly((v) => !v)}
+                    >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill={showStarredOnly ? '#D4AF37' : 'none'} stroke={showStarredOnly ? '#D4AF37' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      Starred{starred.size > 0 ? ` (${starred.size})` : ''}
+                    </button>
                     {registrantsTotal !== null && (
                       <span className={styles.resultCount}>
                         {registrantsSearch.trim()
                           ? `${registrants.filter(
-                              (r) =>
-                                r.fullName?.toLowerCase().includes(registrantsSearch.toLowerCase()) ||
-                                r.university?.toLowerCase().includes(registrantsSearch.toLowerCase())
-                            ).length} / `
+                            (r) =>
+                              r.fullName?.toLowerCase().includes(registrantsSearch.toLowerCase()) ||
+                              r.university?.toLowerCase().includes(registrantsSearch.toLowerCase())
+                          ).length} / `
                           : ''}
                         {registrantsTotal} registrant{registrantsTotal !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {firmProfile?.access?.csvExport ? (
+                      <button
+                        className={styles.exportBtn}
+                        onClick={handleExportCsv}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        EXPORT CSV
+                      </button>
+                    ) : (
+                      <span
+                        className={styles.exportBtnLocked}
+                        title="Unlocks after POSTERIOR — 21 Jun 2026"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        EXPORT CSV
                       </span>
                     )}
                   </div>
@@ -696,11 +922,23 @@ export default function FirmDashboard() {
                           <th className={styles.leaderboardTh}>Institution</th>
                           <th className={styles.leaderboardTh}>Round</th>
                           <th className={styles.leaderboardTh}>CF Handle</th>
+                          <th className={styles.leaderboardTh} style={{ width: 36 }}>
+                            <button
+                              className={`${styles.starFilterBtn} ${showStarredOnly ? styles.starFilterBtnActive : ''}`}
+                              onClick={() => setShowStarredOnly((v) => !v)}
+                              title={showStarredOnly ? 'Show all' : 'Show starred only'}
+                            >
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill={showStarredOnly ? '#D4AF37' : 'none'} stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              </svg>
+                            </button>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {registrants
                           .filter((r) => {
+                            if (showStarredOnly && !starred.has(r.id)) return false;
                             if (!registrantsSearch.trim()) return true;
                             const q = registrantsSearch.toLowerCase();
                             return (
@@ -711,7 +949,7 @@ export default function FirmDashboard() {
                           .map((r, i) => (
                             <tr
                               key={r.id}
-                              className={`${styles.leaderboardTr} ${selectedRegistrant?.id === r.id ? styles.leaderboardTrSelected : ''}`}
+                              className={`${styles.leaderboardTr} ${selectedRegistrant?.id === r.id ? styles.leaderboardTrSelected : ''} ${starred.has(r.id) ? styles.leaderboardTrStarred : ''}`}
                               style={{ cursor: 'pointer' }}
                               onClick={() => setSelectedRegistrant(selectedRegistrant?.id === r.id ? null : r)}
                             >
@@ -744,6 +982,17 @@ export default function FirmDashboard() {
                                   <span style={{ color: '#3a3a3a' }}>—</span>
                                 )}
                               </td>
+                              <td className={styles.leaderboardTd}>
+                                <button
+                                  className={`${styles.starBtn} ${starred.has(r.id) ? styles.starBtnActive : ''}`}
+                                  onClick={(e) => toggleStar(r.id, e)}
+                                  title={starred.has(r.id) ? 'Unstar' : 'Star'}
+                                >
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill={starred.has(r.id) ? '#D4AF37' : 'none'} stroke={starred.has(r.id) ? '#D4AF37' : '#3a3a3a'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                  </svg>
+                                </button>
+                              </td>
                             </tr>
                           ))}
                       </tbody>
@@ -769,12 +1018,23 @@ export default function FirmDashboard() {
                 <aside className={styles.detailPanel}>
                   <div className={styles.panelHeader}>
                     <span className={styles.panelTitle}>{selectedRegistrant.fullName}</span>
-                    <button
-                      className={styles.panelClose}
-                      onClick={() => setSelectedRegistrant(null)}
-                    >
-                      ✕
-                    </button>
+                    <div className={styles.panelHeaderActions}>
+                      <button
+                        className={`${styles.panelStarBtn} ${starred.has(selectedRegistrant.id) ? styles.panelStarBtnActive : ''}`}
+                        onClick={(e) => toggleStar(selectedRegistrant.id, e)}
+                        title={starred.has(selectedRegistrant.id) ? 'Unstar' : 'Star'}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={starred.has(selectedRegistrant.id) ? '#D4AF37' : 'none'} stroke={starred.has(selectedRegistrant.id) ? '#D4AF37' : '#6b6560'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      </button>
+                      <button
+                        className={styles.panelClose}
+                        onClick={() => setSelectedRegistrant(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
                   <div className={styles.panelRow}>
@@ -876,11 +1136,21 @@ export default function FirmDashboard() {
                     to upgrade your partnership.
                   </p>
                 </div>
+              ) : new Date() < new Date('2026-05-23') ? (
+                <div className={styles.lockedCard}>
+                  <div className={styles.lockedCardIcon}>◎</div>
+                  <p className={styles.lockedCardTitle}>Live on 23 May 2026</p>
+                  <p className={styles.lockedCardText}>
+                    PRIOR begins on 23 May. Real-time Codeforces standings will appear here once the contest starts.
+                  </p>
+                </div>
               ) : leaderboardError ? (
                 <div className={styles.lockedCard}>
-                  <div className={styles.lockedCardIcon}>🔒</div>
-                  <p className={styles.lockedCardTitle}>Leaderboard Locked</p>
-                  <p className={styles.lockedCardText}>{leaderboardError}</p>
+                  <div className={styles.lockedCardIcon}>⚠</div>
+                  <p className={styles.lockedCardTitle}>Codeforces Unavailable</p>
+                  <p className={styles.lockedCardText}>
+                    Codeforces is temporarily unreachable. Standings will load automatically when the service recovers.
+                  </p>
                 </div>
               ) : leaderboardLoading && !leaderboardData ? (
                 <div className={styles.tableLoading}>Loading leaderboard...</div>
