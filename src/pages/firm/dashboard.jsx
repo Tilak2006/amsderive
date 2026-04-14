@@ -19,8 +19,9 @@ const RechartsComponents = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className={styles.tableLoading} style={{ minHeight: '300px' }}>
-        Loading chart...
+      <div className={styles.skeletonChartCard} aria-label="Loading chart">
+        <span className={styles.skeletonLine} style={{ width: '220px', height: 10 }} aria-hidden="true" />
+        <div className={styles.skeletonChartArea} />
       </div>
     ),
   }
@@ -59,12 +60,18 @@ function formatDate(isoString) {
 
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+  const fullLabel = payload?.[0]?.payload?.name || label;
   return (
     <div className={styles.chartTooltip}>
-      <p className={styles.chartTooltipLabel}>{label}</p>
+      <p className={styles.chartTooltipLabel}>{fullLabel}</p>
       <p className={styles.chartTooltipValue}>{payload[0].value}</p>
     </div>
   );
+}
+
+function truncateInstitutionName(name, maxLength = 22) {
+  if (!name) return '';
+  return name.length > maxLength ? `${name.slice(0, maxLength - 1)}...` : name;
 }
 
 async function getAuthHeader(currentUser) {
@@ -107,46 +114,61 @@ function getRoundPhase(timestamp) {
 }
 
 function FirmTimeline() {
-  const { phases, goldWidthPct } = useMemo(() => {
+  const { phases, progressWidthPct } = useMemo(() => {
     const ph = CONTEST_ROUNDS.map(r => getRoundPhase(r.timestamp));
     const pastCount = ph.filter(p => p === 'past').length;
     const activeIdx = ph.indexOf('active');
-    let frac = 0;
-    if (pastCount > 0 || activeIdx >= 0) {
-      const lastIdx = activeIdx >= 0 ? activeIdx : pastCount - 1;
-      frac = Math.min((lastIdx * 50) / 100, 1);
-    }
-    return { phases: ph, goldWidthPct: `${Math.round(frac * 100)}%` };
+    const totalSteps = Math.max(CONTEST_ROUNDS.length - 1, 1);
+    const currentIdx = activeIdx >= 0 ? activeIdx : Math.max(pastCount - 1, 0);
+    const frac = Math.max(0, Math.min(currentIdx / totalSteps, 1));
+    return { phases: ph, progressWidthPct: `${Math.round(frac * 100)}%` };
   }, []);
 
   return (
-    <div className={styles.ftTrack} style={{ '--ft-gold-width': goldWidthPct }}>
-      {CONTEST_ROUNDS.map(({ index, date, timestamp, title, desc }, i) => {
-        const phase = phases[i];
-        const isPast = phase === 'past';
-        const isActive = phase === 'active';
-        const isFuture = phase === 'future';
-        return (
-          <div key={index} className={styles.ftCol}>
-            <div className={[styles.ftNode, isPast ? styles.ftNodePast : '', isActive ? styles.ftNodeActive : ''].join(' ')}>
-              {index}
-            </div>
-            <div className={[styles.ftCard, isPast ? styles.ftCardPast : '', isActive ? styles.ftCardActive : '', isFuture ? styles.ftCardFuture : ''].join(' ')}>
+    <div className={styles.ftTimelineWrap}>
+      <div className={styles.ftTrack} style={{ '--ft-progress-width': progressWidthPct }}>
+        {CONTEST_ROUNDS.map(({ index, date, title, desc }, i) => {
+          const phase = phases[i];
+          const isPast = phase === 'past';
+          const isActive = phase === 'active';
+          const isFuture = phase === 'future';
+          return (
+            <div key={index} className={styles.ftStep} title={desc}>
+              <div className={[styles.ftStepDot, isPast ? styles.ftStepDotPast : '', isActive ? styles.ftStepDotActive : '', isFuture ? styles.ftStepDotFuture : ''].join(' ')}>
+                {index}
+              </div>
+              <div className={styles.ftStepMeta}>
+                <div className={[styles.ftStepTitle, isFuture ? styles.ftStepTitleFuture : ''].join(' ')}>{title}</div>
+                <div className={[styles.ftStepDate, isFuture ? styles.ftStepDateFuture : ''].join(' ')}>{date}</div>
+              </div>
               {isActive && (
                 <span className={styles.ftActiveBadge}>
                   <span className={styles.ftActiveDot} />
                   Active
                 </span>
               )}
-              <div className={[styles.ftDate, isFuture ? styles.ftDateFuture : ''].join(' ')}>{date}</div>
-              <div className={[styles.ftCardTitle, isFuture ? styles.ftCardTitleFuture : ''].join(' ')}>{title}</div>
-              <p className={styles.ftCardDesc}>{desc}</p>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
+
+      <details className={styles.ftDetails}>
+        <summary className={styles.ftDetailsSummary}>View Round Details</summary>
+        <div className={styles.ftDetailsGrid}>
+          {CONTEST_ROUNDS.map(({ index, title, desc }) => (
+            <div key={`detail-${index}`} className={styles.ftDetailsCard}>
+              <p className={styles.ftDetailsTitle}>{title}</p>
+              <p className={styles.ftDetailsDesc}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </details>
     </div>
   );
+}
+
+function SkeletonLine({ className = '', style }) {
+  return <span className={`${styles.skeletonLine} ${className}`.trim()} style={style} aria-hidden="true" />;
 }
 
 export default function FirmDashboard() {
@@ -572,14 +594,29 @@ export default function FirmDashboard() {
 
               {/* Metrics row */}
               {overviewStats && (
-                <div className={styles.metricsRow}>
-                  <div className={styles.metricItem}>
-                    <span className={styles.metricValue}>
-                      {overviewStats.total.toLocaleString()}
-                    </span>
-                    <span className={styles.metricLabel}>Total Registrants</span>
+                <>
+                  <p className={styles.sectionLabel} style={{ marginBottom: 16 }}>Overview Metrics</p>
+                  <div className={styles.metricsRow}>
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricValue}>
+                        {overviewStats.total.toLocaleString()}
+                      </span>
+                      <span className={styles.metricLabel}>Talent Pool Size</span>
+                    </div>
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricValue}>
+                        {(overviewStats.newThisWeek || 0).toLocaleString()}
+                      </span>
+                      <span className={styles.metricLabel}>New This Week</span>
+                    </div>
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricValue}>
+                        {(overviewStats.sparkline?.slice(-4).reduce((sum, count) => sum + count, 0) || 0).toLocaleString()}
+                      </span>
+                      <span className={styles.metricLabel}>Recent Activity (4W)</span>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Action Center */}
@@ -619,7 +656,7 @@ export default function FirmDashboard() {
                       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Registration Velocity</span>
+                  <span className={styles.quickActionTitle}>Community Engagement</span>
                   {overviewStats?.sparkline ? (
                     <span className={styles.sparklineWrap} aria-hidden="true">
                       {(() => {
@@ -634,7 +671,7 @@ export default function FirmDashboard() {
                       })()}
                     </span>
                   ) : (
-                    <span className={styles.quickActionDesc}>8-week registration trend</span>
+                    <span className={styles.quickActionDesc}>8-week community activity trend</span>
                   )}
                   <span className={styles.quickActionArrow}>→</span>
                 </button>
@@ -736,7 +773,18 @@ export default function FirmDashboard() {
                   </p>
                 </div>
               ) : finalistsLoading ? (
-                <div className={styles.tableLoading}>Loading finalist data...</div>
+                <div className={styles.skeletonTalentGrid} aria-label="Loading finalist data">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={`talent-skeleton-${i}`} className={styles.skeletonTalentCard}>
+                      <SkeletonLine className={styles.skeletonLineTitle} />
+                      <SkeletonLine className={styles.skeletonLineSub} />
+                      <div className={styles.skeletonTalentActions}>
+                        <SkeletonLine className={styles.skeletonPill} />
+                        <SkeletonLine className={styles.skeletonPill} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               ) : finalistsAccess?.locked ? (
                 /* Admin has not yet unlocked finalistProfiles */
                 <div className={styles.lockedCard}>
@@ -871,7 +919,31 @@ export default function FirmDashboard() {
                   <p className={styles.lockedCardText}>{registrantsAccessError}</p>
                 </div>
               ) : registrantsLoading && registrants.length === 0 ? (
-                <div className={styles.tableLoading}>Loading registrant data...</div>
+                <div className={styles.skeletonRegistrantsWrap} aria-label="Loading registrant data">
+                  <div className={styles.skeletonFilterBar}>
+                    <SkeletonLine className={styles.skeletonInput} />
+                    <SkeletonLine className={styles.skeletonSelect} />
+                    <SkeletonLine className={styles.skeletonSelect} />
+                    <SkeletonLine className={styles.skeletonSelect} />
+                    <SkeletonLine className={styles.skeletonPill} />
+                  </div>
+                  <div className={styles.skeletonTableBox}>
+                    <div className={styles.skeletonTableHead}>
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <SkeletonLine key={`reg-head-${i}`} className={styles.skeletonTableHeadCell} />
+                      ))}
+                    </div>
+                    <div className={styles.skeletonTableBody}>
+                      {Array.from({ length: 6 }).map((_, row) => (
+                        <div key={`reg-row-${row}`} className={styles.skeletonTableRow}>
+                          {Array.from({ length: 8 }).map((_, col) => (
+                            <SkeletonLine key={`reg-row-${row}-col-${col}`} className={styles.skeletonTableCell} />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <>
                   <div className={styles.talentFilterBar}>
@@ -1209,7 +1281,28 @@ export default function FirmDashboard() {
                   </p>
                 </div>
               ) : leaderboardLoading && !leaderboardData ? (
-                <div className={styles.tableLoading}>Loading leaderboard...</div>
+                <div className={styles.skeletonLeaderboardWrap} aria-label="Loading leaderboard">
+                  <div className={styles.skeletonLeaderboardHeader}>
+                    <SkeletonLine className={styles.skeletonLineSub} style={{ width: '220px' }} />
+                    <SkeletonLine className={styles.skeletonPill} />
+                  </div>
+                  <div className={styles.skeletonTableBox}>
+                    <div className={styles.skeletonTableHead}>
+                      {Array.from({ length: 4 }).map((_, i) => (
+                        <SkeletonLine key={`lb-head-${i}`} className={styles.skeletonTableHeadCell} />
+                      ))}
+                    </div>
+                    <div className={styles.skeletonTableBody}>
+                      {Array.from({ length: 8 }).map((_, row) => (
+                        <div key={`lb-row-${row}`} className={styles.skeletonTableRow}>
+                          {Array.from({ length: 4 }).map((_, col) => (
+                            <SkeletonLine key={`lb-row-${row}-col-${col}`} className={styles.skeletonTableCell} />
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <>
                   {/* Header bar */}
@@ -1300,27 +1393,41 @@ export default function FirmDashboard() {
           {activeTab === 'analytics' && (
             <div>
               {analyticsLoading ? (
-                <div className={styles.tableLoading} style={{ minHeight: '300px' }}>
-                  Loading analytics...
+                <div className={styles.skeletonAnalyticsWrap} aria-label="Loading analytics">
+                  <div className={styles.skeletonStatsGrid}>
+                    <div className={styles.skeletonStatCard}>
+                      <SkeletonLine className={styles.skeletonLineSub} style={{ width: '120px' }} />
+                      <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '80px' }} />
+                    </div>
+                    <div className={styles.skeletonStatCard}>
+                      <SkeletonLine className={styles.skeletonLineSub} style={{ width: '150px' }} />
+                      <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '60px' }} />
+                    </div>
+                  </div>
+                  <div className={styles.skeletonChartCard}>
+                    <SkeletonLine className={styles.skeletonLineSub} style={{ width: '240px' }} />
+                    <div className={styles.skeletonChartArea} />
+                  </div>
                 </div>
               ) : analyticsData ? (
                 <>
-                  <div className={styles.statsGrid} style={{ marginBottom: 28 }}>
-                    {[
-                      {
-                        label: 'Total Registrants',
-                        value: (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0),
-                      },
-                      {
-                        label: 'Participating Institutions',
-                        value: (analyticsData.institutions || []).length,
-                      },
-                    ].map((s) => (
-                      <div key={s.label} className={styles.statCard}>
-                        <span className={styles.statLabel}>{s.label}</span>
-                        <span className={styles.statValue}>{s.value}</span>
-                      </div>
-                    ))}
+                  <div className={styles.analyticsStatsGrid}>
+                    {(() => {
+                      const totalRegistrants = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
+                      const institutionsCount = (analyticsData.institutions || []).length;
+                      const avgPerInstitution = institutionsCount ? (totalRegistrants / institutionsCount).toFixed(1) : '0.0';
+
+                      return [
+                        { label: 'Total Registrants', value: totalRegistrants },
+                        { label: 'Participating Institutions', value: institutionsCount },
+                        { label: 'Avg Registrants / Institution', value: avgPerInstitution },
+                      ].map((s) => (
+                        <div key={s.label} className={`${styles.statCard} ${styles.analyticsStatCard}`}>
+                          <span className={styles.statLabel}>{s.label}</span>
+                          <span className={styles.statValue}>{s.value}</span>
+                        </div>
+                      ));
+                    })()}
                   </div>
 
                   {chartData.length > 0 && (
@@ -1329,11 +1436,19 @@ export default function FirmDashboard() {
                       <RechartsComponents>
                         {({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid }) => (
                           <div className={styles.chartWrap}>
-                            <ResponsiveContainer width="100%" height={320}>
+                            <ResponsiveContainer width="100%" height={340}>
                               <BarChart
                                 data={chartData}
-                                margin={{ top: 4, right: 16, left: -12, bottom: 80 }}
+                                margin={{ top: 4, right: 16, left: -4, bottom: 110 }}
+                                barCategoryGap="35%"
                               >
+                                <defs>
+                                  <linearGradient id="firmAnalyticsBarGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.95} />
+                                    <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.22} />
+                                  </linearGradient>
+                                </defs>
+
                                 <CartesianGrid
                                   strokeDasharray="3 3"
                                   stroke="rgba(255,255,255,0.04)"
@@ -1344,17 +1459,21 @@ export default function FirmDashboard() {
                                   tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
                                   tickLine={false}
                                   axisLine={false}
-                                  angle={-40}
+                                  angle={-38}
                                   textAnchor="end"
                                   interval={0}
+                                  height={92}
+                                  tickFormatter={(value) => truncateInstitutionName(value)}
                                 />
                                 <YAxis
                                   tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
                                   tickLine={false}
                                   axisLine={false}
+                                  allowDecimals={false}
+                                  domain={[0, 'auto']}
                                 />
                                 <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.04)' }} />
-                                <Bar dataKey="count" fill={GOLD} radius={[2, 2, 0, 0]} />
+                                <Bar dataKey="count" fill="url(#firmAnalyticsBarGradient)" maxBarSize={52} radius={[4, 4, 0, 0]} />
                               </BarChart>
                             </ResponsiveContainer>
                           </div>
