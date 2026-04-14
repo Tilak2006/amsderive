@@ -165,11 +165,24 @@ export function validateLinkedInOptional(value) {
 export function validateGitHubOptional(value) {
   const trimmed = (value || '').trim();
   if (!trimmed) return { valid: true }; // Optional field
-  
+
   // Accept various GitHub URL formats
   const githubRegex = /^(https?:\/\/)?(www\.)?github\.com\/[a-zA-Z0-9_-]+\/?$/i;
   if (!githubRegex.test(trimmed)) {
     return { valid: false, error: 'Please enter a valid GitHub profile URL (e.g., github.com/yourprofile)' };
   }
+  return { valid: true };
+}
+
+/**
+ * Validate a branch / discipline field.
+ * @param {string} value
+ * @returns {{ valid: boolean, error?: string }}
+ */
+export function validateBranch(value) {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return { valid: false, error: 'Branch is required' };
+  if (trimmed.length < 2) return { valid: false, error: 'Branch must be at least 2 characters' };
+  if (trimmed.length > 100) return { valid: false, error: 'Branch must be under 100 characters' };
   return { valid: true };
 }

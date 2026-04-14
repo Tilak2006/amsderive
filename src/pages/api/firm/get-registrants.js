@@ -122,6 +122,8 @@ export default async function handler(req, res) {
         id: doc.id,
         fullName: d.fullName,
         university: d.university,
+        branch: d.branch || null,
+        graduationYear: d.graduationYear || null,
         round: d.round || null,
         codeforcesHandle: d.codeforcesHandle,
         gitHub: d.gitHub || null,

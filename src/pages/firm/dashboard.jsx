@@ -182,6 +182,9 @@ export default function FirmDashboard() {
   const [registrantsHasMore, setRegistrantsHasMore] = useState(false);
   const [registrantsLastId, setRegistrantsLastId] = useState(null);
   const [registrantsSearch, setRegistrantsSearch] = useState('');
+  const [registrantsFilterUniversity, setRegistrantsFilterUniversity] = useState('all');
+  const [registrantsFilterBranch, setRegistrantsFilterBranch] = useState('all');
+  const [registrantsFilterGradYear, setRegistrantsFilterGradYear] = useState('all');
   const [registrantsAccess, setRegistrantsAccess] = useState(null);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
@@ -408,6 +411,16 @@ export default function FirmDashboard() {
     const set = new Set(finalists.map((f) => f.university).filter(Boolean));
     return Array.from(set).sort();
   }, [finalists]);
+
+  const uniqueRegistrantUniversities = useMemo(() => {
+    const set = new Set(registrants.map((r) => r.university).filter(Boolean));
+    return Array.from(set).sort();
+  }, [registrants]);
+
+  const uniqueRegistrantBranches = useMemo(() => {
+    const set = new Set(registrants.map((r) => r.branch).filter(Boolean));
+    return Array.from(set).sort();
+  }, [registrants]);
 
   const chartData = useMemo(() => {
     if (!analyticsData?.institutions?.length) return [];
@@ -869,6 +882,36 @@ export default function FirmDashboard() {
                       value={registrantsSearch}
                       onChange={(e) => setRegistrantsSearch(e.target.value)}
                     />
+                    <select
+                      className={styles.filterSelect}
+                      value={registrantsFilterUniversity}
+                      onChange={(e) => setRegistrantsFilterUniversity(e.target.value)}
+                    >
+                      <option value="all">All Universities</option>
+                      {uniqueRegistrantUniversities.map((u) => (
+                        <option key={u} value={u}>{u}</option>
+                      ))}
+                    </select>
+                    <select
+                      className={styles.filterSelect}
+                      value={registrantsFilterBranch}
+                      onChange={(e) => setRegistrantsFilterBranch(e.target.value)}
+                    >
+                      <option value="all">All Branches</option>
+                      {uniqueRegistrantBranches.map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
+                    <select
+                      className={styles.filterSelect}
+                      value={registrantsFilterGradYear}
+                      onChange={(e) => setRegistrantsFilterGradYear(e.target.value)}
+                    >
+                      <option value="all">All Grad Years</option>
+                      {[2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035].map((yr) => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
                     <button
                       className={`${styles.starredFilterPill} ${showStarredOnly ? styles.starredFilterPillActive : ''}`}
                       onClick={() => setShowStarredOnly((v) => !v)}
@@ -880,37 +923,31 @@ export default function FirmDashboard() {
                     </button>
                     {registrantsTotal !== null && (
                       <span className={styles.resultCount}>
-                        {registrantsSearch.trim()
-                          ? `${registrants.filter(
-                            (r) =>
-                              r.fullName?.toLowerCase().includes(registrantsSearch.toLowerCase()) ||
-                              r.university?.toLowerCase().includes(registrantsSearch.toLowerCase())
-                          ).length} / `
+                        {(registrantsSearch.trim() || registrantsFilterUniversity !== 'all' || registrantsFilterBranch !== 'all' || registrantsFilterGradYear !== 'all')
+                          ? `${registrants.filter((r) => {
+                              if (registrantsSearch.trim()) {
+                                const q = registrantsSearch.toLowerCase();
+                                if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
+                              }
+                              if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
+                              if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
+                              if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
+                              return true;
+                            }).length} / `
                           : ''}
                         {registrantsTotal} registrant{registrantsTotal !== 1 ? 's' : ''}
                       </span>
                     )}
-                    {firmProfile?.access?.csvExport ? (
-                      <button
-                        className={styles.exportBtn}
-                        onClick={handleExportCsv}
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        EXPORT CSV
-                      </button>
-                    ) : (
-                      <span
-                        className={styles.exportBtnLocked}
-                        title="Unlocks after POSTERIOR — 21 Jun 2026"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                        EXPORT CSV
-                      </span>
-                    )}
+                    <button
+                      className={styles.exportBtn}
+                      onClick={handleExportCsv}
+                      title="Export registrants as CSV"
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      EXPORT CSV
+                    </button>
                   </div>
 
                   <div className={styles.leaderboardTableWrap}>
@@ -920,6 +957,8 @@ export default function FirmDashboard() {
                           <th className={styles.leaderboardTh}>#</th>
                           <th className={styles.leaderboardTh}>Name</th>
                           <th className={styles.leaderboardTh}>Institution</th>
+                          <th className={styles.leaderboardTh}>Branch</th>
+                          <th className={styles.leaderboardTh}>Grad Year</th>
                           <th className={styles.leaderboardTh}>Round</th>
                           <th className={styles.leaderboardTh}>CF Handle</th>
                           <th className={styles.leaderboardTh} style={{ width: 36 }}>
@@ -939,12 +978,17 @@ export default function FirmDashboard() {
                         {registrants
                           .filter((r) => {
                             if (showStarredOnly && !starred.has(r.id)) return false;
-                            if (!registrantsSearch.trim()) return true;
-                            const q = registrantsSearch.toLowerCase();
-                            return (
-                              r.fullName?.toLowerCase().includes(q) ||
-                              r.university?.toLowerCase().includes(q)
-                            );
+                            if (registrantsSearch.trim()) {
+                              const q = registrantsSearch.toLowerCase();
+                              if (
+                                !r.fullName?.toLowerCase().includes(q) &&
+                                !r.university?.toLowerCase().includes(q)
+                              ) return false;
+                            }
+                            if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
+                            if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
+                            if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
+                            return true;
                           })
                           .map((r, i) => (
                             <tr
@@ -958,6 +1002,8 @@ export default function FirmDashboard() {
                               </td>
                               <td className={styles.leaderboardTd}>{r.fullName}</td>
                               <td className={styles.leaderboardTd}>{r.university}</td>
+                              <td className={styles.leaderboardTd}>{r.branch || <span style={{ color: '#3a3a3a' }}>—</span>}</td>
+                              <td className={styles.leaderboardTd}>{r.graduationYear || <span style={{ color: '#3a3a3a' }}>—</span>}</td>
                               <td className={styles.leaderboardTd}>
                                 {r.round ? (
                                   <span style={{ textTransform: 'uppercase', color: '#D4AF37', fontSize: '0.75rem' }}>
@@ -1040,6 +1086,16 @@ export default function FirmDashboard() {
                   <div className={styles.panelRow}>
                     <span className={styles.panelLabel}>Institution</span>
                     <span className={styles.panelValue}>{selectedRegistrant.university || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Branch</span>
+                    <span className={styles.panelValue}>{selectedRegistrant.branch || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Graduation Year</span>
+                    <span className={styles.panelValue}>{selectedRegistrant.graduationYear || '—'}</span>
                   </div>
 
                   <div className={styles.panelRow}>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import TextInput from './TextInput';
 import UniversitySelect from './UniversitySelect';
+import BranchSelect from './BranchSelect';
 import FileUpload from './FileUpload';
 import Button from '../ui/Button';
 import styles from './RegistrationForm.module.css';
@@ -12,6 +13,7 @@ import {
   validateIndianPhone,
   validateLinkedInOptional,
   validateGitHubOptional,
+  validateBranch,
 } from '../../utils/validators';
 import { validateFileType, validateFileSize } from '../../utils/fileValidation';
 import { createValidationDebouncer } from '../../utils/formOptimization';
@@ -30,6 +32,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     fullName: '',
     email: '',
     university: '',
+    branch: '',
+    graduationYear: '',
     codeforcesHandle: '',
     phoneNumber: '',
     linkedIn: '',
@@ -77,6 +81,11 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       } else if (fieldName === 'university') {
         const result = validateUniversity(value);
         if (!result.valid) error = result.error;
+      } else if (fieldName === 'branch') {
+        const result = validateBranch(value);
+        if (!result.valid) error = result.error;
+      } else if (fieldName === 'graduationYear') {
+        if (!value) error = 'Graduation year is required';
       } else if (fieldName === 'codeforcesHandle') {
         const result = validateCodeforcesHandleFormat(value);
         if (!result.valid) error = result.error;
@@ -164,6 +173,13 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     const universityResult = validateUniversity(fields.university);
     if (!universityResult.valid) newErrors.university = universityResult.error;
 
+    // Branch validation
+    const branchResult = validateBranch(fields.branch);
+    if (!branchResult.valid) newErrors.branch = branchResult.error;
+
+    // Graduation year validation
+    if (!fields.graduationYear) newErrors.graduationYear = 'Graduation year is required';
+
     // Codeforces handle validation
     const cfResult = validateCodeforcesHandleFormat(fields.codeforcesHandle);
     if (!cfResult.valid) newErrors.codeforcesHandle = cfResult.error;
@@ -237,6 +253,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           fullName: snapshot.fullName.trim(),
           email: snapshot.email.trim(),
           university: snapshot.university.trim(),
+          branch: snapshot.branch.trim(),
+          graduationYear: snapshot.graduationYear,
           codeforcesHandle: snapshot.codeforcesHandle.trim(),
           phoneNumber: snapshot.phoneNumber.trim(),
           linkedIn: snapshot.linkedIn.trim(),
@@ -287,6 +305,49 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           error={errors.university}
           required
         />
+
+        {/* Branch + Graduation Year - 2 Column */}
+        <div className={styles.formGridRow}>
+          <BranchSelect
+            label="Branch / Discipline"
+            name="branch"
+            value={fields.branch}
+            onChange={handleChange}
+            error={errors.branch}
+            required
+          />
+          <div className={styles.selectField}>
+            <label htmlFor="graduationYear" className={styles.selectLabel}>
+              Graduation Year<span className={styles.selectRequired}> *</span>
+            </label>
+            <div className={styles.selectWrapper}>
+              <select
+                id="graduationYear"
+                name="graduationYear"
+                value={fields.graduationYear}
+                onChange={handleChange}
+                className={`${styles.selectInput} ${errors.graduationYear ? styles.selectInputError : ''}`}
+                aria-invalid={!!errors.graduationYear}
+                aria-describedby={errors.graduationYear ? 'graduationYear-error' : undefined}
+              >
+                <option value="">Select year</option>
+                {[2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035].map((yr) => (
+                  <option key={yr} value={yr}>{yr}</option>
+                ))}
+              </select>
+              <span className={styles.selectChevron} aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </span>
+            </div>
+            {errors.graduationYear && (
+              <p id="graduationYear-error" className={styles.selectErrorMsg} role="alert">
+                {errors.graduationYear}
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Competitive Programming Handles - Single Column */}
         <div className={styles.cfInputWrap}>

@@ -51,6 +51,8 @@ export default async function handler(req, res) {
         fullName: data.fullName || '',
         email: data.email || '',
         university: data.university || '',
+        branch: data.branch || '',
+        graduationYear: data.graduationYear || null,
         codeforcesHandle: data.codeforcesHandle || '',
         phoneNumber: data.phoneNumber || null,
         linkedIn: data.linkedIn || null,

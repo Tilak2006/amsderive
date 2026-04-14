@@ -79,13 +79,16 @@ export default async function handler(req, res) {
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0));
 
-    const headers = ['Name', 'Institution', 'CF Handle', 'GitHub', 'Round', 'Submitted'];
+    const headers = ['Name', 'Email', 'Institution', 'Branch', 'Graduation Year', 'CF Handle', 'GitHub', 'Round', 'Submitted'];
     if (linkedinAccess) headers.push('LinkedIn');
 
     const rows = docs.map((d) => {
       const row = [
         d.fullName,
+        d.email || '',
         d.university,
+        d.branch || '',
+        d.graduationYear ? String(d.graduationYear) : '',
         d.codeforcesHandle,
         d.gitHub || '',
         d.round || '',

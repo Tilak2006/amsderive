@@ -19,13 +19,14 @@ function formatDate(isoString) {
 
 function exportCSV(data) {
   const headers = [
-    'Full Name', 'Email', 'University',
+    'Full Name', 'Email', 'University', 'Branch',
     'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status', 'Ref Code',
   ];
   const rows = data.map((r) => [
     `"${(r.fullName || '').replace(/"/g, '""')}"`,
     `"${(r.email || '').replace(/"/g, '""')}"`,
     `"${(r.university || '').replace(/"/g, '""')}"`,
+    `"${(r.branch || '').replace(/"/g, '""')}"`,
     `"${(r.codeforcesHandle || '').replace(/"/g, '""')}"`,
     `"${(r.phoneNumber || '').replace(/"/g, '""')}"`,
     r.dataConsent ? 'Yes' : 'No',
@@ -70,6 +71,7 @@ export default function AdminDashboard() {
   const [search, setSearch] = useState('');
   const [filterConsent, setFilterConsent] = useState('all');
   const [filterUniversity, setFilterUniversity] = useState('all');
+  const [filterBranch, setFilterBranch] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [statusLoading, setStatusLoading] = useState(false);
@@ -390,6 +392,7 @@ export default function AdminDashboard() {
       if (filterConsent === 'yes' && !r.dataConsent) return false;
       if (filterConsent === 'no' && r.dataConsent) return false;
       if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
+      if (filterBranch !== 'all' && (r.branch || '').toLowerCase() !== filterBranch.toLowerCase()) return false;
       return true;
     });
 
@@ -397,7 +400,7 @@ export default function AdminDashboard() {
     if (sortOrder === 'oldest') return list.sort((a, b) => a._ts - b._ts);
     if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return list;
-  }, [registrants, search, filterConsent, filterUniversity, sortOrder]);
+  }, [registrants, search, filterConsent, filterUniversity, filterBranch, sortOrder]);
 
   if (checking) {
     return (
@@ -574,6 +577,27 @@ export default function AdminDashboard() {
             </select>
             <select
               className={styles.filterSelect}
+              value={filterBranch}
+              onChange={(e) => setFilterBranch(e.target.value)}
+            >
+              <option value="all">All Branches</option>
+              <option value="Computer Science">Computer Science</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="AI & Machine Learning">AI &amp; Machine Learning</option>
+              <option value="Electronics & Communication Engineering">Electronics &amp; Communication Engineering</option>
+              <option value="Electrical Engineering">Electrical Engineering</option>
+              <option value="Mechanical Engineering">Mechanical Engineering</option>
+              <option value="Chemical Engineering">Chemical Engineering</option>
+              <option value="Civil Engineering">Civil Engineering</option>
+              <option value="Engineering Physics">Engineering Physics</option>
+              <option value="Mathematics and Computing">Mathematics and Computing</option>
+              <option value="Data Science & Engineering">Data Science &amp; Engineering</option>
+              <option value="Biotechnology">Biotechnology</option>
+              <option value="Statistics">Statistics</option>
+              <option value="Other">Other</option>
+            </select>
+            <select
+              className={styles.filterSelect}
               value={sortOrder}
               onChange={(e) => setSortOrder(e.target.value)}
             >
@@ -625,7 +649,7 @@ export default function AdminDashboard() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      {['#', 'Full Name', 'Email', 'University', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
+                      {['#', 'Full Name', 'Email', 'University', 'Branch', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
                         <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                       ))}
                     </tr>
@@ -633,7 +657,7 @@ export default function AdminDashboard() {
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className={styles.emptyRow}>No registrants found.</td>
+                        <td colSpan={9} className={styles.emptyRow}>No registrants found.</td>
                       </tr>
                     ) : filtered.map((reg, i) => (
                       <tr
@@ -645,6 +669,7 @@ export default function AdminDashboard() {
                         <td className={styles.td}>{reg.fullName}</td>
                         <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
                         <td className={styles.td}>{reg.university}</td>
+                        <td className={styles.td}>{reg.branch || '—'}</td>
                         <td className={`${styles.td} ${styles.mono}`}>
                           <a
                             href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
@@ -708,6 +733,10 @@ export default function AdminDashboard() {
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>University</p>
                 <p className={styles.panelValue}>{r.university}</p>
+              </div>
+              <div className={styles.panelSection}>
+                <p className={styles.panelLabel}>Branch</p>
+                <p className={styles.panelValue}>{r.branch || '—'}</p>
               </div>
 
               <div className={styles.panelDivider} />

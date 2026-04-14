@@ -69,16 +69,21 @@ export default async function handler(req, res) {
   }
 
   const {
-    fullName, email, university, codeforcesHandle, phoneNumber,
+    fullName, email, university, branch, graduationYear, codeforcesHandle, phoneNumber,
     linkedIn, gitHub, dataConsent, resumeUrl, resumeFileName,
     transcriptUrl, transcriptFileName, refCode,
   } = req.body;
 
   // Server-side validation — never trust client
   // linkedIn is required but handled separately so we can return a field-level error
-  if (!fullName || !email || !university || !codeforcesHandle || !phoneNumber ||
+  if (!fullName || !email || !university || !branch || !graduationYear || !codeforcesHandle || !phoneNumber ||
     !resumeUrl || !transcriptUrl || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
+  }
+
+  const parsedYear = parseInt(graduationYear, 10);
+  if (isNaN(parsedYear) || parsedYear < 2025 || parsedYear > 2035) {
+    return res.status(400).json({ success: false, error: 'Invalid graduation year.' });
   }
 
   if (!linkedIn || !linkedIn.trim()) {
@@ -176,6 +181,8 @@ export default async function handler(req, res) {
       email: normalizedEmail,
       emailLower: normalizedEmail,
       university: university.trim(),
+      branch: branch.trim(),
+      graduationYear: parsedYear,
       resumeUrl,
       resumeFileName: resumeFileName || null,
       transcriptUrl,
