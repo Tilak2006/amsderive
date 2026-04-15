@@ -8,7 +8,6 @@ import ErrorBanner from '../components/ui/ErrorBanner';
 import RegistrationCard from '../components/ui/RegistrationCard';
 import styles from './register.module.css';
 import { uploadRegistrationFiles } from '../firebase/storageService';
-import { hashIp, createRateLimitFingerprint } from '../utils/hashIp';
 import PerformanceLogger from '../utils/performanceLogger';
 import { TIMEOUT_MS } from '../lib/constants';
 
@@ -120,76 +119,7 @@ export default function Register() {
         .toLowerCase()
         .slice(0, 40); // cap storage path segment per security_rules.md
 
-      // Step 2: Fetch IP and create device fingerprint for rate limiting
-      // (Ref: firebase-upload-safety skill - Rule 6: IP + User-Agent fingerprinting)
-      const fingerprint = await PerformanceLogger.monitor(
-        'IP Fetch & Fingerprint for Rate Limit',
-        (async () => {
-          try {
-            const ipRes = await fetch('/api/get-ip');
-            const ipData = await ipRes.json();
-            if (ipData.ip) {
-              // Get User-Agent from browser
-              const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown';
-              // Create fingerprint from IP + User-Agent (not just IP)
-              return await createRateLimitFingerprint(ipData.ip, userAgent);
-            }
-          } catch {
-            return 'unknown';
-          }
-          return 'unknown';
-        })()
-      );
-
-      // Rate limit check has been moved server-side into submit-registration.js
-
-      // Step 4: CHECK REGISTRATION DATE GATE (server-side)
-      // (Ref: firebase-upload-safety skill - admin bypass moved to server)
-      // Gate check skips date if admin bypass cookie is active
-      const gateResult = await PerformanceLogger.monitor(
-        'Registration Gate Check',
-        withTimeout(
-          fetch('/api/check-registration-gate', { method: 'POST' }).then(r => {
-            if (r.status === 403) {
-              return { allowed: false, error: 'Registration has not opened yet.' };
-            }
-            if (r.status !== 200) {
-              return { allowed: false, error: 'Failed to verify registration status.' };
-            }
-            return r.json();
-          })
-        )
-      );
-
-      if (!gateResult.allowed) {
-        setStatus('error');
-        setErrorMessage(gateResult.error || 'Registration is not available.');
-        return;
-      }
-
-      // Step 5: Check cap and duplicates in parallel (via server API)
-      const preCheckResult = await PerformanceLogger.monitor(
-        'Registration Pre-checks (Cap + Duplicate)',
-        withTimeout(
-          fetch('/api/check-registration', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: data.email.toLowerCase().trim(),
-              codeforcesHandle: data.codeforcesHandle.trim(),
-            }),
-          }).then(r => r.json())
-        )
-      );
-
-      if (!preCheckResult.allowed) {
-        setStatus('error');
-        setErrorMessage(preCheckResult.error || 'Registration check failed.');
-        if (preCheckResult.error?.includes('closed')) setRegistrationClosed(true);
-        return;
-      }
-
-      // Step 6: NOW upload files (rate limit already passed)
+      // Step 2: Upload files
       const uploadResult = await PerformanceLogger.monitor(
         'File Upload',
         withTimeout(uploadRegistrationFiles(data.resumeFile, data.transcriptFile, sanitizedName))
@@ -201,8 +131,8 @@ export default function Register() {
         return;
       }
 
-      // Step 7: Submit to server API
-      const regResult = await PerformanceLogger.monitor(
+      // Step 3: Submit to server API
+      const regRes = await PerformanceLogger.monitor(
         'Firestore Submission',
         withTimeout(
           fetch('/api/submit-registration', {
@@ -212,6 +142,8 @@ export default function Register() {
               fullName: data.fullName.trim(),
               email: data.email.toLowerCase().trim(),
               university: data.university.trim(),
+              branch: data.branch,
+              graduationYear: data.graduationYear,
               resumeUrl: uploadResult.resumeUrl,
               resumeFileName: uploadResult.resumeFileName,
               transcriptUrl: uploadResult.transcriptUrl,
@@ -221,19 +153,22 @@ export default function Register() {
               linkedIn: data.linkedIn.trim(),
               gitHub: data.gitHub.trim() || null,
               dataConsent: data.dataConsent,
-              ipHash: fingerprint,
               refCode: data.refCode || null,
             }),
-          }).then(r => r.json())
+          })
         )
       );
 
+      const regResult = await regRes.json();
+
       if (!regResult.success) {
-        // Field-level error — route back into the form so user doesn't lose progress
         if (regResult.field === 'linkedIn') {
           setStatus('idle');
           setFieldErrors({ linkedIn: regResult.error });
           return;
+        }
+        if (regRes.status === 403) {
+          setRegistrationClosed(true);
         }
         setStatus('error');
         setErrorMessage(regResult.error || 'Registration failed. Please try again.');
