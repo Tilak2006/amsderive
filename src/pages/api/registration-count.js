@@ -25,7 +25,7 @@ export default async function handler(req, res) {
 
   // CDN caches for 60s; stale-while-revalidate lets CDN serve stale for 5 more min
   // while revalidating in background — zero Firestore reads during that window.
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
 
   const now = Date.now();
   if (cachedCount !== null && now - cacheTime < CACHE_TTL) {

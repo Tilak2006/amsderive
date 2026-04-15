@@ -79,23 +79,28 @@ export default function Register() {
         if (Date.now() - ts < CACHE_TTL) {
           setCountData(data);
           if (data.full) setRegistrationClosed(true);
-          return;
+          return; // Skip fetch entirely if we have fresh cached data
         }
       }
     } catch { /* sessionStorage unavailable */ }
 
-    fetch('/api/registration-count')
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data) {
-          setCountData(data);
-          if (data.full) setRegistrationClosed(true);
-          try {
-            sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
-          } catch { /* quota exceeded or unavailable */ }
-        }
-      })
-      .catch(() => { /* fail silently */ });
+    // Delay non-critical fetch to prioritize UI rendering (INP/LCP improvement)
+    const timeoutId = setTimeout(() => {
+      fetch('/api/registration-count')
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => {
+          if (data) {
+            setCountData(data);
+            if (data.full) setRegistrationClosed(true);
+            try {
+              sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
+            } catch { /* quota exceeded or unavailable */ }
+          }
+        })
+        .catch(() => { /* fail silently */ });
+    }, 1000);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   // Ensure hydration matches between server and client
