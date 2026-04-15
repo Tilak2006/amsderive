@@ -170,14 +170,16 @@ export default async function handler(req, res) {
   const registrantsRef = db.collection('registrants');
   const docRef = registrantsRef.doc(normalizedEmail);
   const statsRef = db.collection('stats').doc('global');
+  const cfHandleRef = db.collection('cfHandles').doc(cfHandle.toLowerCase());
 
   // Atomic transaction: cap check + duplicate check + write — no TOCTOU window
   let transactionResult;
   try {
     transactionResult = await db.runTransaction(async (transaction) => {
-      const [existing, statsDoc] = await Promise.all([
+      const [existing, statsDoc, cfHandleDoc] = await Promise.all([
         transaction.get(docRef),
         transaction.get(statsRef),
+        transaction.get(cfHandleRef),
       ]);
 
       const currentCount = statsDoc.exists ? (statsDoc.data().count || 0) : 0;
@@ -187,6 +189,10 @@ export default async function handler(req, res) {
 
       if (existing.exists) {
         return { written: false, reason: 'duplicate_email' };
+      }
+
+      if (cfHandleDoc.exists) {
+        return { written: false, reason: 'duplicate_cf' };
       }
 
       transaction.set(docRef, {
@@ -211,6 +217,12 @@ export default async function handler(req, res) {
         submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
+      // Sentinel doc — presence = handle is taken
+      transaction.set(cfHandleRef, {
+        emailRef: normalizedEmail,
+        registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
       transaction.set(statsRef, { count: currentCount + 1 }, { merge: true });
 
       return { written: true };
@@ -224,6 +236,10 @@ export default async function handler(req, res) {
     if (transactionResult.reason === 'duplicate_email') {
       logger.warn('registration', 'duplicate_rejected', { reqId, actorId: ipHash, status: 'blocked' });
       return res.status(409).json({ success: false, error: 'This email is already registered.' });
+    }
+    if (transactionResult.reason === 'duplicate_cf') {
+      logger.warn('registration', 'duplicate_cf_rejected', { reqId, actorId: ipHash, status: 'blocked' });
+      return res.status(409).json({ success: false, error: 'This Codeforces handle is already registered.' });
     }
     if (transactionResult.reason === 'cap_reached') {
       logger.warn('registration', 'cap_reached', { reqId, actorId: ipHash, status: 'blocked' });
