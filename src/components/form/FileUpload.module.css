@@ -14,7 +14,7 @@
 }
 
 .fileUploadRequired {
-  color: #ff4c4c;
+  color: var(--color-error);
   margin-left: 0.2em;
 }
 
@@ -82,15 +82,6 @@
   opacity: 1 !important;
 }
 
-.fileUploadSubtext {
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  color: #6b6560;
-  margin: 0;
-  margin-top: 0.3rem;
-  letter-spacing: 0.05em;
-}
-
 .fileUploadDropzone {
   display: flex;
   align-items: center;
@@ -123,7 +114,7 @@
 }
 
 .fileUploadDropzoneError {
-  border-color: #ff4c4c;
+  border-color: var(--color-error);
 }
 
 .fileUploadEmpty {
@@ -179,9 +170,26 @@
   font-family: var(--font-mono);
 }
 
+.fileUploadRemove {
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  margin-left: auto;
+}
+
+.fileUploadHint {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: #6b6560;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
 .fileUploadErrorMsg {
   font-size: 0.8rem;
-  color: #ff4c4c;
+  color: var(--color-error);
   margin: 0;
   margin-top: 0.5rem;
 }

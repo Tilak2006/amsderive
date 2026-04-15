@@ -3,7 +3,7 @@ import styles from './FileUpload.module.css';
 
 /**
  * File upload with drag-and-drop, image preview, and file info display.
- * @param {{ label: string, name: string, accept: string, onFileSelect: Function, error?: string, file?: File|null, required?: boolean }} props
+ * @param {{ label: string, name: string, accept: string, onFileSelect: Function, error?: string, file?: File|null, required?: boolean, hint?: string, infoTooltip?: string }} props
  */
 export default function FileUpload({
   label,
@@ -13,6 +13,7 @@ export default function FileUpload({
   error = '',
   file = null,
   required = false,
+  hint = '',
   infoTooltip = '',
 }) {
   const inputRef = useRef(null);
@@ -95,7 +96,6 @@ export default function FileUpload({
           </div>
         )}
       </div>
-      <p className={styles.fileUploadSubtext}>to verify institution</p>
       <button
         type="button"
         className={dropzoneClassArray.join(' ')}
@@ -159,6 +159,9 @@ export default function FileUpload({
         aria-hidden="true"
         tabIndex={-1}
       />
+      {hint && (
+        <p className={styles.fileUploadHint}>{hint}</p>
+      )}
       {error && (
         <p id={`${name}-error`} className={styles.fileUploadErrorMsg} role="alert">
           {error}
