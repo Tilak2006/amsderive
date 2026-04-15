@@ -5,20 +5,39 @@ import Navbar from '../components/Navbar';
 import Countdown from '../components/Countdown';
 import FadeInSection from '../components/FadeInSection';
 import Footer from '../components/Footer';
-import NotifyModal from '../components/NotifyModal';
+// Loaded only on user interaction — not on initial paint
+const NotifyModal = dynamic(() => import('../components/NotifyModal'), { ssr: false });
 import styles from '../styles/hero.module.css';
 import pageStyles from './index.module.css';
 
 // ── Dynamic imports ────────────────────────────────────────────────────────
-// Three.js — must be client-only
+// Three.js — client-only, deferred until after initial paint so it doesn't
+// compete with FCP. requestIdleCallback fires after the browser is idle
+// (i.e., after first paint), drastically reducing TTI on slow mobile connections.
 const WireframeMesh = dynamic(
-  () => import('../components/hero/WireframeMesh'),
+  () => new Promise((resolve) => {
+    const load = () => import('../components/hero/WireframeMesh').then(resolve);
+    if (typeof window === 'undefined') { load(); return; }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      setTimeout(load, 200);
+    }
+  }),
   { ssr: false, loading: () => null }
 );
 
-// Pure decoration — no SSR value, keep out of initial bundle
+// Pure decoration — defer same as WireframeMesh
 const BackgroundOverlay = dynamic(
-  () => import('../components/hero/BackgroundOverlay'),
+  () => new Promise((resolve) => {
+    const load = () => import('../components/hero/BackgroundOverlay').then(resolve);
+    if (typeof window === 'undefined') { load(); return; }
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      setTimeout(load, 200);
+    }
+  }),
   { ssr: false }
 );
 

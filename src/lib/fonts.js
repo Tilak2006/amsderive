@@ -14,7 +14,7 @@ export const ibmPlexMono = IBM_Plex_Mono({
   weight: ['400', '500'],         // 600 removed — only needed in admin pages
   variable: '--font-ibm-plex-mono',
   display: 'swap',
-  preload: true,
+  // preload removed: display:swap is sufficient; preloading all fonts competes with LCP
 });
 
 export const jetBrainsMono = JetBrains_Mono({
@@ -22,7 +22,7 @@ export const jetBrainsMono = JetBrains_Mono({
   weight: ['400', '700'],
   variable: '--font-jetbrains-mono',
   display: 'swap',
-  preload: true,                  // preload: above-fold (countdown numbers)
+  // preload removed: countdown is not LCP; swap avoids layout shift without blocking
 });
 
 export const oswald = Oswald({

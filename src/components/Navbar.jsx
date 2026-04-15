@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import styles from './Navbar.module.css';
-import NotifyModal from './NotifyModal';
 import { REGISTRATION_OPENS } from '../lib/constants';
+
+// Loaded only when user opens the modal — not on initial page paint
+const NotifyModal = dynamic(() => import('./NotifyModal'), { ssr: false });
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);

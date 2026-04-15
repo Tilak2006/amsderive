@@ -58,7 +58,7 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=86400' },
         ],
       },
-      // HTML pages — never cache
+      // Security headers for all HTML pages (no Cache-Control here — see below)
       {
         source: '/((?!_next/static|_next/image|favicon).*)',
         headers: [
@@ -67,10 +67,44 @@ const nextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
+      // Public static pages — CDN edge cache 1hr, stale-while-revalidate 24hr.
+      // These pages have no auth, no dynamic data, and are pre-rendered at build time.
+      // s-maxage controls Vercel's CDN; max-age=0 prevents browser from staling silently.
+      {
+        source: '/',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
+        ],
+      },
+      {
+        source: '/(syllabus|about|competition|rules|ams-derive|campus-ambassador-leaderboard)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
+        ],
+      },
+      // Auth-protected + sensitive pages — never cache
+      {
+        source: '/(register|admin|firm)/:path*',
+        headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
-      // API routes
+      {
+        source: '/(register|admin|firm)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+        ],
+      },
+      // Rank page — dynamic data with 60s API cache; match edge TTL
+      {
+        source: '/rank/:slug',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=120' },
+        ],
+      },
+      // API routes — never cache at browser or CDN
       {
         source: '/api/(.*)',
         headers: [
