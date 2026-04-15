@@ -15,6 +15,7 @@ export default function TextInput({
   hint = '',
   type = 'text',
   prefix,
+  autoFocus = false,
 }) {
   const describedBy = error
     ? `${name}-error`
@@ -42,6 +43,7 @@ export default function TextInput({
           className={`${styles.textInput} ${error ? styles.textInputError : ''} ${prefix ? styles.textInputWithPrefix : ''}`}
           aria-invalid={!!error}
           aria-describedby={describedBy}
+          autoFocus={autoFocus}
         />
       </div>
       {hint && (

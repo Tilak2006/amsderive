@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import dynamic from 'next/dynamic';
 import TextInput from './TextInput';
-import UniversitySelect from './UniversitySelect';
-import BranchSelect from './BranchSelect';
-import FileUpload from './FileUpload';
 import Button from '../ui/Button';
+
+// Heavy components deferred to improve TTI and split chunk size
+const UniversitySelect = dynamic(() => import('./UniversitySelect'), { ssr: false });
+const BranchSelect = dynamic(() => import('./BranchSelect'), { ssr: false });
+const FileUpload = dynamic(() => import('./FileUpload'), { ssr: false });
 import styles from './RegistrationForm.module.css';
 import {
   validateName,
@@ -281,6 +284,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           error={errors.fullName}
           placeholder="Your full name"
           required
+          autoFocus={true}
         />
         <TextInput
           label="Email"
