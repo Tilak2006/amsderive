@@ -28,7 +28,7 @@ export default function TextInput({
         {label}
         {required && <span className={styles.textInputRequired}> *</span>}
       </label>
-      <div className={prefix ? styles.textInputWrapper : ''}>
+      <div className={prefix ? styles.textInputWrapper : undefined}>
         {prefix && (
           <span className={styles.textInputPrefix}>{prefix}</span>
         )}
@@ -40,7 +40,6 @@ export default function TextInput({
           onChange={onChange}
           placeholder={placeholder}
           className={`${styles.textInput} ${error ? styles.textInputError : ''} ${prefix ? styles.textInputWithPrefix : ''}`}
-          style={{ width: '100%' }}
           aria-invalid={!!error}
           aria-describedby={describedBy}
         />
