@@ -312,6 +312,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           value={fields.branch}
           onChange={handleChange}
           error={errors.branch}
+          hint="Select the closest match if your branch is not listed"
           required
         />
         <div className={styles.selectField}>

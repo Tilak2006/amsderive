@@ -13,6 +13,7 @@ export default function BranchSelect({
   onChange,
   error = '',
   required = false,
+  hint = '',
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,9 +101,11 @@ export default function BranchSelect({
         {label}
         {required && <span className={styles['university-select-required']}> *</span>}
       </label>
-      <p style={{ margin: '0 0 0.4rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: '#6b6560', letterSpacing: '0.05em' }}>
-        Select the closest match if your branch is not listed
-      </p>
+      {hint && (
+        <p style={{ margin: '0 0 0.4rem', fontSize: '0.7rem', fontFamily: 'var(--font-mono)', color: '#6b6560', letterSpacing: '0.05em' }}>
+          {hint}
+        </p>
+      )}
 
       <div className={styles['university-select-wrapper']}>
         <input
