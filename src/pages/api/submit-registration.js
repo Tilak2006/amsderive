@@ -168,22 +168,25 @@ export default async function handler(req, res) {
   }
 
   const registrantsRef = db.collection('registrants');
-  // Deterministic doc ID: normalized email is unique per registrant
   const docRef = registrantsRef.doc(normalizedEmail);
+  const statsRef = db.collection('stats').doc('global');
 
   // Atomic transaction: cap check + duplicate check + write — no TOCTOU window
   let transactionResult;
   try {
     transactionResult = await db.runTransaction(async (transaction) => {
-      const existing = await transaction.get(docRef);
-      if (existing.exists) {
-        return { written: false, reason: 'duplicate_email' };
+      const [existing, statsDoc] = await Promise.all([
+        transaction.get(docRef),
+        transaction.get(statsRef),
+      ]);
+
+      const currentCount = statsDoc.exists ? (statsDoc.data().count || 0) : 0;
+      if (currentCount >= MAX_REGISTRATIONS) {
+        return { written: false, reason: 'cap_reached' };
       }
 
-      // Count query inside a transaction gives a consistent snapshot
-      const countSnap = await registrantsRef.count().get();
-      if (countSnap.data().count >= MAX_REGISTRATIONS) {
-        return { written: false, reason: 'cap_reached' };
+      if (existing.exists) {
+        return { written: false, reason: 'duplicate_email' };
       }
 
       transaction.set(docRef, {
@@ -207,6 +210,8 @@ export default async function handler(req, res) {
         round: 'prior',
         submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      transaction.set(statsRef, { count: currentCount + 1 }, { merge: true });
 
       return { written: true };
     });
