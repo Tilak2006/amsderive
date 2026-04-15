@@ -3,10 +3,35 @@ import dynamic from 'next/dynamic';
 import TextInput from './TextInput';
 import Button from '../ui/Button';
 
-// Heavy components deferred to improve TTI and split chunk size
-const UniversitySelect = dynamic(() => import('./UniversitySelect'), { ssr: false });
-const BranchSelect = dynamic(() => import('./BranchSelect'), { ssr: false });
-const FileUpload = dynamic(() => import('./FileUpload'), { ssr: false });
+// Heavy components deferred to improve TTI and split chunk size.
+// loading skeletons hold exact dimensions to prevent CLS when chunks arrive.
+const UniversitySelect = dynamic(() => import('./UniversitySelect'), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.fieldSkeleton}>
+      <div className={styles.fieldSkeletonLabel} />
+      <div className={styles.fieldSkeletonInput} />
+    </div>
+  ),
+});
+const BranchSelect = dynamic(() => import('./BranchSelect'), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.fieldSkeleton}>
+      <div className={styles.fieldSkeletonLabel} />
+      <div className={styles.fieldSkeletonInput} />
+    </div>
+  ),
+});
+const FileUpload = dynamic(() => import('./FileUpload'), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.fieldSkeleton}>
+      <div className={styles.fieldSkeletonLabel} />
+      <div className={styles.fieldSkeletonUpload} />
+    </div>
+  ),
+});
 import styles from './RegistrationForm.module.css';
 import {
   validateName,
@@ -107,9 +132,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           if (!result.valid) error = result.error;
         }
       } else if (fieldName === 'gitHub') {
-        if (!value.trim()) {
-          error = 'GitHub profile is required';
-        } else {
+        if (value.trim()) {
           const result = validateGitHubOptional(value);
           if (!result.valid) error = result.error;
         }
@@ -284,7 +307,6 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           error={errors.fullName}
           placeholder="Your full name"
           required
-          autoFocus={true}
         />
         <TextInput
           label="Email"
@@ -316,7 +338,6 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           value={fields.branch}
           onChange={handleChange}
           error={errors.branch}
-          hint="Select the closest match if your branch is not listed"
           required
         />
         <div className={styles.selectField}>
@@ -329,7 +350,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
               name="graduationYear"
               value={fields.graduationYear}
               onChange={handleChange}
-              className={`${styles.selectInput} ${errors.graduationYear ? styles.selectInputError : ''}`}
+              className={`${styles.selectInput} ${errors.graduationYear ? styles.selectInputError : ''} ${!fields.graduationYear ? styles.selectInputPlaceholder : ''}`}
               aria-invalid={!!errors.graduationYear}
               aria-describedby={errors.graduationYear ? 'graduationYear-error' : undefined}
             >

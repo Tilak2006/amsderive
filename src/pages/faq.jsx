@@ -31,7 +31,7 @@ const FAQS = [
       },
       {
         q: 'How many spots are available?',
-        a: 'Registration is capped at 1,000 participants. Spots are allocated on a first-come, first-served basis. No waitlist is maintained after the cap is reached.',
+        a: 'Registration is capped at 10,000 participants. Spots are allocated on a first-come, first-served basis. No waitlist is maintained after the cap is reached.',
       },
       {
         q: 'What documents do I need to register?',

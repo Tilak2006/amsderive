@@ -18,8 +18,6 @@ export default function Document() {
         {/* DNS prefetch for Firebase domain resolution */}
         <link rel="dns-prefetch" href="https://firebaseapp.com" />
 
-        {/* Prefetch registration page for instant navigation */}
-        <link rel="prefetch" href="/register" as="document" />
       </Head>
       <body>
         <Main />

@@ -13,7 +13,7 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 1500;
+const MAX_REGISTRATIONS = 10000;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

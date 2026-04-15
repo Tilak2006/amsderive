@@ -37,10 +37,12 @@ export default async function handler(req, res) {
   }
 
   const reqId = genReqId();
+  const MAX_REGISTRATIONS = 10000;
 
   try {
-    const snapshot = await db.collection('registrants').count().get();
-    cachedCount = snapshot.data().count;
+    // Read stats/global counter — single doc read, faster than count().get() aggregate
+    const statsDoc = await db.collection('stats').doc('global').get();
+    cachedCount = statsDoc.exists ? (statsDoc.data().count || 0) : 0;
     cacheTime = now;
 
     logger.info('registration', 'count_query_ok', {
@@ -50,8 +52,8 @@ export default async function handler(req, res) {
     });
     return res.status(200).json({
       count: cachedCount,
-      warning: cachedCount >= 800,
-      full: cachedCount >= 1000,
+      warning: cachedCount >= MAX_REGISTRATIONS * 0.9,
+      full: cachedCount >= MAX_REGISTRATIONS,
     });
   } catch (error) {
     logger.error('registration', 'count_query_error', { reqId, status: 'failed' }, error);
@@ -59,8 +61,8 @@ export default async function handler(req, res) {
     if (cachedCount !== null) {
       return res.status(200).json({
         count: cachedCount,
-        warning: cachedCount >= 800,
-        full: cachedCount >= 1000,
+        warning: cachedCount >= MAX_REGISTRATIONS * 0.9,
+        full: cachedCount >= MAX_REGISTRATIONS,
       });
     }
     return res.status(500).json({ error: 'Failed to fetch registration count' });

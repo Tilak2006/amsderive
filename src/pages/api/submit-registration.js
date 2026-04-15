@@ -31,12 +31,13 @@ export default async function handler(req, res) {
   const reqId = genReqId();
   const handlerStart = Date.now();
 
-  // Generate IP hash server-side — never trust client-provided fingerprint
+  // Generate rate-limit key server-side — IP + User-Agent reduces false positives on shared IPs (e.g. hostel NAT)
   const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
     .toString()
     .split(',')[0]
     .trim();
-  const ipHash = crypto.createHash('sha256').update(clientIp).digest('hex');
+  const userAgent = (req.headers['user-agent'] || '').slice(0, 200);
+  const ipHash = crypto.createHash('sha256').update(`${clientIp}|${userAgent}`).digest('hex');
 
   try {
     const rateLimitRef = db.collection('_rate_limits').doc(ipHash);
@@ -258,10 +259,17 @@ export default async function handler(req, res) {
     });
 
     // Fire off stats update and confirmation email concurrently — failures must NOT fail the registration
+    // Hard caps prevent slow external calls from dragging response time under burst
+    const withTimeout = (promise, ms) =>
+      Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error(`timed out after ${ms}ms`)), ms))]);
+
     await Promise.allSettled([
-      db.collection('stats').doc('leaderboard').set(
-        { [university.trim()]: admin.firestore.FieldValue.increment(1) },
-        { merge: true }
+      withTimeout(
+        db.collection('stats').doc('leaderboard').set(
+          { [university.trim()]: admin.firestore.FieldValue.increment(1) },
+          { merge: true }
+        ),
+        3000
       ).catch((statsErr) => {
         logger.warn('registration', 'stats_update_failed', {
           reqId,
@@ -271,8 +279,8 @@ export default async function handler(req, res) {
           status: 'degraded',
         });
       }),
-      (async () => {
-        try {
+      withTimeout(
+        (async () => {
           const { from, subject, html } = registrationConfirmationEmail({
             fullName: fullName.trim(),
             codeforcesHandle: codeforcesHandle.trim(),
@@ -286,16 +294,17 @@ export default async function handler(req, res) {
             detail: { emailMasked: maskEmail(normalizedEmail) },
             status: 'ok',
           });
-        } catch (emailErr) {
-          logger.warn('registration', 'confirmation_email_failed', {
-            reqId,
-            entityId: docRef.id,
-            actorId: ipHash,
-            detail: { emailMasked: maskEmail(normalizedEmail), message: emailErr.message },
-            status: 'degraded',
-          });
-        }
-      })(),
+        })(),
+        5000
+      ).catch((emailErr) => {
+        logger.warn('registration', 'confirmation_email_failed', {
+          reqId,
+          entityId: docRef.id,
+          actorId: ipHash,
+          detail: { emailMasked: maskEmail(normalizedEmail), message: emailErr.message },
+          status: 'degraded',
+        });
+      }),
     ]);
 
     return res.status(200).json({ success: true, id: docRef.id });

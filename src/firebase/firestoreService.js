@@ -17,7 +17,7 @@ import {
 } from 'firebase/firestore';
 
 // ── Hard cap ───────────────────────────────────────────────────────────────
-const MAX_REGISTRATIONS = 2500;
+const MAX_REGISTRATIONS = 10000;
 
 export async function checkRegistrationCap() {
   try {

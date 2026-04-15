@@ -73,7 +73,7 @@ export default function TermsPage() {
                 Registration does not guarantee advancement beyond Round 1. Participation in subsequent rounds is subject to performance and compliance with all rules.
               </li>
               <li className={styles.rulesListItem}>
-                Spots are limited to 1,000. Registration closes on 15 May 2026 or when capacity is reached, whichever comes first. No waitlist is maintained.
+                Spots are limited to 10,000. Registration closes on 15 May 2026 or when capacity is reached, whichever comes first. No waitlist is maintained.
               </li>
             </ul>
           </div>

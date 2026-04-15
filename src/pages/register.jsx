@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
@@ -57,7 +57,8 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
 
 export default function Register() {
   const router = useRouter();
-  const [isHydrated, setIsHydrated] = useState(false);
+  // isHydrated gate removed — RegistrationForm's ssr:false dynamic children handle hydration safely
+  const submittingRef = useRef(false); // synchronous guard — prevents double-submit before re-render
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('');
   const [submittedName, setSubmittedName] = useState('');
@@ -102,12 +103,10 @@ export default function Register() {
     return () => clearTimeout(timeoutId);
   }, []);
 
-  // Ensure hydration matches between server and client
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
 
   async function handleSubmit(data, setFieldErrors) {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setStatus('submitting');
     setErrorMessage('');
 
@@ -119,10 +118,10 @@ export default function Register() {
         .toLowerCase()
         .slice(0, 40); // cap storage path segment per security_rules.md
 
-      // Step 2: Upload files
+      // Step 2: Upload files — 30s cap (Firebase Storage, slow mobile)
       const uploadResult = await PerformanceLogger.monitor(
         'File Upload',
-        withTimeout(uploadRegistrationFiles(data.resumeFile, data.transcriptFile, sanitizedName))
+        withTimeout(uploadRegistrationFiles(data.resumeFile, data.transcriptFile, sanitizedName), 30000)
       );
 
       if (!uploadResult.success) {
@@ -131,7 +130,7 @@ export default function Register() {
         return;
       }
 
-      // Step 3: Submit to server API
+      // Step 3: Submit to server API — 15s cap (server-side only, no upload)
       const regRes = await PerformanceLogger.monitor(
         'Firestore Submission',
         withTimeout(
@@ -155,7 +154,8 @@ export default function Register() {
               dataConsent: data.dataConsent,
               refCode: data.refCode || null,
             }),
-          })
+          }),
+          15000
         )
       );
 
@@ -163,6 +163,7 @@ export default function Register() {
 
       if (!regResult.success) {
         if (regResult.field === 'linkedIn') {
+          submittingRef.current = false;
           setStatus('idle');
           setFieldErrors({ linkedIn: regResult.error });
           return;
@@ -170,16 +171,18 @@ export default function Register() {
         if (regRes.status === 403) {
           setRegistrationClosed(true);
         }
+        submittingRef.current = false;
         setStatus('error');
         setErrorMessage(regResult.error || 'Registration failed. Please try again.');
         return;
       }
 
-      // Success
+      // Success — ref stays true: successful submission is terminal, no retry needed
       setSubmittedName(data.fullName.trim());
       setSubmittedUniversity(data.university.trim());
       setStatus('success');
     } catch (err) {
+      submittingRef.current = false;
       setStatus('error');
       setErrorMessage(err.message || 'Something went wrong. Please try again.');
     }
@@ -211,7 +214,7 @@ export default function Register() {
         {countData?.warning && !countData?.full && (
           <div className={styles.warningBanner}>
             <span className={styles.warningIcon}>⚡</span>
-            <span>Only <strong>{1000 - countData.count} spots remaining</strong>. Registration closes at 1,000 participants.</span>
+            <span>Only <strong>{10000 - countData.count} spots remaining</strong>. Registration closes at 10,000 participants.</span>
           </div>
         )}
 
@@ -266,12 +269,10 @@ export default function Register() {
                   <RegistrationCard fullName={submittedName} university={submittedUniversity} />
                 </div>
               ) : (
-                isHydrated && (
-                  <RegistrationForm
-                    onSubmit={handleSubmit}
-                    loading={status === 'submitting'}
-                  />
-                )
+                <RegistrationForm
+                  onSubmit={handleSubmit}
+                  loading={status === 'submitting'}
+                />
               )}
             </div>
           </div>

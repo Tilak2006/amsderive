@@ -189,10 +189,47 @@
   border-color: var(--color-error);
 }
 
+.selectInputPlaceholder {
+  color: #6b6560;
+}
+
 .selectErrorMsg {
   font-size: 0.8rem;
   color: var(--color-error);
   margin: 0;
+}
+
+/* CLS skeleton — holds space for ssr:false dynamic fields before they mount */
+.fieldSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.fieldSkeletonLabel {
+  height: 0.7rem;
+  width: 7rem;
+  background: #1e1e1e;
+  border-radius: 2px;
+}
+
+.fieldSkeletonInput {
+  height: 44px;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fieldSkeletonUpload {
+  height: 80px;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Mobile - single column layout */
