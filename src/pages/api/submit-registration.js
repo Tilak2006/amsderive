@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { resend } from '../../lib/resend';
 import { registrationConfirmationEmail } from '../../emails/templates';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
+import { REGISTRATION_OPENS } from '../../lib/constants';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -16,11 +17,15 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 1500;
+const MAX_REGISTRATIONS = 10000;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  if (Date.now() < REGISTRATION_OPENS.getTime()) {
+    return res.status(403).json({ success: false, error: 'Registration has not opened yet.' });
   }
 
   const reqId = genReqId();
@@ -125,15 +130,8 @@ export default async function handler(req, res) {
   const normalizedEmail = email.trim().toLowerCase();
   const cfHandle = codeforcesHandle.trim();
 
-  // Run cap check and Codeforces validation in parallel
-  const capCheckPromise = db.collection('registrants').count().get()
-    .then((snap) => snap.data().count)
-    .catch((err) => {
-      logger.warn('registration', 'cap_check_error', { reqId, actorId: ipHash, status: 'degraded' }, err);
-      return null; // Continue if count fails — don't block registration on metadata failure
-    });
-
-  const cfCheckPromise = (async () => {
+  // Validate CF handle before the write transaction — fail open if CF is down
+  const cfResult = await (async () => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2000); // 2s timeout
@@ -162,12 +160,6 @@ export default async function handler(req, res) {
     return { valid: true };
   })();
 
-  const [registrantCount, cfResult] = await Promise.all([capCheckPromise, cfCheckPromise]);
-
-  if (registrantCount !== null && registrantCount >= MAX_REGISTRATIONS) {
-    return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
-  }
-
   if (!cfResult.valid) {
     return res.status(400).json({
       success: false,
@@ -175,29 +167,66 @@ export default async function handler(req, res) {
     });
   }
 
-  try {
-    const docRef = await db.collection('registrants').add({
-      fullName: fullName.trim(),
-      email: normalizedEmail,
-      emailLower: normalizedEmail,
-      university: university.trim(),
-      branch: branch.trim(),
-      graduationYear: parsedYear,
-      resumeUrl,
-      resumeFileName: resumeFileName || null,
-      transcriptUrl,
-      transcriptFileName: transcriptFileName || null,
-      codeforcesHandle: codeforcesHandle.trim(),
-      phoneNumber: phoneNumber.trim(),
-      linkedIn: linkedIn?.trim() || null,
-      gitHub: gitHub?.trim() || null,
-      dataConsent: true,
-      ipHash,
-      refCode: refCode?.trim() || null,
-      round: 'prior',
-      submittedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
+  const registrantsRef = db.collection('registrants');
+  // Deterministic doc ID: normalized email is unique per registrant
+  const docRef = registrantsRef.doc(normalizedEmail);
 
+  // Atomic transaction: cap check + duplicate check + write — no TOCTOU window
+  let transactionResult;
+  try {
+    transactionResult = await db.runTransaction(async (transaction) => {
+      const existing = await transaction.get(docRef);
+      if (existing.exists) {
+        return { written: false, reason: 'duplicate_email' };
+      }
+
+      // Count query inside a transaction gives a consistent snapshot
+      const countSnap = await registrantsRef.count().get();
+      if (countSnap.data().count >= MAX_REGISTRATIONS) {
+        return { written: false, reason: 'cap_reached' };
+      }
+
+      transaction.set(docRef, {
+        fullName: fullName.trim(),
+        email: normalizedEmail,
+        emailLower: normalizedEmail,
+        university: university.trim(),
+        branch: branch.trim(),
+        graduationYear: parsedYear,
+        resumeUrl,
+        resumeFileName: resumeFileName || null,
+        transcriptUrl,
+        transcriptFileName: transcriptFileName || null,
+        codeforcesHandle: cfHandle,
+        phoneNumber: phoneNumber.trim(),
+        linkedIn: linkedIn?.trim() || null,
+        gitHub: gitHub?.trim() || null,
+        dataConsent: true,
+        ipHash,
+        refCode: refCode?.trim() || null,
+        round: 'prior',
+        submittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      return { written: true };
+    });
+  } catch (error) {
+    logger.error('registration', 'registration_failed', { reqId, actorId: ipHash, status: 'failed' }, error);
+    return res.status(500).json({ success: false, error: 'Registration failed. Please try again.' });
+  }
+
+  if (!transactionResult.written) {
+    if (transactionResult.reason === 'duplicate_email') {
+      logger.warn('registration', 'duplicate_rejected', { reqId, actorId: ipHash, status: 'blocked' });
+      return res.status(409).json({ success: false, error: 'This email is already registered.' });
+    }
+    if (transactionResult.reason === 'cap_reached') {
+      logger.warn('registration', 'cap_reached', { reqId, actorId: ipHash, status: 'blocked' });
+      return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
+    }
+  }
+
+  try {
     logger.info('registration', 'registration_submitted', {
       reqId,
       entityId: docRef.id,
