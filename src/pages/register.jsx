@@ -15,7 +15,36 @@ import { TIMEOUT_MS } from '../lib/constants';
 // Lazy load registration form to defer loading until page is rendered
 const RegistrationForm = dynamic(
   () => import('../components/form/RegistrationForm'),
-  { ssr: false }
+  { 
+    ssr: false,
+    loading: () => (
+      <div className={styles.skeletonContainer}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className={styles.skeletonLabel} />
+          <div className={styles.skeletonField} />
+        </div>
+        <div className={styles.skeletonRow}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.skeletonLabel} />
+            <div className={styles.skeletonField} />
+          </div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div className={styles.skeletonLabel} />
+            <div className={styles.skeletonField} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className={styles.skeletonLabel} />
+          <div className={styles.skeletonField} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <div className={styles.skeletonLabel} />
+          <div className={styles.skeletonField} />
+        </div>
+        <div className={styles.skeletonBtn} />
+      </div>
+    )
+  }
 );
 
 function withTimeout(promise, ms = TIMEOUT_MS) {

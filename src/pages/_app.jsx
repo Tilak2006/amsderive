@@ -1,9 +1,34 @@
 import { useEffect } from "react";
 import { useRouter } from "next/router";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import dynamic from "next/dynamic";
 import "../styles/globals.css";
 import { ptSerif, ibmPlexMono, jetBrainsMono, oswald, inter } from "../lib/fonts";
+
+const Analytics = dynamic(
+  () => new Promise((resolve) => {
+    const load = () => import("@vercel/analytics/next").then((mod) => resolve(mod.Analytics));
+    if (typeof window === "undefined") { load(); return; }
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      setTimeout(load, 200);
+    }
+  }),
+  { ssr: false }
+);
+
+const SpeedInsights = dynamic(
+  () => new Promise((resolve) => {
+    const load = () => import("@vercel/speed-insights/next").then((mod) => resolve(mod.SpeedInsights));
+    if (typeof window === "undefined") { load(); return; }
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(load, { timeout: 2000 });
+    } else {
+      setTimeout(load, 200);
+    }
+  }),
+  { ssr: false }
+);
 
 export default function App({ Component, pageProps }) {
   const router = useRouter();

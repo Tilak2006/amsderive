@@ -10,6 +10,11 @@ export default function Document() {
       <Head>
         <meta name="theme-color" content="#0a0a0a" />
 
+        {/* Preconnect to external services */}
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="preconnect" href="https://www.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
         {/* DNS prefetch for Firebase domain resolution */}
         <link rel="dns-prefetch" href="https://firebaseapp.com" />
 

@@ -260,3 +260,56 @@
     margin-bottom: -16px;
   }
 }
+
+/* Skeleton Loading Structure */
+.skeletonContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.skeletonRow {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.skeletonField {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  height: 48px;
+  width: 100%;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.skeletonLabel {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 2px;
+  height: 14px;
+  width: 120px;
+  margin-bottom: 8px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+.skeletonBtn {
+  background: rgba(212, 175, 55, 0.1);
+  border-radius: 2px;
+  height: 56px;
+  width: 100%;
+  margin-top: 16px;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}

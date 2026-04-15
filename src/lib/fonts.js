@@ -14,7 +14,7 @@ export const ibmPlexMono = IBM_Plex_Mono({
   weight: ['400', '500'],         // 600 removed — only needed in admin pages
   variable: '--font-ibm-plex-mono',
   display: 'swap',
-  // preload removed: display:swap is sufficient; preloading all fonts competes with LCP
+  preload: false,
 });
 
 export const jetBrainsMono = JetBrains_Mono({
@@ -22,7 +22,7 @@ export const jetBrainsMono = JetBrains_Mono({
   weight: ['400', '700'],
   variable: '--font-jetbrains-mono',
   display: 'swap',
-  // preload removed: countdown is not LCP; swap avoids layout shift without blocking
+  preload: false,
 });
 
 export const oswald = Oswald({
@@ -30,6 +30,7 @@ export const oswald = Oswald({
   weight: ['400', '600'],
   variable: '--font-oswald',
   display: 'optional',            // only shown post-expiry; optional avoids layout shift risk
+  preload: false,
 });
 
 export const inter = Inter({
@@ -37,4 +38,5 @@ export const inter = Inter({
   weight: ['400', '500'],         // 600 removed — only needed in admin/firm forms
   variable: '--font-inter',
   display: 'swap',
+  preload: false,
 });

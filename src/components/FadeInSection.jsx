@@ -36,7 +36,7 @@ const FadeInSection = ({ children }) => {
       ref={domRef}
       data-mounted={hasMounted || undefined}
     >
-      {children}
+      {hasMounted ? children : null}
     </div>
   );
 };
