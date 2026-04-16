@@ -20,10 +20,18 @@ export default function BranchSelect({
   const containerRef = useRef(null);
   const listRef = useRef(null);
 
-  const filtered = useMemo(
-    () => BRANCHES.filter((b) => b.toLowerCase().includes(searchTerm.toLowerCase())),
-    [searchTerm]
-  );
+  // Cap at 25 — limits DOM nodes without affecting usability
+  const filtered = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    const results = [];
+    for (const b of BRANCHES) {
+      if (b.toLowerCase().includes(term)) {
+        results.push(b);
+        if (results.length === 25) break;
+      }
+    }
+    return results;
+  }, [searchTerm]);
 
   function handleInputChange(e) {
     setSearchTerm(e.target.value);
@@ -74,10 +82,12 @@ export default function BranchSelect({
 
   useEffect(() => {
     if (highlightedIndex >= 0 && listRef.current) {
-      const items = listRef.current.querySelectorAll('[data-option]');
-      if (items[highlightedIndex]) {
-        items[highlightedIndex].scrollIntoView({ block: 'nearest' });
-      }
+      requestAnimationFrame(() => {
+        const items = listRef.current?.querySelectorAll('[data-option]');
+        if (items?.[highlightedIndex]) {
+          items[highlightedIndex].scrollIntoView({ block: 'nearest' });
+        }
+      });
     }
   }, [highlightedIndex]);
 
@@ -109,6 +119,7 @@ export default function BranchSelect({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
+          inputMode="search"
           className={`${styles['university-select-input']} ${error ? styles['university-select-error'] : ''}`}
           aria-invalid={!!error}
           aria-describedby={describedBy}

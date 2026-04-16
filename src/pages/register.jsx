@@ -84,8 +84,9 @@ export default function Register() {
       }
     } catch { /* sessionStorage unavailable */ }
 
-    // Delay non-critical fetch to prioritize UI rendering (INP/LCP improvement)
-    const timeoutId = setTimeout(() => {
+    // Fire after browser is genuinely idle — never competes with paint or hydration.
+    // 2000ms hard timeout covers Safari (no rIC) and slow devices.
+    const doFetch = () => {
       fetch('/api/registration-count')
         .then((res) => res.ok ? res.json() : null)
         .then((data) => {
@@ -98,9 +99,19 @@ export default function Register() {
           }
         })
         .catch(() => { /* fail silently */ });
-    }, 1000);
+    };
 
-    return () => clearTimeout(timeoutId);
+    let handle;
+    if (typeof requestIdleCallback === 'function') {
+      handle = { type: 'ric', id: requestIdleCallback(doFetch, { timeout: 2000 }) };
+    } else {
+      handle = { type: 'timeout', id: setTimeout(doFetch, 200) };
+    }
+
+    return () => {
+      if (handle.type === 'ric') cancelIdleCallback(handle.id);
+      else clearTimeout(handle.id);
+    };
   }, []);
 
 

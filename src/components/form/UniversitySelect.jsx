@@ -22,13 +22,19 @@ export default function UniversitySelect({
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Filter universities based on search term
-  const filteredUniversities = useMemo(
-    () => UNIVERSITIES.filter((u) =>
-      u.name.toLowerCase().includes(searchTerm.toLowerCase())
-    ),
-    [searchTerm]
-  );
+  // Filter universities based on search term — cap at 25 to limit DOM nodes.
+  // Users narrow results by typing; showing the full list is never necessary.
+  const filteredUniversities = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    const results = [];
+    for (const u of UNIVERSITIES) {
+      if (u.name.toLowerCase().includes(term)) {
+        results.push(u);
+        if (results.length === 25) break;
+      }
+    }
+    return results;
+  }, [searchTerm]);
 
   // Get unique categories for grouping
   const groupedUniversities = useMemo(() => {
@@ -122,13 +128,15 @@ export default function UniversitySelect({
     }
   }
 
-  // Scroll highlighted item into view
+  // Scroll highlighted item into view — deferred to rAF to batch layout recalc
   useEffect(() => {
     if (highlightedIndex >= 0 && listRef.current) {
-      const items = listRef.current.querySelectorAll('[data-option]');
-      if (items[highlightedIndex]) {
-        items[highlightedIndex].scrollIntoView({ block: 'nearest' });
-      }
+      requestAnimationFrame(() => {
+        const items = listRef.current?.querySelectorAll('[data-option]');
+        if (items?.[highlightedIndex]) {
+          items[highlightedIndex].scrollIntoView({ block: 'nearest' });
+        }
+      });
     }
   }, [highlightedIndex]);
 
@@ -170,6 +178,7 @@ export default function UniversitySelect({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsOpen(true)}
+          inputMode="search"
           className={`${styles['university-select-input']} ${error ? styles['university-select-error'] : ''}`}
           aria-invalid={!!error}
           aria-describedby={describedBy}

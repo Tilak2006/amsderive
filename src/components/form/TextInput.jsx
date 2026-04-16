@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import styles from './TextInput.module.css';
 
 /**
  * A labelled text input field with optional hint and error display.
  * @param {{ label: string, name: string, value: string, onChange: Function, error?: string, placeholder?: string, required?: boolean, hint?: string, type?: string, prefix?: string }} props
  */
-export default function TextInput({
+const TextInput = memo(function TextInput({
   label,
   name,
   value = '',
@@ -14,6 +15,7 @@ export default function TextInput({
   required = false,
   hint = '',
   type = 'text',
+  inputMode,
   prefix,
   autoFocus = false,
 }) {
@@ -37,6 +39,7 @@ export default function TextInput({
           id={name}
           name={name}
           type={type}
+          inputMode={inputMode}
           value={value}
           onChange={onChange}
           placeholder={placeholder}
@@ -58,4 +61,6 @@ export default function TextInput({
       )}
     </div>
   );
-}
+});
+
+export default TextInput;

@@ -1,37 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import dynamic from 'next/dynamic';
 import TextInput from './TextInput';
 import Button from '../ui/Button';
-
-// Heavy components deferred to improve TTI and split chunk size.
-// loading skeletons hold exact dimensions to prevent CLS when chunks arrive.
-const UniversitySelect = dynamic(() => import('./UniversitySelect'), {
-  ssr: false,
-  loading: () => (
-    <div className={styles.fieldSkeleton}>
-      <div className={styles.fieldSkeletonLabel} />
-      <div className={styles.fieldSkeletonInput} />
-    </div>
-  ),
-});
-const BranchSelect = dynamic(() => import('./BranchSelect'), {
-  ssr: false,
-  loading: () => (
-    <div className={styles.fieldSkeleton}>
-      <div className={styles.fieldSkeletonLabel} />
-      <div className={styles.fieldSkeletonInput} />
-    </div>
-  ),
-});
-const FileUpload = dynamic(() => import('./FileUpload'), {
-  ssr: false,
-  loading: () => (
-    <div className={styles.fieldSkeleton}>
-      <div className={styles.fieldSkeletonLabel} />
-      <div className={styles.fieldSkeletonUpload} />
-    </div>
-  ),
-});
+import UniversitySelect from './UniversitySelect';
+import BranchSelect from './BranchSelect';
+import FileUpload from './FileUpload';
 import styles from './RegistrationForm.module.css';
 import {
   validateName,
@@ -90,7 +62,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     };
   }, []);
 
-  function validateFieldDebounced(fieldName, value) {
+  const validateFieldDebounced = useCallback(function validateFieldDebounced(fieldName, value) {
     // Immediately show verifying state for CF handle
     if (fieldName === 'codeforcesHandle' && value.trim()) {
       setCfVerifying(true);
@@ -147,28 +119,27 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           return updated;
         });
       }
-    }, 150); // 150ms debounce delay
-  }
+    }, fieldName === 'codeforcesHandle' ? 300 : 150);
+  }, []); // stable — debouncerRef is a ref, setters are stable
 
-  function handleChange(e) {
+  const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     const newValue = type === 'checkbox' ? checked : value;
     setFields((prev) => ({ ...prev, [name]: newValue }));
 
-    // Immediately clear error on input, validate with debounce
-    if (errors[name]) {
-      setErrors((prev) => {
-        const updated = { ...prev };
-        delete updated[name];
-        return updated;
-      });
-    }
+    // Clear error immediately on input — debounced validator will re-set if still invalid
+    setErrors((prev) => {
+      if (!prev[name]) return prev; // no-op if no error — avoids unnecessary re-render
+      const updated = { ...prev };
+      delete updated[name];
+      return updated;
+    });
 
     // Debounce field validation for non-checkbox fields
     if (type !== 'checkbox') {
       validateFieldDebounced(name, newValue);
     }
-  }
+  }, []); // stable — setFields/setErrors are stable refs, validateFieldDebounced is module-scoped
 
   function handleResumeSelect(file) {
     setResumeFile(file);
@@ -394,6 +365,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         label="Phone Number"
         name="phoneNumber"
         type="tel"
+        inputMode="tel"
         value={fields.phoneNumber}
         onChange={handleChange}
         error={errors.phoneNumber}

@@ -6,11 +6,19 @@
   will-change: opacity, transform;
   transition: opacity 0.7s cubic-bezier(0.165, 0.84, 0.44, 1),
               transform 0.7s cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* Skip paint/layout for off-screen sections. Browser re-enables automatically
+     when scrolled into view. contain-intrinsic-size prevents layout collapse
+     while content is not yet rendered (hasMounted=false). */
+  content-visibility: auto;
+  contain-intrinsic-size: 0 400px;
 }
 
 .visible {
   opacity: 1;
   transform: translateY(0);
+  /* Once visible, disable content-visibility so it never skips painting
+     an animating or user-visible section. */
+  content-visibility: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {
