@@ -98,11 +98,6 @@ export default function UniversitySelect({
       return;
     }
 
-    // Build flat list in render order — same order as what's displayed
-    const flatOptions = categoryOrder
-      .filter((cat) => groupedUniversities[cat])
-      .flatMap((cat) => groupedUniversities[cat]);
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -155,11 +150,15 @@ export default function UniversitySelect({
 
   const describedBy = error ? `${name}-error` : undefined;
   const categoryOrder = ['IIT', 'NIT', 'IIIT', 'Top Colleges', 'Other'];
-  
-  // Build flat list in render order for keyboard navigation
-  const flatOptions = categoryOrder
-    .filter((cat) => groupedUniversities[cat])
-    .flatMap((cat) => groupedUniversities[cat]);
+
+  // Build flat list + O(1) index map — replaces per-item indexOf(u) O(n) scan in render
+  const { flatOptions, indexMap } = useMemo(() => {
+    const flat = categoryOrder
+      .filter((cat) => groupedUniversities[cat])
+      .flatMap((cat) => groupedUniversities[cat]);
+    const map = new Map(flat.map((u, i) => [u.name, i]));
+    return { flatOptions: flat, indexMap: map };
+  }, [groupedUniversities]);
 
   return (
     <div className={styles['university-select-field']} ref={containerRef}>
@@ -198,7 +197,7 @@ export default function UniversitySelect({
                       <ul className={styles['university-select-group']} role="presentation">
                         <li className={styles['university-select-category']}>{category}</li>
                         {groupedUniversities[category].map((u) => {
-                          const optionIndex = flatOptions.indexOf(u);
+                          const optionIndex = indexMap.get(u.name);
 
                           return (
                             <li

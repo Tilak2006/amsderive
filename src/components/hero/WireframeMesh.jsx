@@ -452,13 +452,14 @@ function WireframeMesh() {
           lastTime = performance.now();
           if (!frameRef.current) animate();
         } else {
-          // Debounce pause by 150ms — prevents scroll gesture from triggering pause/resume cycle
+          // Debounce pause by 300ms — 150ms was too short; fast scroll gestures would
+          // pause/resume mid-animation causing a visible canvas stutter on desktop.
           pauseTimeout = setTimeout(() => {
             if (frameRef.current) {
               cancelAnimationFrame(frameRef.current);
               frameRef.current = null;
             }
-          }, 150);
+          }, 300);
         }
       },
       { threshold: 0 }

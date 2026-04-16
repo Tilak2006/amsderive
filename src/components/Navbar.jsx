@@ -17,7 +17,11 @@ const Navbar = () => {
     const handleScroll = () => {
       if (rafId !== null) return;
       rafId = requestAnimationFrame(() => {
-        setScrolled(window.scrollY > 50);
+        // Functional updater — only triggers re-render when value actually changes
+        setScrolled((prev) => {
+          const next = window.scrollY > 50;
+          return prev === next ? prev : next;
+        });
         rafId = null;
       });
     };

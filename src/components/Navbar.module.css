@@ -12,7 +12,9 @@
   backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(212, 175, 55, 0.08);
   z-index: 1000;
-  transition: height 0.3s ease, border-bottom-color 0.3s ease;
+  /* Only transition compositor-safe properties — background/border are paint-only,
+     no layout recalculation required. height transition removed. */
+  transition: background 0.3s ease, border-bottom-color 0.3s ease;
 }
 
 .scrolled {
