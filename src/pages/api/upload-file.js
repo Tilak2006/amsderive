@@ -109,7 +109,6 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-    fs.unlink(uploadedFile.filepath, () => {});
     console.error('[upload-file] Storage write failed:', err.message);
     return res.status(500).json({ error: 'Upload failed. Please try again.' });
   } finally {
