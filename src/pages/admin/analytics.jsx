@@ -6,7 +6,6 @@ import dynamic from 'next/dynamic';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
-import { AMBASSADOR_REF_MAP } from '../../lib/ambassador-codes';
 
 // Dynamically load Recharts — only downloaded when analytics page is visited
 const RechartsComponents = dynamic(
@@ -165,23 +164,7 @@ export default function AdminAnalytics() {
       { name: 'Not Consented', value: total - consentGiven },
     ];
 
-    // Referral code distribution
-    const refCounts = {};
-    registrants.forEach((r) => {
-      const code = (r.refCode || '').trim();
-      if (code) {
-        refCounts[code] = (refCounts[code] || 0) + 1;
-      }
-    });
-    const refData = Object.entries(refCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([code, count]) => ({
-        code,
-        institution: AMBASSADOR_REF_MAP[code.toLowerCase()] || code,
-        count,
-      }));
-
-    return { total, consentPct, today, topUni, dailyData, uniData, consentPie, refData };
+    return { total, consentPct, today, topUni, dailyData, uniData, consentPie };
   }, [registrants]);
 
   if (checking) {
@@ -219,7 +202,6 @@ export default function AdminAnalytics() {
           <div className={styles.tabBar}>
             <Link href="/admin/dashboard" className={styles.tab}>REGISTRANTS</Link>
             <span className={`${styles.tab} ${styles.tabActive}`}>ANALYTICS</span>
-            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
             <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
           </div>
 
@@ -325,32 +307,6 @@ export default function AdminAnalytics() {
                       </div>
                     </div>
 
-                    {/* Referral analytics */}
-                    {analytics.refData.length > 0 && (
-                      <div className={styles.chartCard}>
-                        <h3 className={styles.chartTitle}>Referral Analytics</h3>
-                        <div className={styles.chartWrap}>
-                          <table className={styles.table} style={{ width: '100%' }}>
-                            <thead>
-                              <tr>
-                                <th className={styles.th}>Ref Code</th>
-                                <th className={styles.th}>Institution</th>
-                                <th className={styles.th} style={{ textAlign: 'right' }}>Registrations</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {analytics.refData.map((row, i) => (
-                                <tr key={row.code} className={i % 2 === 1 ? styles.trAlt : ''}>
-                                  <td className={`${styles.td} ${styles.mono}`}>{row.code}</td>
-                                  <td className={styles.td}>{row.institution}</td>
-                                  <td className={styles.td} style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{row.count}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
               </RechartsComponents>

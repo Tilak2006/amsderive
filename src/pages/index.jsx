@@ -120,7 +120,7 @@ export default function LandingPage() {
     <>
       <Head>
         <title>AMS Derive | High-Signal Evaluation of Quantitative Thinking</title>
-        <meta name="description" content="AMS Derive 2026 — India's premier quantitative finance contest. Three rounds of structured reasoning, probabilistic thinking, and algorithmic problem-solving. Final round offline at one of the IITs. Register from April 20." />
+        <meta name="description" content="AMS Derive 2026. Three-round quantitative evaluation circuit. Apex Partner: Jane Street. 600+ participants across 20+ institutions in the inaugural edition. PRIOR: May 23. POSTERIOR: June 21. CONVERGENCE: July 11 at one of the prestigious IITs." />
         <meta name="keywords" content="quant contest India, algorithmic trading competition, offline finals quant, quant finance contest, stochastic calculus competition, AMS Derive, quant internship, Jane Street India, Tower Research, quant aspirant" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -134,7 +134,7 @@ export default function LandingPage() {
         <meta property="og:site_name" content="AMS Derive" />
         <meta property="og:url" content="https://amsderive.in" />
         <meta property="og:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
-        <meta property="og:description" content="Identifying first-principles thinkers through rigorous evaluation. Three rounds. Structured reasoning. Probabilistic thinking. Real-world problem-solving. Offline finals at one of the IITs." />
+        <meta property="og:description" content="Three-round quantitative evaluation circuit. Apex Partner: Jane Street. 600+ participants across 20+ institutions. PRIOR: May 23 · POSTERIOR: June 21 · CONVERGENCE: July 11 at one of the prestigious IITs." />
         <meta property="og:image" content="https://amsderive.in/og-image.jpg" />
         <meta property="og:image:type" content="image/jpeg" />
         <meta property="og:image:width" content="1200" />
@@ -145,7 +145,7 @@ export default function LandingPage() {
         <meta name="twitter:site" content="@amsderive" />
         <meta name="twitter:creator" content="@amsderive" />
         <meta name="twitter:title" content="AMS Derive — High-Signal Evaluation of Quantitative Thinking" />
-        <meta name="twitter:description" content="Identifying first-principles thinkers. Rigorous evaluation of structured reasoning and probabilistic thinking. Offline finals at one of the IITs." />
+        <meta name="twitter:description" content="Three-round quantitative evaluation circuit. Apex Partner: Jane Street. 600+ participants, 20+ institutions. PRIOR: May 23 · POSTERIOR: June 21 · CONVERGENCE: July 11 at one of the prestigious IITs." />
         <meta name="twitter:image" content="https://amsderive.in/og-image.jpg" />
         <script
           type="application/ld+json"
@@ -175,6 +175,11 @@ export default function LandingPage() {
                 "availability": "https://schema.org/InStock",
                 "validFrom": "2026-04-20",
                 "url": "https://amsderive.in/register"
+              },
+              "sponsor": {
+                "@type": "Organization",
+                "name": "Jane Street",
+                "url": "https://www.janestreet.com"
               },
               "image": "https://amsderive.in/og-image.jpg",
               "url": "https://amsderive.in"
