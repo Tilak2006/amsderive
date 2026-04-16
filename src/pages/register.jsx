@@ -7,7 +7,6 @@ import Footer from '../components/Footer';
 import ErrorBanner from '../components/ui/ErrorBanner';
 import RegistrationCard from '../components/ui/RegistrationCard';
 import styles from './register.module.css';
-import { uploadRegistrationFiles } from '../firebase/storageService';
 import PerformanceLogger from '../utils/performanceLogger';
 import { TIMEOUT_MS } from '../lib/constants';
 
@@ -53,6 +52,25 @@ function withTimeout(promise, ms = TIMEOUT_MS) {
       setTimeout(() => reject(new Error('Request timed out. Please try again.')), ms)
     ),
   ]);
+}
+
+async function uploadFileViaApi(file, sanitizedName, type) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('name', sanitizedName);
+  formData.append('type', type);
+
+  const res = await fetch('/api/upload-file', {
+    method: 'POST',
+    body: formData,
+    // No Content-Type header — browser sets multipart boundary automatically
+  });
+
+  const data = await res.json();
+  if (!res.ok || !data.success) {
+    throw new Error(data.error || 'File upload failed.');
+  }
+  return { url: data.url, fileName: data.fileName };
 }
 
 export default function Register() {
@@ -129,17 +147,31 @@ export default function Register() {
         .toLowerCase()
         .slice(0, 40); // cap storage path segment per security_rules.md
 
-      // Step 2: Upload files — 30s cap (Firebase Storage, slow mobile)
-      const uploadResult = await PerformanceLogger.monitor(
-        'File Upload',
-        withTimeout(uploadRegistrationFiles(data.resumeFile, data.transcriptFile, sanitizedName), 30000)
-      );
-
-      if (!uploadResult.success) {
+      // Step 2: Upload files via server API — 30s cap total
+      let resumeUpload, transcriptUpload;
+      try {
+        [resumeUpload, transcriptUpload] = await PerformanceLogger.monitor(
+          'File Upload',
+          withTimeout(
+            Promise.all([
+              uploadFileViaApi(data.resumeFile, sanitizedName, 'resume'),
+              uploadFileViaApi(data.transcriptFile, sanitizedName, 'transcript'),
+            ]),
+            30000
+          )
+        );
+      } catch (uploadErr) {
         setStatus('error');
-        setErrorMessage(uploadResult.error || 'Failed to upload files. Please try again.');
+        setErrorMessage(uploadErr.message || 'Failed to upload files. Please try again.');
         return;
       }
+
+      const uploadResult = {
+        resumeUrl: resumeUpload.url,
+        resumeFileName: resumeUpload.fileName,
+        transcriptUrl: transcriptUpload.url,
+        transcriptFileName: transcriptUpload.fileName,
+      };
 
       // Step 3: Submit to server API — 15s cap (server-side only, no upload)
       const regRes = await PerformanceLogger.monitor(
