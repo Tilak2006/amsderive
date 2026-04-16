@@ -131,9 +131,14 @@ function WireframeMesh() {
     const container = containerRef.current;
     if (!container) return;
 
-    // Respect prefers-reduced-motion preference — apply immediately, no defer needed
+    // Static fallback — shown immediately for all users while WebGL defers.
+    // Matches the ambient glow aesthetic so there's no blank state.
+    // Cleared once the renderer appends the canvas (below).
+    const STATIC_BG = 'radial-gradient(ellipse at 50% 60%, rgba(212, 160, 23, 0.15) 0%, rgba(0, 0, 0, 0) 70%), linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 1) 100%)';
+    container.style.background = STATIC_BG;
+
+    // Respect prefers-reduced-motion preference — keep static, skip WebGL entirely
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      container.style.background = 'radial-gradient(ellipse at 50% 60%, rgba(212, 160, 23, 0.15) 0%, rgba(0, 0, 0, 0) 70%), linear-gradient(180deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 1) 100%)';
       return;
     }
 
@@ -182,7 +187,7 @@ function WireframeMesh() {
       powerPreference: 'high-performance',
     });
     const dpr = isMobile
-      ? Math.min(window.devicePixelRatio, 1.5)
+      ? Math.min(window.devicePixelRatio, 1.2)
       : Math.min(window.devicePixelRatio, 2);
     renderer.setPixelRatio(dpr);
     renderer.setSize(container.clientWidth, container.clientHeight);
@@ -192,6 +197,9 @@ function WireframeMesh() {
     renderer.domElement.style.willChange = 'transform';
 
     container.appendChild(renderer.domElement);
+    // Canvas is now present — remove static fallback so it doesn't
+    // show through the transparent WebGL clear color.
+    container.style.background = '';
 
     // ── Wireframe ─────────────────────────────────────────────────────────
     const wireGeometry = buildWireframeLines(gridSize, gridExtent, meshYOffset);
@@ -204,7 +212,7 @@ function WireframeMesh() {
     // GPU Shader Injection — Keeps exact aesthetics and native scene fog!
     const wireUniforms = {
       uTime: { value: 0 },
-      uVolatility: { value: 1.0 }
+      uVolatility: { value: 0.3 }
     };
 
     wireMaterial.onBeforeCompile = (shader) => {
@@ -354,15 +362,16 @@ function WireframeMesh() {
       lastTime = now;
       time += delta;
 
-      // Volatility clustering — sharp spikes that decay fast
+      // Volatility: ramp up from 0.3 toward target, then add clustering spikes.
+      // The lerp warm-up reduces GPU cost for the first ~3s after init.
       const baseVol = 1.0;
       const volSpike = 0.4 * Math.pow(Math.sin(time * 0.3), 8);
-      const volatility = baseVol + volSpike;
+      const targetVol = baseVol + volSpike;
+      wireUniforms.uVolatility.value += (targetVol - wireUniforms.uVolatility.value) * 0.02;
       const phase = time * 0.5;
 
       // CPU Cost dropped to ~0. GPU natively handles all 263K vertices via Vertex Shader!
       wireUniforms.uTime.value = time;
-      wireUniforms.uVolatility.value = volatility;
 
       // Camera parallax — desktop only (mobile: skip to save CPU + eliminate scroll jank)
       if (!isMobile) {
@@ -405,6 +414,13 @@ function WireframeMesh() {
       renderer.render(scene, camera);
     };
     animate();
+
+    // Fade in canvas after the first rendered frame — hero content is
+    // already visible at this point, so the animation feels like background
+    // detail loading in rather than blocking the initial paint.
+    requestAnimationFrame(() => {
+      renderer.domElement.style.opacity = '1';
+    });
 
     // ── Opt 1: Page Visibility API ─────────────────────────────────────────
     // Cancel rAF when the tab is hidden; resume with a reset lastTime.

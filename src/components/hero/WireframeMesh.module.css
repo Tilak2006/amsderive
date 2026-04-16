@@ -55,6 +55,10 @@
     height: 100% !important;
     pointer-events: none;
     touch-action: none;
+    /* Start invisible — faded in via JS after first frame renders.
+       Prevents the canvas from flashing or competing with FCP. */
+    opacity: 0;
+    transition: opacity 0.8s ease;
     /* will-change is set immediately in JS on renderer.domElement right after
        the WebGL context is created, promoting the canvas to its own GPU
        compositor layer before any DOM updates (e.g. countdown ticks) can
