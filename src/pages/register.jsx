@@ -66,7 +66,8 @@ async function uploadFileViaApi(file, sanitizedName, type) {
     // No Content-Type header — browser sets multipart boundary automatically
   });
 
-  const data = await res.json();
+  let data = {};
+  try { data = await res.json(); } catch { /* non-JSON body on gateway error */ }
   if (!res.ok || !data.success) {
     throw new Error(data.error || 'File upload failed.');
   }
@@ -161,6 +162,7 @@ export default function Register() {
           )
         );
       } catch (uploadErr) {
+        submittingRef.current = false;
         setStatus('error');
         setErrorMessage(uploadErr.message || 'Failed to upload files. Please try again.');
         return;
