@@ -5,10 +5,12 @@
  * Access is gated by the firm's Firestore access flags:
  *   - derivation tier: 403 ACCESS_DENIED
  *   - access.registrantProfiles !== true: 403 ACCESS_LOCKED
- *   - access.resumeDownload: controls whether resumeUrl/transcriptUrl are included
+ *   - access.resumeDownload: controls whether resumeUrl is included (only after May 23, only posterior/convergence round)
  *   - access.linkedinAccess: controls whether linkedIn is included
  *
- * Never returns: email, phoneNumber, ipHash.
+ *   - access.emailAccess: controls whether email is included
+ *
+ * Never returns: phoneNumber, ipHash.
  *
  * Supports cursor-based pagination via `after` (last doc ID) and `limit` (default 50).
  */
@@ -87,7 +89,7 @@ export default async function handler(req, res) {
     });
   }
 
-  const { resumeDownload, linkedinAccess } = firmData.access || {};
+  const { resumeDownload, linkedinAccess, emailAccess } = firmData.access || {};
 
   const { after, limit: limitParam } = req.body;
   const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
@@ -129,14 +131,18 @@ export default async function handler(req, res) {
         gitHub: d.gitHub || null,
         submittedAt: d.submittedAt?.toDate?.()?.toISOString?.() ?? null,
       };
-      if (resumeDownload) {
+      // Resume access: only after May 23, only for candidates who advanced past PRIOR
+      const resumeUnlocked = Date.now() >= new Date('2026-05-23').getTime();
+      const advancedRound = d.round === 'posterior' || d.round === 'convergence';
+      if (resumeDownload && resumeUnlocked && advancedRound) {
         entry.resumeUrl = d.resumeUrl || null;
         entry.resumeFileName = d.resumeFileName || null;
-        entry.transcriptUrl = d.transcriptUrl || null;
-        entry.transcriptFileName = d.transcriptFileName || null;
       }
       if (linkedinAccess) {
         entry.linkedIn = d.linkedIn || null;
+      }
+      if (emailAccess) {
+        entry.email = d.email || null;
       }
       return entry;
     });
@@ -155,6 +161,7 @@ export default async function handler(req, res) {
       access: {
         resumeDownload: !!resumeDownload,
         linkedinAccess: !!linkedinAccess,
+        emailAccess: !!emailAccess,
       },
     });
   } catch (err) {

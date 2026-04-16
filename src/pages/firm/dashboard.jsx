@@ -471,7 +471,7 @@ export default function FirmDashboard() {
 
   async function handleViewResume(finalist) {
     if (!finalist.resumeUrl) return;
-    window.open(finalist.resumeUrl, '_blank', 'noopener,noreferrer');
+    await handleViewFile(finalist.resumeUrl);
   }
 
   async function handleExportCsv() {
@@ -789,9 +789,9 @@ export default function FirmDashboard() {
                 /* Admin has not yet unlocked finalistProfiles */
                 <div className={styles.lockedCard}>
                   <div className={styles.lockedCardIcon}>🔒</div>
-                  <p className={styles.lockedCardTitle}>Finalist Profiles Locked</p>
+                  <p className={styles.lockedCardTitle}>Talent Pool Locked</p>
                   <p className={styles.lockedCardText}>
-                    Finalist profiles will be unlocked by the organizing team after the relevant round.
+                    Talent pool profiles will be unlocked by the organizing team after PRIOR results are published.
                     Check back soon, or reach out to{' '}
                     <a href="mailto:partnership@amsociety.in" style={{ color: '#D4AF37' }}>
                       partnership@amsociety.in
@@ -823,7 +823,7 @@ export default function FirmDashboard() {
                       ))}
                     </select>
                     <span className={styles.resultCount}>
-                      {filteredFinalists.length}{finalistsCount !== null && finalistsCount !== filteredFinalists.length ? `/${finalistsCount}` : ''} finalist{filteredFinalists.length !== 1 ? 's' : ''}
+                      {filteredFinalists.length}{finalistsCount !== null && finalistsCount !== filteredFinalists.length ? `/${finalistsCount}` : ''} candidate{filteredFinalists.length !== 1 ? 's' : ''}
                     </span>
                   </div>
 
@@ -831,12 +831,12 @@ export default function FirmDashboard() {
                     <div className={styles.accessDenied}>
                       <p className={styles.accessDeniedTitle}>
                         {finalistsCount === 0
-                          ? 'No finalists designated yet'
+                          ? 'No candidates in talent pool yet'
                           : 'No results match your search'}
                       </p>
                       <p className={styles.accessDeniedText}>
                         {finalistsCount === 0
-                          ? 'Finalist designations are updated by the organizing team as rounds complete.'
+                          ? 'Candidates who advance past PRIOR will appear here once results are published.'
                           : 'Try adjusting your search or university filter.'}
                       </p>
                     </div>
@@ -850,25 +850,12 @@ export default function FirmDashboard() {
                         >
                           <p className={styles.candidateName}>{finalist.fullName}</p>
                           <p className={styles.candidateUniv}>{finalist.university}</p>
+                          {finalist.round && (
+                            <span className={styles.candidateRoundBadge} data-round={finalist.round}>
+                              {finalist.round.toUpperCase()}
+                            </span>
+                          )}
                           <div className={styles.candidateActions}>
-                            {finalistsAccess?.resumeDownload && finalist.resumeUrl ? (
-                              <button
-                                className={styles.docBtn}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewResume(finalist);
-                                }}
-                              >
-                                RESUME
-                              </button>
-                            ) : (
-                              <span
-                                className={styles.docBtnLocked}
-                                title="Available after Finals"
-                              >
-                                RESUME — AFTER FINALS
-                              </span>
-                            )}
                             {finalistsAccess?.linkedinAccess && finalist.linkedIn ? (
                               <button
                                 className={styles.docBtn}
@@ -880,11 +867,8 @@ export default function FirmDashboard() {
                                 LINKEDIN
                               </button>
                             ) : (
-                              <span
-                                className={styles.docBtnLocked}
-                                title="Available after Finals"
-                              >
-                                LINKEDIN — AFTER FINALS
+                              <span className={styles.docBtnLocked}>
+                                LINKEDIN — LOCKED
                               </span>
                             )}
                           </div>
@@ -945,7 +929,7 @@ export default function FirmDashboard() {
                   </div>
                 </div>
               ) : (
-                <>
+                <div className={styles.registrantsMain}>
                   <div className={styles.talentFilterBar}>
                     <input
                       type="text"
@@ -1128,7 +1112,7 @@ export default function FirmDashboard() {
                       </button>
                     </div>
                   )}
-                </>
+                </div>
               )}
 
               {/* Detail panel — shown when a registrant row is selected */}
@@ -1219,30 +1203,18 @@ export default function FirmDashboard() {
                     </div>
                   )}
 
-                  <div className={styles.panelFileActions}>
-                    {registrantsAccess?.resumeDownload ? (
-                      <>
-                        <button
-                          className={styles.panelActionBtn}
-                          disabled={!selectedRegistrant.resumeUrl}
-                          onClick={() => handleViewFile(selectedRegistrant.resumeUrl)}
-                        >
-                          VIEW RESUME
-                        </button>
-                        <button
-                          className={styles.panelActionBtn}
-                          disabled={!selectedRegistrant.transcriptUrl}
-                          onClick={() => handleViewFile(selectedRegistrant.transcriptUrl)}
-                        >
-                          VIEW TRANSCRIPT
-                        </button>
-                      </>
-                    ) : (
-                      <p className={styles.panelLockedNote}>
-                        Resume &amp; transcript access not included in your tier.
-                      </p>
-                    )}
-                  </div>
+                  {registrantsAccess?.emailAccess && selectedRegistrant.email && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>Email</span>
+                      <a
+                        href={`mailto:${selectedRegistrant.email}`}
+                        className={styles.handleLink}
+                      >
+                        {selectedRegistrant.email}
+                      </a>
+                    </div>
+                  )}
+
                 </aside>
               )}
             </div>
@@ -1546,7 +1518,7 @@ export default function FirmDashboard() {
                 </div>
               )}
               <div className={styles.panelDivider} />
-              {finalistsAccess?.resumeDownload && selectedFinalist.resumeUrl ? (
+              {finalistsAccess?.resumeDownload && selectedFinalist.round === 'convergence' && selectedFinalist.resumeUrl ? (
                 <button
                   className={styles.docBtn}
                   style={{ width: '100%' }}
@@ -1556,7 +1528,9 @@ export default function FirmDashboard() {
                 </button>
               ) : (
                 <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center' }}>
-                  RESUME — AVAILABLE AFTER FINALS
+                  {selectedFinalist.round === 'convergence'
+                    ? 'RESUME — NOT PROVIDED'
+                    : 'RESUME — AVAILABLE AFTER FINALS'}
                 </span>
               )}
             </div>

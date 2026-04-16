@@ -141,14 +141,25 @@ export default function Register() {
     setErrorMessage('');
 
     try {
-      // Step 1: Sanitize name for file paths
+      // Step 1: Gate check — abort before any upload if registration is closed
+      const gateRes = await fetch('/api/check-registration-gate', { method: 'POST' });
+      if (!gateRes.ok) {
+        const gateData = await gateRes.json().catch(() => ({}));
+        if (gateRes.status === 403) setRegistrationClosed(true);
+        submittingRef.current = false;
+        setStatus('error');
+        setErrorMessage(gateData.error || 'Registration is not currently open.');
+        return;
+      }
+
+      // Step 2: Sanitize name for file paths
       const sanitizedName = data.fullName
         .trim()
         .replace(/[^a-zA-Z0-9]/g, '_')
         .toLowerCase()
         .slice(0, 40); // cap storage path segment per security_rules.md
 
-      // Step 2: Upload files via server API — 30s cap total
+      // Step 3: Upload files via server API — 30s cap total
       let resumeUpload, transcriptUpload;
       try {
         [resumeUpload, transcriptUpload] = await PerformanceLogger.monitor(

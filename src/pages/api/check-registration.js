@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 import logger, { genReqId } from '../../utils/logger';
 
 if (!admin.apps.length) {
@@ -14,6 +15,8 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 const MAX_REGISTRATIONS = 10000;
+const RATE_LIMIT_MAX = 10;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -21,6 +24,39 @@ export default async function handler(req, res) {
   }
 
   const reqId = genReqId();
+
+  // Rate limit — 10 checks/hour per IP+UA+clientId fingerprint
+  // clientId: caller-generated UUID persisted in localStorage — separates devices behind same NAT
+  // clientId is not trusted for security (trivially spoofed); it only helps honest users on shared WiFi
+  // Real duplicate enforcement lives in submit-registration's atomic transaction
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+    .toString().split(',')[0].trim();
+  const userAgent = (req.headers['user-agent'] || '').slice(0, 200);
+  const rawClientId = typeof req.body.clientId === 'string' ? req.body.clientId.slice(0, 64) : '';
+  const fingerprintBase = `${clientIp}|${userAgent}`;
+  const ipHash = crypto.createHash('sha256')
+    .update(rawClientId ? `${fingerprintBase}|${rawClientId}` : fingerprintBase)
+    .digest('hex');
+  const rateLimitRef = db.collection('_rate_limits').doc(`check-reg_${ipHash}`);
+  const oneHourAgo = Date.now() - RATE_LIMIT_WINDOW_MS;
+
+  try {
+    const rateResult = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(rateLimitRef);
+      const recent = (doc.exists ? doc.data().timestamps || [] : []).filter((ts) => ts > oneHourAgo);
+      if (recent.length >= RATE_LIMIT_MAX) return { allowed: false };
+      recent.push(Date.now());
+      tx.set(rateLimitRef, { timestamps: recent });
+      return { allowed: true };
+    });
+
+    if (!rateResult.allowed) {
+      return res.status(429).json({ allowed: false, error: 'Too many requests. Please try again later.' });
+    }
+  } catch {
+    // Fail open — don't block legitimate users if rate limit check errors
+  }
+
   const { email, codeforcesHandle } = req.body;
 
   // Validate inputs
@@ -57,22 +93,19 @@ export default async function handler(req, res) {
       return res.status(200).json({ allowed: false, error: 'Registrations are now closed.' });
     }
 
-    // Duplicate checks
-    if (!emailSnap.empty) {
+    // Evaluate both results before returning — prevents timing side-channel
+    // (both queries already ran in parallel above; we just must not short-circuit here)
+    const emailTaken = !emailSnap.empty;
+    const cfTaken = !cfSnap.empty;
+
+    if (emailTaken || cfTaken) {
       logger.warn('registration', 'duplicate_check_blocked', {
         reqId,
-        detail: { reason: 'email_exists' },
+        detail: { reason: emailTaken ? 'email_exists' : 'cf_handle_exists' },
         status: 'blocked',
       });
-      return res.status(200).json({ allowed: false, error: 'This email is already registered.' });
-    }
-    if (!cfSnap.empty) {
-      logger.warn('registration', 'duplicate_check_blocked', {
-        reqId,
-        detail: { reason: 'cf_handle_exists' },
-        status: 'blocked',
-      });
-      return res.status(200).json({ allowed: false, error: 'This Codeforces handle is already registered.' });
+      // Generic message — does not reveal which field matched
+      return res.status(200).json({ allowed: false, error: 'These details are already registered.' });
     }
 
     return res.status(200).json({ allowed: true });

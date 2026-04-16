@@ -1,15 +1,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import styles from './Navbar.module.css';
 import { REGISTRATION_OPENS } from '../lib/constants';
 
-// Loaded only when user opens the modal — not on initial page paint
-const NotifyModal = dynamic(() => import('./NotifyModal'), { ssr: false });
-
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -76,16 +71,15 @@ const Navbar = () => {
         </div>
 
         <div className={styles.navActions}>
-          <button
-            type="button"
+          <a
+            href="https://chat.whatsapp.com/D3OxCs0L1V8IodpRVzG6cw"
+            target="_blank"
+            rel="noopener noreferrer"
             className={styles.notifyBtn}
-            onClick={() => {
-              setIsModalOpen(true);
-              closeMenu();
-            }}
+            onClick={closeMenu}
           >
-            Pre register
-          </button>
+            Join Community
+          </a>
 
           <button
             type="button"
@@ -101,7 +95,6 @@ const Navbar = () => {
           </button>
         </div>
       </nav>
-      <NotifyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </>
   );
 };

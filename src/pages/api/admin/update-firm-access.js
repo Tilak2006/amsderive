@@ -32,6 +32,8 @@ const VALID_FLAGS = [
   'finalistProfiles',
   'resumeDownload',
   'linkedinAccess',
+  'emailAccess',
+  'csvExport',
   'psCoDesign',
   'namingRights',
 ];

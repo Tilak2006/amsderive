@@ -5,8 +5,6 @@ import Navbar from '../components/Navbar';
 import Countdown from '../components/Countdown';
 import FadeInSection from '../components/FadeInSection';
 import Footer from '../components/Footer';
-// Loaded only on user interaction — not on initial paint
-const NotifyModal = dynamic(() => import('../components/NotifyModal'), { ssr: false });
 import styles from '../styles/hero.module.css';
 import pageStyles from './index.module.css';
 
@@ -80,34 +78,31 @@ const SponsorsSection = dynamic(() => import('../components/sections/SponsorsSec
 //  2. `handleExpired` is stable via useCallback — no prop reference churn.
 const HeroContent = memo(function HeroContent() {
   const [expired, setExpired] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const handleExpired = useCallback(() => setExpired(true), []);
 
   return (
-    <>
-      <div className={styles.heroOverlay}>
-        <div className={styles.heroContent}>
-          <div className={styles.titleGroup}>
-            <p className={styles.eyebrow}>Algorithms &amp; Mathematics Society</p>
-            <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-            <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
+    <div className={styles.heroOverlay}>
+      <div className={styles.heroContent}>
+        <div className={styles.titleGroup}>
+          <p className={styles.eyebrow}>Algorithms &amp; Mathematics Society</p>
+          <h1 className={styles.mainTitle}>AMS DERIVE</h1>
+          <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
 
-          <p className={styles.signupLabel}>
-            {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
-          </p>
-          <Countdown onExpiredChange={handleExpired} />
-          
-          <button 
-            type="button"
-            className={styles.mobileNotifyBtn}
-            onClick={() => setIsModalOpen(true)}
-          >
-            Pre register
-          </button>
-        </div>
+        <p className={styles.signupLabel}>
+          {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
+        </p>
+        <Countdown onExpiredChange={handleExpired} />
+
+        <a
+          href="https://chat.whatsapp.com/D3OxCs0L1V8IodpRVzG6cw"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={styles.mobileNotifyBtn}
+        >
+          Join Community
+        </a>
       </div>
-      <NotifyModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-    </>
+    </div>
   );
 });
 

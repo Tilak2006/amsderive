@@ -952,6 +952,25 @@
   margin: 0 0 14px;
 }
 
+.candidateRoundBadge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  margin-bottom: 12px;
+  background: rgba(212, 175, 55, 0.08);
+  color: #D4AF37;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.candidateRoundBadge[data-round='convergence'] {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.45);
+}
+
 .candidateActions {
   display: flex;
   gap: 8px;
@@ -1916,16 +1935,17 @@
 }
 
 /* ── Registrants Split Layout ── */
+.registrantsMain {
+  flex: 1;
+  min-width: 0;
+}
+
 .splitLayout {
   display: flex;
   align-items: flex-start;
   gap: 0;
 }
 
-.splitLayout > *:first-child {
-  flex: 1;
-  min-width: 0;
-}
 
 .detailPanel {
   width: 360px;

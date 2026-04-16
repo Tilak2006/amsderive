@@ -1,7 +1,8 @@
 /**
  * POST /api/firm/get-finalists
  *
- * Returns finalist registrant data for the authenticated firm.
+ * Returns talent pool data for the authenticated firm.
+ * Includes registrants who have advanced past PRIOR (round === posterior or convergence).
  * Access is gated by the firm's Firestore access flags:
  *   - access.finalistProfiles must be true to get any data
  *   - access.resumeDownload controls whether resumeUrl is included
@@ -90,14 +91,29 @@ export default async function handler(req, res) {
   const { resumeDownload, linkedinAccess } = firmData.access;
 
   try {
-    // Query registrants designated as Convergence finalists with data consent
-    const snapshot = await db
-      .collection('registrants')
-      .where('round', '==', 'convergence')
-      .where('dataConsent', '==', true)
-      .where('status', '==', 'approved')
-      .orderBy('submittedAt', 'desc')
-      .get();
+    // Query registrants who have advanced past PRIOR (posterior or convergence round)
+    const [posteriorSnap, convergenceSnap] = await Promise.all([
+      db.collection('registrants')
+        .where('round', '==', 'posterior')
+        .where('dataConsent', '==', true)
+        .where('status', '==', 'approved')
+        .get(),
+      db.collection('registrants')
+        .where('round', '==', 'convergence')
+        .where('dataConsent', '==', true)
+        .where('status', '==', 'approved')
+        .get(),
+    ]);
+
+    const allDocs = [...posteriorSnap.docs, ...convergenceSnap.docs]
+      .sort((a, b) => {
+        const aT = a.data().submittedAt?.toMillis?.() ?? 0;
+        const bT = b.data().submittedAt?.toMillis?.() ?? 0;
+        return bT - aT;
+      });
+
+    // Stub snapshot for the mapping below
+    const snapshot = { docs: allDocs };
 
     const finalists = snapshot.docs.map((doc) => {
       const d = doc.data();

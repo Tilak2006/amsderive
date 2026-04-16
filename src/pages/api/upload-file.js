@@ -18,7 +18,7 @@ if (!admin.apps.length) {
 // Disable Next.js body parser — formidable needs the raw stream
 export const config = { api: { bodyParser: false } };
 
-const MAX_SIZE_BYTES = 400 * 1024; // 400 KB
+const MAX_SIZE_BYTES = 300 * 1024; // 300 KB
 const ALLOWED_MIME = 'application/pdf';
 const PDF_MAGIC = '%PDF';
 
@@ -48,7 +48,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     if (err.message?.includes('maxFileSize')) {
-      return res.status(400).json({ error: 'File exceeds 400 KB limit.' });
+      return res.status(400).json({ error: 'File exceeds 300 KB limit.' });
     }
     return res.status(400).json({ error: 'Invalid upload request.' });
   }
@@ -70,7 +70,7 @@ export default async function handler(req, res) {
   // Size double-check (formidable may allow slightly over due to chunking)
   if (uploadedFile.size > MAX_SIZE_BYTES) {
     fs.unlink(uploadedFile.filepath, () => {});
-    return res.status(400).json({ error: 'File exceeds 400 KB limit.' });
+    return res.status(400).json({ error: 'File exceeds 300 KB limit.' });
   }
 
   // Magic bytes check — read first 4 bytes to confirm actual PDF

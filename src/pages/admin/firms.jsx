@@ -14,6 +14,7 @@ const ACCESS_FLAGS = [
   { key: 'finalistProfiles', label: 'Finalist Profiles' },
   { key: 'resumeDownload', label: 'Resume Download' },
   { key: 'linkedinAccess', label: 'LinkedIn Access' },
+  { key: 'emailAccess', label: 'Email Access' },
   { key: 'csvExport', label: 'CSV Export' },
   { key: 'psCoDesign', label: 'PS Co-Design (Apex)' },
   { key: 'namingRights', label: 'Naming Rights (Apex)' },
