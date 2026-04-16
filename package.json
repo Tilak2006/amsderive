@@ -12,6 +12,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "firebase": "^12.10.0",
     "firebase-admin": "^13.7.0",
+    "formidable": "^3.5.4",
     "next": "16.2.3",
     "pako": "^2.1.0",
     "react": "^19.2.4",
