@@ -12,10 +12,8 @@ service firebase.storage {
     }
 
     match /registrants/{fileName} {
-      allow write: if request.resource.size < 400 * 1024
-                   && request.resource.contentType.matches('application/pdf');
-      // ⚠️ ST1 FIX: Restrict read to authenticated users only. Identity documents (resumes, ID cards) must not be public.
-      // ✓ ST2 VERIFIED: Upload paths are flat (registrants/timestamp_name_resume.pdf), so {fileName} pattern matches correctly.
+      // Uploads go through Admin SDK server-side — client writes are explicitly denied.
+      allow write: if false;
       allow read: if request.auth != null;
     }
 
