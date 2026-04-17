@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import styles from '../../styles/about.module.css';
 import sponsorStyles from '../../styles/sponsors.module.css';
+
+const SponsorsSection = dynamic(() => import('./SponsorsSection'), { ssr: false, loading: () => null });
 
 const SYMBOLS = [
   'σ', 'μ', '∂', '∫', 'Σ', 'Δ', 'λ', '∇', 'π', 'ℝ',
@@ -129,6 +132,11 @@ const AMSAboutSection = () => {
             </div>
           </div>
         </div>
+
+        <hr className={styles.divider} />
+
+        {/* ── Sponsors ── */}
+        <SponsorsSection />
 
         <hr className={styles.divider} />
 

@@ -20,7 +20,6 @@ Keep this updated whenever a new page or API route is added.
 | `/competition` | `src/pages/competition.jsx` | Competition info |
 | `/register` | `src/pages/register.jsx` | Registration form — date-gated (opens Apr 20 2026 00:00 IST) |
 | `/check-registration` | `src/pages/check-registration.jsx` | Public status lookup by email + name |
-| `/campus-ambassador-leaderboard` | `src/pages/campus-ambassador-leaderboard.jsx` | Top-5 institutions by ambassador pre-reg count + offsets |
 | `/rank/a9x3k7f1` | `src/pages/rank/a9x3k7f1.jsx` | All institutions ranked by full registration count (60s cache) |
 
 ---
@@ -33,7 +32,6 @@ Keep this updated whenever a new page or API route is added.
 | `/admin/login` | `src/pages/admin/login.jsx` | Email/password Firebase login |
 | `/admin/dashboard` | `src/pages/admin/dashboard.jsx` | Registrant table, status management, broadcast, signed URL viewer |
 | `/admin/analytics` | `src/pages/admin/analytics.jsx` | Recharts breakdown by institution, time, etc. |
-| `/admin/ambassadors` | `src/pages/admin/ambassadors.jsx` | Per-refCode pre-reg stats + leaderboard offset management |
 | `/admin/firms` | `src/pages/admin/firms.jsx` | Firm partner account creation and access flag management |
 
 ---
@@ -51,7 +49,7 @@ Keep this updated whenever a new page or API route is added.
 |---|---|---|
 | Overview | Always | Tier info, access matrix, contest timeline, quick links |
 | Registrants | `tier !== derivation` + `access.registrantProfiles` | Clickable table + detail panel (resume/transcript/linkedin based on flags) |
-| Talent Pool | `tier !== derivation` + `access.finalistProfiles` | Convergence-round finalist cards with resume/linkedin |
+| Talent Pool | `tier !== derivation` + `access.finalistProfiles` | Posterior + convergence-round finalist cards with resume/linkedin |
 | Analytics | Always | Public institution breakdown chart (from `/api/public/inst-stats`) |
 | Leaderboard | `tier !== derivation` + `access.leaderboard` | Live Codeforces PRIOR standings (auto-refreshes 30s) |
 
@@ -71,7 +69,6 @@ Keep this updated whenever a new page or API route is added.
 |---|---|---|---|
 | `GET` | `/api/registration-count` | `api/registration-count.js` | Returns `{ count, isOpen, isFull }`. 60s CDN cache. |
 | `GET` | `/api/get-ip` | `api/get-ip.js` | Returns client IP — used for rate limit fingerprinting |
-| `GET` | `/api/campus-ambassador-leaderboard` | `api/campus-ambassador-leaderboard.js` | Top-N institutions by pre-reg refCode count + offsets. 1hr CDN + 1hr in-memory cache. |
 | `GET` | `/api/public/inst-stats` | `api/public/inst-stats.js` | Institutions ranked by full registration count (`stats/leaderboard`). 60s CDN cache. |
 | `POST` | `/api/notify` | `api/notify.js` | Pre-registration: writes `pre_registrations` doc + sends Resend confirmation. Rate limited. |
 | `POST` | `/api/submit-registration` | `api/submit-registration.js` | Full registration. Rate limited 3/hr/device. Writes `registrants` doc with `status: pending`. |
@@ -94,10 +91,6 @@ Keep this updated whenever a new page or API route is added.
 | `POST` | `/api/admin/update-registrant-round` | `admin/update-registrant-round.js` | Set `round` → `prior / posterior / convergence`. |
 | `POST` | `/api/admin/approve-all` | `admin/approve-all.js` | Bulk-approve all pending registrants. Batched Resend emails. |
 | `POST` | `/api/admin/send-broadcast` | `admin/send-broadcast.js` | Send Resend email to all registrants or filtered by round. |
-| `POST` | `/api/admin/get-ambassador-stats` | `admin/get-ambassador-stats.js` | `pre_registrations` grouped by `refCode` with counts. |
-| `GET` | `/api/admin/get-ambassador-offsets` | `admin/get-ambassador-offsets.js` | Read `stats/ambassador-offsets` doc. |
-| `POST` | `/api/admin/update-ambassador-offset` | `admin/update-ambassador-offset.js` | Write offset for one institution (custom names allowed, `merge: true`). |
-| `POST` | `/api/admin/refresh-ambassador-leaderboard` | `admin/refresh-ambassador-leaderboard.js` | Rebuild `stats/ambassador-leaderboard-cache`. |
 | `POST` | `/api/admin/get-firms` | `admin/get-firms.js` | List all firm accounts ordered by `createdAt` desc. |
 | `POST` | `/api/admin/create-firm` | `admin/create-firm.js` | Create firm Firebase Auth user + `firms` doc. Validates email domain + 12-char password. |
 | `POST` | `/api/admin/update-firm-access` | `admin/update-firm-access.js` | Toggle a single access flag on a firm doc. |
@@ -111,7 +104,7 @@ Keep this updated whenever a new page or API route is added.
 |---|---|---|---|---|
 | `POST` | `/api/firm/get-firm-profile` | `firm/get-firm-profile.js` | Token only | Returns `firmName, tier, access, logoUrl`. Updates `lastLogin`. |
 | `POST` | `/api/firm/get-registrants` | `firm/get-registrants.js` | `tier !== derivation` + `access.registrantProfiles` | Approved + consented registrants. Conditional resume/linkedin fields. Cursor pagination. |
-| `POST` | `/api/firm/get-finalists` | `firm/get-finalists.js` | `tier !== derivation` + `access.finalistProfiles` | `round === convergence` registrants. Same conditional fields. |
+| `POST` | `/api/firm/get-finalists` | `firm/get-finalists.js` | `tier !== derivation` + `access.finalistProfiles` | `round === posterior` or `convergence` registrants, merged + sorted by `submittedAt`. Same conditional fields. |
 | `POST` | `/api/firm/get-leaderboard` | `firm/get-leaderboard.js` | `tier !== derivation` + `access.leaderboard` | Live Codeforces PRIOR contest standings. 30s server cache. |
 | `POST` | `/api/firm/get-signed-url` | `firm/get-signed-url.js` | `access.resumeDownload` | 15-min GCS signed URL. Path must start with `registrants/`. |
 
@@ -122,11 +115,8 @@ Keep this updated whenever a new page or API route is added.
 | Collection / Doc | What's stored |
 |---|---|
 | `registrants/{id}` | Full registration — email, handle, university, resumeUrl, transcriptUrl, status, round, refCode, ipHash, etc. |
-| `pre_registrations/{id}` | Email + optional refCode + timestamp |
 | `firms/{uid}` | firmName, tier (derivation/convergence/apex), access flags map, logoUrl, lastLogin |
 | `stats/leaderboard` | `{ "IIT Bombay": 42, ... }` — updated on each registration |
-| `stats/ambassador-offsets` | `{ "IIT Bombay": 10, ... }` — admin-set display offsets |
-| `stats/ambassador-leaderboard-cache` | Pre-computed campus ambassador leaderboard results |
 | `_rate_limits/{fingerprint}` | Array of submission timestamps |
 
 ---

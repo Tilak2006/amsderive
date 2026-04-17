@@ -33,7 +33,6 @@ firebase deploy --only firestore:rules,storage  # deploy rules
 ### Architecture
 - **Strict Mode is OFF** in `next.config.js` — required to prevent double WebGL context creation in WireframeMesh.
 - **Admin SDK only** for writes, rate limit checks, and transactions (API routes). Client SDK is read-only with `memoryLocalCache`.
-- **`src/lib/ambassador-codes.js` is auto-generated** — never edit manually.
 - **Pages Router only** — no `app/` directory, no `"use client"` at page level.
 - **CSS Modules only** — no Tailwind, no styled-components, no UI libraries.
 
@@ -78,11 +77,8 @@ firebase deploy --only firestore:rules,storage  # deploy rules
 | Collection | Purpose |
 |---|---|
 | `registrants` | Full registration data (Admin SDK only for reads) |
-| `pre_registrations` | Early interest emails with optional `refCode` |
 | `firms` | Firm partner accounts (tier, access flags, logoUrl) |
 | `stats/leaderboard` | Institution → registration count map |
-| `stats/ambassador-offsets` | Institution → admin offset for campus ambassador leaderboard |
-| `stats/ambassador-leaderboard-cache` | Pre-computed ambassador leaderboard (updated by admin route) |
 | `_rate_limits` | Rate limit timestamps (Admin SDK only) |
 
 ## Firm Access Flags
@@ -94,8 +90,10 @@ All stored under `access.*` in `firms/{uid}`:
 | `analytics` | Analytics tab (served from public `/api/public/inst-stats`) |
 | `registrantProfiles` | Registrant tab data (`/api/firm/get-registrants`) |
 | `finalistProfiles` | Talent pool tab data (`/api/firm/get-finalists`) |
-| `resumeDownload` | resume/transcriptUrl fields in both endpoints + `/api/firm/get-signed-url` |
+| `resumeDownload` | resumeUrl/resumeFileName fields in both endpoints + `/api/firm/get-signed-url`. Date-gated: only after 2026-05-23. Round-gated: posterior + convergence only. |
 | `linkedinAccess` | linkedIn field in both endpoints |
+| `emailAccess` | email field in get-registrants (registrants tab only) |
+| `csvExport` | CSV download in firm dashboard |
 | `psCoDesign` | Branding only — not API-enforced |
 | `namingRights` | Branding only — not API-enforced |
 
@@ -109,15 +107,11 @@ All stored under `access.*` in `firms/{uid}`:
 
 ### Returned to firm (`/api/firm/get-registrants` and `/api/firm/get-finalists`)
 Always: `id, fullName, university, round, codeforcesHandle, gitHub, submittedAt`
-If `resumeDownload`: `+ resumeUrl, resumeFileName, transcriptUrl, transcriptFileName`
+If `resumeDownload` + date ≥ 2026-05-23 + round is posterior/convergence: `+ resumeUrl, resumeFileName`
 If `linkedinAccess`: `+ linkedIn`
-Never: `email, phoneNumber, ipHash, status, refCode`
-
-## Campus Ambassador System
-- Ref codes: `d26-{institution}-{hash}` (e.g. `d26-iitb-a823`)
-- 32 codes across 26 institutions in `src/lib/ambassador-codes.js` (auto-generated, do not modify)
-- Colleges with multiple ambassadors (IIT BHU, TSEC Mumbai, IIT Patna) share institution name with ` (Ambassador 2)` suffix — normalized via `normalizeInstitution()` which strips that suffix before grouping
-- Offsets doc: `stats/ambassador-offsets` — use `set(..., { merge: true })` to update individual fields
+If `emailAccess` (get-registrants only): `+ email`
+Never: `transcriptUrl, transcriptFileName, phoneNumber, ipHash, status, refCode`
+`get-finalists` returns both posterior + convergence, merged and sorted by `submittedAt` desc.
 
 ## Key Files
 | File | Purpose |
@@ -127,13 +121,11 @@ Never: `email, phoneNumber, ipHash, status, refCode`
 | `src/pages/api/submit-registration.js` | Main registration handler |
 | `src/pages/api/notify.js` | Pre-registration with refCode tracking |
 | `src/pages/api/public/inst-stats.js` | Public institution leaderboard (60s cache) |
-| `src/pages/api/campus-ambassador-leaderboard.js` | Campus ambassador leaderboard (1hr CDN + in-memory cache) |
 | `src/pages/api/admin/get-signed-url.js` | Admin signed URL (parses path, strips `?alt=media`) |
 | `src/pages/api/firm/get-signed-url.js` | Firm signed URL (same fix, requires `resumeDownload` flag) |
 | `src/pages/api/firm/get-registrants.js` | Firm registrant data (access-gated, conditional fields) |
 | `src/pages/api/firm/get-finalists.js` | Firm finalist data (access-gated, conditional fields) |
 | `src/lib/constants.js` | `REGISTRATION_OPENS`, `TIMEOUT_MS` |
-| `src/lib/ambassador-codes.js` | **Auto-generated** referral map — do not edit |
 | `src/utils/validators.js` | All form validation logic |
 | `src/utils/hashIp.js` | Rate limit fingerprinting (SHA-256 IP+UA) |
 
@@ -157,7 +149,6 @@ src/
 │   ├── privacy.jsx
 │   ├── competition.jsx
 │   ├── check-registration.jsx                 # Public status lookup by email+name
-│   ├── campus-ambassador-leaderboard.jsx      # Top-5 pre-reg institutions (public)
 │   ├── dev-registration-checkpoint.jsx        # Dev-only
 │   ├── rank/
 │   │   └── a9x3k7f1.jsx                      # Full institution leaderboard (60s cache)
@@ -166,7 +157,6 @@ src/
 │   │   ├── login.jsx
 │   │   ├── dashboard.jsx                      # Registrant table, status, broadcast, signed URLs
 │   │   ├── analytics.jsx                      # Recharts institution/time breakdowns
-│   │   ├── ambassadors.jsx                    # Per-refCode stats + offset management
 │   │   └── firms.jsx                          # Firm account + access flag management
 │   ├── firm/
 │   │   ├── index.js                           # Redirect to /firm/dashboard
@@ -182,7 +172,6 @@ src/
 │       ├── check-status.js                    # Registration status by email+name
 │       ├── get-ip.js                          # Return client IP
 │       ├── test-registration.js               # Dev bypass (x-admin-key header)
-│       ├── campus-ambassador-leaderboard.js   # GET, 1hr CDN + in-memory cache
 │       ├── public/
 │       │   └── inst-stats.js                  # GET, 60s cache
 │       ├── admin/                             # All: Bearer token required
@@ -193,10 +182,6 @@ src/
 │       │   ├── update-registrant-round.js     # prior/posterior/convergence
 │       │   ├── approve-all.js                 # Bulk approve pending
 │       │   ├── send-broadcast.js              # Resend bulk email with optional round filter
-│       │   ├── get-ambassador-stats.js        # Pre-regs grouped by refCode
-│       │   ├── get-ambassador-offsets.js      # Read stats/ambassador-offsets
-│       │   ├── update-ambassador-offset.js    # Write single institution offset
-│       │   ├── refresh-ambassador-leaderboard.js  # Rebuild leaderboard cache
 │       │   ├── get-firms.js                   # List all firms
 │       │   ├── create-firm.js                 # Create firm account
 │       │   ├── update-firm-access.js          # Toggle access flags
@@ -223,8 +208,7 @@ src/
 ├── lib/
 │   ├── fonts.js             # next/font setup (PT Serif, IBM Plex Mono, etc.)
 │   ├── constants.js         # REGISTRATION_OPENS, TIMEOUT_MS
-│   ├── resend.js            # Resend client init
-│   └── ambassador-codes.js  # AUTO-GENERATED — do not edit manually
+│   └── resend.js            # Resend client init
 ├── utils/
 │   ├── validators.js        # Form validation
 │   ├── hashIp.js            # SHA-256(IP+UA) fingerprint
@@ -257,7 +241,5 @@ src/
 - Registration cap is **3000** — enforce consistently across all routes.
 - `REGISTRATION_OPENS` = April 20, 2026 00:00 IST. `ADMIN_KEY` env var bypasses the date gate.
 - Recharts uses modular aliased imports configured in `next.config.js`.
-- `stats/ambassador-offsets` is a single Firestore doc with institution names as field keys — always `set(..., { merge: true })` to avoid wiping other fields.
-- Campus ambassador cache (`_cache`, `_cacheAt`) is module-level in the serverless function — resets on cold start, persists across warm invocations.
 - Signed URL bug pattern: never pass a raw Firebase Storage URL to `bucket.file()` — strip `?alt=media` (and any query params) from the path before `decodeURIComponent`.
 - `submittedAt` is a Firestore `Timestamp` — call `.toDate().toISOString()` before JSON serialization, never send a raw Timestamp object to the client.
