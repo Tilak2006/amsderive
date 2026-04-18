@@ -1,6 +1,5 @@
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
-import { enqueueConfirmationEmail } from '../../lib/queue';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
 import { REGISTRATION_OPENS } from '../../lib/constants';
 
@@ -327,31 +326,6 @@ export default async function handler(req, res) {
           entityId: docRef.id,
           actorId: ipHash,
           detail: { message: statsErr.message },
-          status: 'degraded',
-        });
-      }),
-      withTimeout(
-        enqueueConfirmationEmail({
-          fullName: fullName.trim(),
-          email: normalizedEmail,
-          codeforcesHandle: codeforcesHandle.trim(),
-          university: university.trim(),
-        }).then(() => {
-          logger.info('registration', 'confirmation_email_queued', {
-            reqId,
-            entityId: docRef.id,
-            actorId: ipHash,
-            detail: { emailMasked: maskEmail(normalizedEmail) },
-            status: 'ok',
-          });
-        }),
-        2000
-      ).catch((queueErr) => {
-        logger.warn('registration', 'confirmation_email_queue_failed', {
-          reqId,
-          entityId: docRef.id,
-          actorId: ipHash,
-          detail: { emailMasked: maskEmail(normalizedEmail), message: queueErr.message },
           status: 'degraded',
         });
       }),

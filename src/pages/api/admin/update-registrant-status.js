@@ -68,7 +68,9 @@ export default async function handler(req, res) {
       status: 'ok',
     });
 
-    // Send email — failure must NOT fail the API response
+    // Awaited — fire-and-forget is unsafe in Vercel/Lambda: the runtime freezes
+    // after res.json() with no guarantee pending HTTP promises complete.
+    // ~200ms delay is acceptable for an admin-only single-email operation.
     try {
       const { from, subject, html } = statusUpdateEmail({ fullName: data.fullName, status });
       await resend.emails.send({ from, to: data.email, subject, html });

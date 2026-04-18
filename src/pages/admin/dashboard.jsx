@@ -318,7 +318,7 @@ export default function AdminDashboard() {
         );
         setApproveAllMsg({
           type: 'success',
-          text: `Approved ${data.approved} · ${data.emailsSent} emails sent`,
+          text: `Approved ${data.approved} · ${data.emailsSent} emails sent${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}`,
         });
       } else {
         setApproveAllMsg({ type: 'error', text: data.error || 'Bulk approval failed.' });
@@ -372,7 +372,7 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} registrant${data.sent !== 1 ? 's' : ''}` });
+        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} registrant${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
         setBroadcastSubject('');
         setBroadcastBody('');
       } else {

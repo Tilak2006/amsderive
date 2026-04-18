@@ -19,9 +19,23 @@ const db = admin.firestore();
 const FIRESTORE_CHUNK = 500; // Firestore batch write limit
 const EMAIL_CHUNK = 100;     // Resend batch send limit
 const EMAIL_DELAY_MS = 200;  // Delay between email batches
+const EMAIL_RETRY_ATTEMPTS = 3;
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendBatchWithRetry(chunk, attempt = 1) {
+  try {
+    await resend.batch.send(chunk);
+    return { sent: chunk.length, failed: 0 };
+  } catch (err) {
+    if (attempt < EMAIL_RETRY_ATTEMPTS) {
+      await delay(attempt * 1000); // 1s, 2s backoff
+      return sendBatchWithRetry(chunk, attempt + 1);
+    }
+    return { sent: 0, failed: chunk.length, err };
+  }
 }
 
 export const config = { api: { responseLimit: false } };
@@ -76,29 +90,33 @@ export default async function handler(req, res) {
       });
     }
 
-    // 3. Send approval emails in batches — failures are logged, not fatal
+    // 3. Send approval emails in batches with retry — failures are logged, not fatal
     let emailsSent = 0;
+    let emailsFailed = 0;
     for (let i = 0; i < pending.length; i += EMAIL_CHUNK) {
       const chunk = pending.slice(i, i + EMAIL_CHUNK).map((r) => {
         const { from, subject, html } = statusUpdateEmail({ fullName: r.fullName, status: 'approved' });
         return { from, to: r.email, subject, html };
       });
 
-      try {
-        await resend.batch.send(chunk);
-        emailsSent += chunk.length;
-        logger.info('admin', 'bulk_approve_email_batch_sent', {
-          reqId,
-          actorId: 'admin',
-          detail: { batchNumber: Math.floor(i / EMAIL_CHUNK) + 1, count: chunk.length },
-          status: 'ok',
-        });
-      } catch (err) {
+      const batchNumber = Math.floor(i / EMAIL_CHUNK) + 1;
+      const result = await sendBatchWithRetry(chunk);
+      emailsSent += result.sent;
+      emailsFailed += result.failed;
+
+      if (result.failed > 0) {
         logger.warn('admin', 'bulk_approve_email_batch_failed', {
           reqId,
           actorId: 'admin',
-          detail: { batchNumber: Math.floor(i / EMAIL_CHUNK) + 1, message: err.message },
+          detail: { batchNumber, failed: result.failed, message: result.err?.message },
           status: 'degraded',
+        });
+      } else {
+        logger.info('admin', 'bulk_approve_email_batch_sent', {
+          reqId,
+          actorId: 'admin',
+          detail: { batchNumber, count: result.sent },
+          status: 'ok',
         });
       }
 
@@ -114,7 +132,7 @@ export default async function handler(req, res) {
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
-    return res.status(200).json({ success: true, approved: pending.length, emailsSent });
+    return res.status(200).json({ success: true, approved: pending.length, emailsSent, emailsFailed });
   } catch (error) {
     logger.error('admin', 'bulk_approve_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Bulk approval failed.' });
