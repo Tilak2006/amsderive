@@ -40,9 +40,9 @@ export default async function handler(req, res) {
   const MAX_REGISTRATIONS = 10000;
 
   try {
-    // Read stats/global counter — single doc read, faster than count().get() aggregate
-    const statsDoc = await db.collection('stats').doc('global').get();
-    cachedCount = statsDoc.exists ? (statsDoc.data().count || 0) : 0;
+    // Use count() aggregate — stats/global was retired to avoid single-doc write hotspot.
+    const countSnap = await db.collection('registrants').count().get();
+    cachedCount = countSnap.data().count || 0;
     cacheTime = now;
 
     logger.info('registration', 'count_query_ok', {

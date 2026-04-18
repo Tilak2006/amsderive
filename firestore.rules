@@ -3,9 +3,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // amsociety.in — submissions
+    // read/update/delete restricted to the document owner. create is permitted for
+    // unauthenticated form writers (legacy public-form flow); if the writer IS
+    // authenticated, they must claim their own uid as the `uid` field on the doc.
     match /submissions/{docId} {
-      allow create: if true;
-      allow read, update, delete: if request.auth != null;
+      allow create: if request.auth == null
+                    || request.auth.uid == request.resource.data.uid;
+      allow read, update, delete: if request.auth != null
+                                  && request.auth.uid == resource.data.uid;
     }
 
     // amsderive.in — registrants
@@ -24,10 +29,22 @@ service cloud.firestore {
     match /_rate_limits/{docId} {
       allow read, write: if false;
     }
+    match /_rate_limits_email/{docId} {
+      allow read, write: if false;
+    }
+    match /_rate_limits_handle/{docId} {
+      allow read, write: if false;
+    }
 
     // amsderive.in — firm partner accounts
     // All reads/writes go through Admin SDK in API routes. No client SDK access permitted.
     match /firms/{uid} {
+      allow read, write: if false;
+    }
+
+    // amsderive.in — per-institution registration counters
+    // Written by Admin SDK only (one doc per university slug, no single-doc hotspot).
+    match /stats_inst/{docId} {
       allow read, write: if false;
     }
 

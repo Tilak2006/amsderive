@@ -324,7 +324,8 @@ export default function FirmDashboard() {
         return;
       }
       setRegistrants((prev) => (after ? [...prev, ...data.registrants] : data.registrants));
-      setRegistrantsTotal(data.count);
+      // Server only returns total count on first page to avoid a redundant aggregate per page.
+      if (data.count != null) setRegistrantsTotal(data.count);
       setRegistrantsHasMore(data.hasMore);
       setRegistrantsLastId(data.lastId);
       if (data.access) setRegistrantsAccess(data.access);

@@ -1,49 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
-import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import ErrorBanner from '../components/ui/ErrorBanner';
 import RegistrationCard from '../components/ui/RegistrationCard';
+import RegistrationForm from '../components/form/RegistrationForm';
 import styles from './register.module.css';
 import PerformanceLogger from '../utils/performanceLogger';
 import { TIMEOUT_MS } from '../lib/constants';
-
-// Lazy load registration form to defer loading until page is rendered
-const RegistrationForm = dynamic(
-  () => import('../components/form/RegistrationForm'),
-  { 
-    ssr: false,
-    loading: () => (
-      <div className={styles.skeletonContainer}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className={styles.skeletonLabel} />
-          <div className={styles.skeletonField} />
-        </div>
-        <div className={styles.skeletonRow}>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div className={styles.skeletonLabel} />
-            <div className={styles.skeletonField} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div className={styles.skeletonLabel} />
-            <div className={styles.skeletonField} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className={styles.skeletonLabel} />
-          <div className={styles.skeletonField} />
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div className={styles.skeletonLabel} />
-          <div className={styles.skeletonField} />
-        </div>
-        <div className={styles.skeletonBtn} />
-      </div>
-    )
-  }
-);
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
@@ -75,8 +39,7 @@ async function uploadFileViaApi(file, sanitizedName, type) {
 }
 
 export default function Register() {
-  const router = useRouter();
-  // isHydrated gate removed — RegistrationForm's ssr:false dynamic children handle hydration safely
+  // isHydrated gate removed — child components use effects for browser APIs, SSR-safe
   const submittingRef = useRef(false); // synchronous guard — prevents double-submit before re-render
   const [status, setStatus] = useState('idle'); // idle | submitting | success | error
   const [errorMessage, setErrorMessage] = useState('');
@@ -141,41 +104,47 @@ export default function Register() {
     setErrorMessage('');
 
     try {
-      // Step 1: Gate check — abort before any upload if registration is closed
-      const gateRes = await fetch('/api/check-registration-gate', { method: 'POST' });
-      if (!gateRes.ok) {
-        const gateData = await gateRes.json().catch(() => ({}));
-        if (gateRes.status === 403) setRegistrationClosed(true);
-        submittingRef.current = false;
-        setStatus('error');
-        setErrorMessage(gateData.error || 'Registration is not currently open.');
-        return;
-      }
-
-      // Step 2: Sanitize name for file paths
+      // Sanitize name for file paths
       const sanitizedName = data.fullName
         .trim()
         .replace(/[^a-zA-Z0-9]/g, '_')
         .toLowerCase()
         .slice(0, 40); // cap storage path segment per security_rules.md
 
-      // Step 3: Upload files via server API — 30s cap total
-      let resumeUpload, transcriptUpload;
+      // Fire gate check + file uploads concurrently — saves one RTT on happy path.
+      // Tradeoff: if gate rejects (already closed), uploads complete wastefully.
+      // Acceptable since gate-rejection is rare (launch edge case only).
+      let gateRes, resumeUpload, transcriptUpload;
       try {
-        [resumeUpload, transcriptUpload] = await PerformanceLogger.monitor(
-          'File Upload',
+        const [gate, uploads] = await PerformanceLogger.monitor(
+          'Gate + File Upload',
           withTimeout(
             Promise.all([
-              uploadFileViaApi(data.resumeFile, sanitizedName, 'resume'),
-              uploadFileViaApi(data.transcriptFile, sanitizedName, 'transcript'),
+              fetch('/api/check-registration-gate', { method: 'POST' }),
+              Promise.all([
+                uploadFileViaApi(data.resumeFile, sanitizedName, 'resume'),
+                uploadFileViaApi(data.transcriptFile, sanitizedName, 'transcript'),
+              ]),
             ]),
             30000
           )
         );
+        gateRes = gate;
+        [resumeUpload, transcriptUpload] = uploads;
       } catch (uploadErr) {
         submittingRef.current = false;
         setStatus('error');
         setErrorMessage(uploadErr.message || 'Failed to upload files. Please try again.');
+        return;
+      }
+
+      // Gate check runs in parallel with uploads — reject AFTER uploads completed.
+      if (!gateRes.ok) {
+        const gateData = await gateRes.json().catch(() => ({}));
+        if (gateRes.status === 403) setRegistrationClosed(true);
+        submittingRef.current = false;
+        setStatus('error');
+        setErrorMessage(gateData.error || 'Registration is not currently open.');
         return;
       }
 
@@ -250,6 +219,9 @@ export default function Register() {
         <title>Register — AMS-DERIVE</title>
         <meta name="description" content="Register for the AMS-DERIVE competitive programming contest." />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Warm TLS to Firebase Storage — saves 100-300ms on first upload */}
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
         {/* Prevent search engine indexing (security: user data collection form) */}
         {/* Ref: firebase-upload-safety skill - prevent public exposure of registration flow */}
         <meta name="robots" content="noindex, nofollow" />

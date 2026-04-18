@@ -25,17 +25,14 @@ export default async function handler(req, res) {
 
   const reqId = genReqId();
 
-  // Rate limit — 10 checks/hour per IP+UA+clientId fingerprint
-  // clientId: caller-generated UUID persisted in localStorage — separates devices behind same NAT
-  // clientId is not trusted for security (trivially spoofed); it only helps honest users on shared WiFi
-  // Real duplicate enforcement lives in submit-registration's atomic transaction
+  // Rate limit — 10 checks/hour per IP. UA is spoofable and was removed to close a bypass.
+  // clientId (from localStorage) is only used as an extra key to separate honest devices on shared NAT;
+  // it is NEVER trusted as a security boundary.
   const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
     .toString().split(',')[0].trim();
-  const userAgent = (req.headers['user-agent'] || '').slice(0, 200);
   const rawClientId = typeof req.body.clientId === 'string' ? req.body.clientId.slice(0, 64) : '';
-  const fingerprintBase = `${clientIp}|${userAgent}`;
   const ipHash = crypto.createHash('sha256')
-    .update(rawClientId ? `${fingerprintBase}|${rawClientId}` : fingerprintBase)
+    .update(rawClientId ? `${clientIp}|${rawClientId}` : (clientIp || 'unknown'))
     .digest('hex');
   const rateLimitRef = db.collection('_rate_limits').doc(`check-reg_${ipHash}`);
   const oneHourAgo = Date.now() - RATE_LIMIT_WINDOW_MS;

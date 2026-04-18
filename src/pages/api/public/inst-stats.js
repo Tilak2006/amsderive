@@ -21,20 +21,20 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=120');
 
   try {
-    const snap = await db.collection('stats').doc('leaderboard').get();
+    const snap = await db.collection('stats_inst').get();
 
-    if (!snap.exists) {
+    if (snap.empty) {
       return res.status(200).json({ institutions: [] });
     }
 
-    const data = snap.data();
-    const institutions = Object.entries(data)
-      .map(([name, count]) => ({ name, count }))
+    const institutions = snap.docs
+      .map((doc) => ({ name: doc.data().name, count: doc.data().count || 0 }))
+      .filter((i) => i.name)
       .sort((a, b) => b.count - a.count);
 
     return res.status(200).json({ institutions });
   } catch (err) {
-    console.error('[inst-stats] Error reading leaderboard:', err.message);
+    console.error('[inst-stats] Error reading stats_inst:', err.message);
     return res.status(200).json({ institutions: [] });
   }
 }

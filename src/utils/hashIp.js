@@ -12,23 +12,17 @@ export async function hashIp(ip) {
 }
 
 /**
- * Create a device fingerprint from IP + User-Agent for rate limiting.
- * Ref: firebase-upload-safety skill (Rule 6: IP fingerprinting with user-agent)
- * 
- * Why not just IP?
- * - Same IP, different devices → wrong device gets rate limited
- * - Different IPs, same device (WiFi switch) → can re-register after limit
- * - This hashes both to create device-level rate limiting
- * 
+ * Create a rate-limit fingerprint from IP only.
+ *
+ * User-Agent was deliberately removed: it is client-controlled and can be rotated
+ * per-request to bypass rate limits entirely.
+ *
  * @param {string} ip - The raw IP address string.
- * @param {string} userAgent - The User-Agent string from browser.
  * @returns {Promise<string>} Hex-encoded SHA-256 hash.
  */
-export async function createRateLimitFingerprint(ip, userAgent) {
-  // Combine IP and User-Agent for device-level fingerprinting
-  const combined = `${ip}:${userAgent || 'unknown'}`;
+export async function createRateLimitFingerprint(ip) {
   const encoder = new TextEncoder();
-  const data = encoder.encode(combined);
+  const data = encoder.encode(ip || 'unknown');
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');

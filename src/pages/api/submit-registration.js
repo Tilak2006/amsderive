@@ -1,7 +1,6 @@
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
-import { resend } from '../../lib/resend';
-import { registrationConfirmationEmail } from '../../emails/templates';
+import { enqueueConfirmationEmail } from '../../lib/queue';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
 import { REGISTRATION_OPENS } from '../../lib/constants';
 
@@ -19,6 +18,10 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 const MAX_REGISTRATIONS = 10000;
 
+function instSlug(university) {
+  return university.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -31,47 +34,38 @@ export default async function handler(req, res) {
   const reqId = genReqId();
   const handlerStart = Date.now();
 
-  // Generate rate-limit key server-side — IP + User-Agent reduces false positives on shared IPs (e.g. hostel NAT)
+  // Rate-limit key is hashed from IP only. UA is trivially spoofable → including it lets
+  // attackers rotate UA to bypass the limit entirely.
   const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
     .toString()
     .split(',')[0]
     .trim();
-  const userAgent = (req.headers['user-agent'] || '').slice(0, 200);
-  const ipHash = crypto.createHash('sha256').update(`${clientIp}|${userAgent}`).digest('hex');
+  const ipHash = crypto.createHash('sha256').update(clientIp || 'unknown').digest('hex');
 
+  // IP soft throttle — 10/hour. Never hard-blocks alone; campus WiFi (many students,
+  // one NAT IP) won't get locked out. Sets ipOverLimit flag for combined-abuse detection.
+  let ipOverLimit = false;
   try {
     const rateLimitRef = db.collection('_rate_limits').doc(ipHash);
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    const MAX_PER_HOUR = 3;
+    const MAX_PER_HOUR = 10;
 
-    const rateResult = await db.runTransaction(async (transaction) => {
+    ipOverLimit = await db.runTransaction(async (transaction) => {
       const rateLimitDoc = await transaction.get(rateLimitRef);
-
-      let timestamps = [];
-      if (rateLimitDoc.exists) {
-        timestamps = rateLimitDoc.data().timestamps || [];
-      }
-
+      const oneHourAgo = Date.now() - 60 * 60 * 1000;
+      const timestamps = rateLimitDoc.exists ? rateLimitDoc.data().timestamps || [] : [];
       const recent = timestamps.filter((ts) => ts > oneHourAgo);
-
-      if (recent.length >= MAX_PER_HOUR) {
-        return { allowed: false, error: 'Too many submissions. Please try again in an hour.' };
-      }
-
+      const over = recent.length >= MAX_PER_HOUR;
       recent.push(Date.now());
       transaction.set(rateLimitRef, { timestamps: recent });
-
-      return { allowed: true };
+      return over;
     });
 
-    if (!rateResult.allowed) {
-      logger.warn('registration', 'rate_limit_exceeded', { reqId, actorId: ipHash, status: 'blocked' });
-      return res.status(429).json({ success: false, error: rateResult.error });
+    if (ipOverLimit) {
+      logger.warn('registration', 'ip_soft_throttle', { reqId, actorId: ipHash, status: 'soft_throttle' });
     }
-    logger.info('registration', 'rate_limit_checked', { reqId, actorId: ipHash, status: 'ok' });
   } catch (error) {
-    logger.error('registration', 'rate_limit_error', { reqId, actorId: ipHash, status: 'failed' }, error);
-    return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
+    // Fail open — IP is informational only; don't reject legit users on Firestore blip
+    logger.error('registration', 'ip_rate_limit_error', { reqId, actorId: ipHash, status: 'degraded' }, error);
   }
 
   const {
@@ -131,6 +125,61 @@ export default async function handler(req, res) {
   const normalizedEmail = email.trim().toLowerCase();
   const cfHandle = codeforcesHandle.trim();
 
+  // Per-identifier rate limit — defense in depth against IP rotation and enumeration.
+  // Sliding window: 3 attempts per 30 min per email AND per CF handle.
+  // Single transaction covers both docs so bursts from different IPs serialize cleanly.
+  try {
+    const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
+    const handleHash = crypto.createHash('sha256').update(cfHandle.toLowerCase()).digest('hex');
+    const emailRef = db.collection('_rate_limits_email').doc(emailHash);
+    const handleRef = db.collection('_rate_limits_handle').doc(handleHash);
+    const windowStart = Date.now() - 30 * 60 * 1000;
+    const MAX_PER_IDENTIFIER = 3;
+
+    const identResult = await db.runTransaction(async (transaction) => {
+      const [emailDoc, handleDoc] = await Promise.all([
+        transaction.get(emailRef),
+        transaction.get(handleRef),
+      ]);
+
+      const emailRecent = (emailDoc.exists ? emailDoc.data().timestamps || [] : [])
+        .filter((ts) => ts > windowStart);
+      const handleRecent = (handleDoc.exists ? handleDoc.data().timestamps || [] : [])
+        .filter((ts) => ts > windowStart);
+
+      if (emailRecent.length >= MAX_PER_IDENTIFIER) {
+        return { allowed: false, reason: 'email_limit' };
+      }
+      if (handleRecent.length >= MAX_PER_IDENTIFIER) {
+        return { allowed: false, reason: 'handle_limit' };
+      }
+
+      const now = Date.now();
+      emailRecent.push(now);
+      handleRecent.push(now);
+      transaction.set(emailRef, { timestamps: emailRecent });
+      transaction.set(handleRef, { timestamps: handleRecent });
+      return { allowed: true };
+    });
+
+    if (!identResult.allowed) {
+      // combined: true means IP is also over threshold — high-confidence scripted abuse
+      logger.warn('registration', 'identifier_rate_limit_exceeded', {
+        reqId,
+        actorId: ipHash,
+        detail: { reason: identResult.reason, combined: ipOverLimit },
+        status: 'blocked',
+      });
+      return res.status(429).json({
+        success: false,
+        error: 'Too many attempts for this email or handle. Please try again in 30 minutes.',
+      });
+    }
+  } catch (error) {
+    logger.error('registration', 'identifier_rate_limit_error', { reqId, actorId: ipHash, status: 'failed' }, error);
+    return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
+  }
+
   // Validate CF handle before the write transaction — fail open if CF is down
   const cfResult = await (async () => {
     try {
@@ -170,23 +219,31 @@ export default async function handler(req, res) {
 
   const registrantsRef = db.collection('registrants');
   const docRef = registrantsRef.doc(normalizedEmail);
-  const statsRef = db.collection('stats').doc('global');
   const cfHandleRef = db.collection('cfHandles').doc(cfHandle.toLowerCase());
 
-  // Atomic transaction: cap check + duplicate check + write — no TOCTOU window
+  // Soft cap pre-check using aggregate count() — avoids a single-doc hotspot in the write
+  // transaction (Firestore throttles >1 write/sec/doc). Under burst the cap may overshoot
+  // by a few; acceptable at 10k.
+  try {
+    const countSnap = await registrantsRef.count().get();
+    if ((countSnap.data().count || 0) >= MAX_REGISTRATIONS) {
+      logger.warn('registration', 'cap_reached', { reqId, actorId: ipHash, status: 'blocked' });
+      return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
+    }
+  } catch (error) {
+    // If the cap check itself errors, fall through — the transaction will still enforce
+    // uniqueness and we'd rather accept than reject a legitimate registrant on Firestore blip.
+    logger.warn('registration', 'cap_check_degraded', { reqId, actorId: ipHash, detail: { message: error.message }, status: 'degraded' });
+  }
+
+  // Atomic transaction: duplicate check + write — no TOCTOU window on email/handle
   let transactionResult;
   try {
     transactionResult = await db.runTransaction(async (transaction) => {
-      const [existing, statsDoc, cfHandleDoc] = await Promise.all([
+      const [existing, cfHandleDoc] = await Promise.all([
         transaction.get(docRef),
-        transaction.get(statsRef),
         transaction.get(cfHandleRef),
       ]);
-
-      const currentCount = statsDoc.exists ? (statsDoc.data().count || 0) : 0;
-      if (currentCount >= MAX_REGISTRATIONS) {
-        return { written: false, reason: 'cap_reached' };
-      }
 
       if (existing.exists) {
         return { written: false, reason: 'duplicate_email' };
@@ -224,8 +281,6 @@ export default async function handler(req, res) {
         registeredAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      transaction.set(statsRef, { count: currentCount + 1 }, { merge: true });
-
       return { written: true };
     });
   } catch (error) {
@@ -241,10 +296,6 @@ export default async function handler(req, res) {
     if (transactionResult.reason === 'duplicate_cf') {
       logger.warn('registration', 'duplicate_cf_rejected', { reqId, actorId: ipHash, status: 'blocked' });
       return res.status(409).json({ success: false, error: 'This Codeforces handle is already registered.' });
-    }
-    if (transactionResult.reason === 'cap_reached') {
-      logger.warn('registration', 'cap_reached', { reqId, actorId: ipHash, status: 'blocked' });
-      return res.status(403).json({ success: false, error: 'Registrations are now closed.' });
     }
   }
 
@@ -265,8 +316,8 @@ export default async function handler(req, res) {
 
     await Promise.allSettled([
       withTimeout(
-        db.collection('stats').doc('leaderboard').set(
-          { [university.trim()]: admin.firestore.FieldValue.increment(1) },
+        db.collection('stats_inst').doc(instSlug(university.trim())).set(
+          { name: university.trim(), count: admin.firestore.FieldValue.increment(1) },
           { merge: true }
         ),
         3000
@@ -280,28 +331,27 @@ export default async function handler(req, res) {
         });
       }),
       withTimeout(
-        (async () => {
-          const { from, subject, html } = registrationConfirmationEmail({
-            fullName: fullName.trim(),
-            codeforcesHandle: codeforcesHandle.trim(),
-            university: university.trim(),
-          });
-          await resend.emails.send({ from, to: normalizedEmail, subject, html });
-          logger.info('registration', 'confirmation_email_sent', {
+        enqueueConfirmationEmail({
+          fullName: fullName.trim(),
+          email: normalizedEmail,
+          codeforcesHandle: codeforcesHandle.trim(),
+          university: university.trim(),
+        }).then(() => {
+          logger.info('registration', 'confirmation_email_queued', {
             reqId,
             entityId: docRef.id,
             actorId: ipHash,
             detail: { emailMasked: maskEmail(normalizedEmail) },
             status: 'ok',
           });
-        })(),
-        5000
-      ).catch((emailErr) => {
-        logger.warn('registration', 'confirmation_email_failed', {
+        }),
+        2000
+      ).catch((queueErr) => {
+        logger.warn('registration', 'confirmation_email_queue_failed', {
           reqId,
           entityId: docRef.id,
           actorId: ipHash,
-          detail: { emailMasked: maskEmail(normalizedEmail), message: emailErr.message },
+          detail: { emailMasked: maskEmail(normalizedEmail), message: queueErr.message },
           status: 'degraded',
         });
       }),

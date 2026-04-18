@@ -12,9 +12,8 @@ if (!admin.apps.length) {
   });
 }
 
-function hashFingerprint(ip, userAgent) {
-  const combined = `${ip}:${userAgent || 'unknown'}`;
-  return createHash('sha256').update(combined).digest('hex');
+function hashFingerprint(ip) {
+  return createHash('sha256').update(ip || 'unknown').digest('hex');
 }
 
 const db = admin.firestore();
@@ -45,12 +44,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid name.' });
   }
 
-  // Rate limiting by IP + User-Agent fingerprint
+  // Rate limiting by IP only (UA is spoofable)
   const forwarded = req.headers['x-forwarded-for'];
   const raw = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
   const ip = /^[\d.:[\]a-fA-F]+$/.test(raw ?? '') ? raw : 'unknown';
-  const userAgent = req.headers['user-agent'] || 'unknown';
-  const fingerprint = hashFingerprint(ip, userAgent);
+  const fingerprint = hashFingerprint(ip);
 
   if (fingerprint) {
     try {

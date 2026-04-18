@@ -24,7 +24,11 @@ const db = admin.firestore();
 
 function escapeCsv(val) {
   if (val === null || val === undefined) return '';
-  const str = String(val);
+  let str = String(val);
+  // Prevent CSV formula injection — prefix with ' so Excel/Sheets treat it as text
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
   }

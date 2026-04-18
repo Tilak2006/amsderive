@@ -95,28 +95,35 @@ export default async function handler(req, res) {
   const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
 
   try {
-    const snapshot = await db
+    // Server-side cursor pagination using composite index
+    // (status ASC, dataConsent ASC, submittedAt DESC)
+    let query = db
       .collection('registrants')
       .where('status', '==', 'approved')
-      .get();
+      .where('dataConsent', '==', true)
+      .orderBy('submittedAt', 'desc');
 
-    // Sort and filter in-process — avoids any composite index requirement
-    const docs = snapshot.docs
-      .filter((doc) => doc.data().dataConsent === true)
-      .sort((a, b) => {
-        const aT = a.data().submittedAt?.toMillis?.() ?? 0;
-        const bT = b.data().submittedAt?.toMillis?.() ?? 0;
-        return bT - aT;
-      });
-
-    // Apply cursor-based pagination in-process
-    let startIdx = 0;
     if (after) {
-      const idx = docs.findIndex((doc) => doc.id === after);
-      if (idx !== -1) startIdx = idx + 1;
+      const cursorSnap = await db.collection('registrants').doc(after).get();
+      if (cursorSnap.exists) {
+        query = query.startAfter(cursorSnap);
+      }
     }
-    const page = docs.slice(startIdx, startIdx + limit);
-    const hasMore = startIdx + limit < docs.length;
+
+    // Fetch limit + 1 to detect hasMore without a separate count query.
+    // On first page, also fetch the total count (aggregate) in parallel for UI display.
+    const baseQuery = db
+      .collection('registrants')
+      .where('status', '==', 'approved')
+      .where('dataConsent', '==', true);
+
+    const [snapshot, totalSnap] = await Promise.all([
+      query.limit(limit + 1).get(),
+      after ? Promise.resolve(null) : baseQuery.count().get(),
+    ]);
+    const page = snapshot.docs.slice(0, limit);
+    const hasMore = snapshot.docs.length > limit;
+    const total = totalSnap ? totalSnap.data().count : null;
 
     const registrants = page.map((doc) => {
       const d = doc.data();
@@ -150,12 +157,12 @@ export default async function handler(req, res) {
     logger.info('firms', 'registrants_fetched', {
       reqId,
       actorId: uid,
-      detail: { count: page.length, hasMore, total: docs.length },
+      detail: { pageCount: page.length, hasMore, total },
       status: 'ok',
     });
     return res.status(200).json({
       registrants,
-      count: docs.length,
+      count: total,
       hasMore,
       lastId: page.length > 0 ? page[page.length - 1].id : null,
       access: {

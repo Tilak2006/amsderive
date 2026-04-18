@@ -1,5 +1,6 @@
 // src/pages/api/upload-file.js
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
@@ -94,7 +95,9 @@ export default async function handler(req, res) {
   const safeName = sanitizeName(nameField);
   const safeType = ['resume', 'transcript'].includes(typeField) ? typeField : 'file';
   const timestamp = Date.now();
-  const storagePath = `registrants/${timestamp}_${safeName}_${safeType}.pdf`;
+  // Append a random UUID so paths cannot be brute-forced by guessing timestamp+name
+  const uniq = crypto.randomUUID();
+  const storagePath = `registrants/${timestamp}_${safeName}_${safeType}_${uniq}.pdf`;
 
   // Upload via Admin SDK
   try {

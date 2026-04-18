@@ -39,26 +39,22 @@ const BackgroundOverlay = dynamic(
   { ssr: false }
 );
 
-// Below-the-fold sections — loaded only when needed
+// Below-the-fold sections — code-split but SSR'd for SEO and faster FCP.
+// Only WireframeMesh/BackgroundOverlay stay ssr:false (Three.js, client-only).
 const AboutSection = dynamic(() => import('../components/sections/AboutSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: false,
 });
 const CompetitionSection = dynamic(() => import('../components/sections/CompetitionSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: false,
 });
 const TimelineSection = dynamic(() => import('../components/sections/TimelineSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: false,
 });
 const WhoSection = dynamic(() => import('../components/sections/WhoSection'), {
   loading: () => <div style={{ minHeight: '400px' }} />,
-  ssr: false,
 });
 const SponsorsSection = dynamic(() => import('../components/sections/SponsorsSection'), {
   loading: () => <div style={{ minHeight: '200px' }} />,
-  ssr: false,
 });
 // const SyllabusSection = dynamic(() => import('../components/sections/SyllabusSection'), {
 //   loading: () => <div style={{ minHeight: '400px' }} />,
@@ -129,6 +125,9 @@ export default function LandingPage() {
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0a0a0a" />
+        {/* Warm TLS early — /register uploads benefit from established connection */}
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
         <link rel="canonical" href="https://amsderive.in" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="AMS Derive" />

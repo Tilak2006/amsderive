@@ -17,22 +17,29 @@ function formatDate(isoString) {
   return `${day} ${month} ${year}, ${hours}:${mins} IST`;
 }
 
+// Prefix a single quote on fields starting with =+-@ (and a couple of control chars) so
+// Excel/Sheets render them as text instead of evaluating them as formulas.
+function csvSafe(raw) {
+  const str = raw == null ? '' : String(raw);
+  return /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+}
+
 function exportCSV(data) {
   const headers = [
     'Full Name', 'Email', 'University', 'Branch',
     'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status', 'Ref Code',
   ];
   const rows = data.map((r) => [
-    `"${(r.fullName || '').replace(/"/g, '""')}"`,
-    `"${(r.email || '').replace(/"/g, '""')}"`,
-    `"${(r.university || '').replace(/"/g, '""')}"`,
-    `"${(r.branch || '').replace(/"/g, '""')}"`,
-    `"${(r.codeforcesHandle || '').replace(/"/g, '""')}"`,
-    `"${(r.phoneNumber || '').replace(/"/g, '""')}"`,
+    `"${csvSafe(r.fullName).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.email).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.university).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.branch).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.codeforcesHandle).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.phoneNumber).replace(/"/g, '""')}"`,
     r.dataConsent ? 'Yes' : 'No',
     `"${formatDate(r.submittedAt)}"`,
     r.status || 'pending',
-    `"${(r.refCode || '').replace(/"/g, '""')}"`,
+    `"${csvSafe(r.refCode).replace(/"/g, '""')}"`,
   ]);
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
