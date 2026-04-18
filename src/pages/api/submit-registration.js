@@ -1,7 +1,7 @@
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
-import { REGISTRATION_OPENS } from '../../lib/constants';
+import { REGISTRATION_OPENS, MAX_REGISTRATIONS } from '../../lib/constants';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -15,7 +15,6 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 10000;
 
 function instSlug(university) {
   return university.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);
@@ -92,7 +91,8 @@ export default async function handler(req, res) {
   }
   try {
     const liUrl = new URL(linkedIn.trim());
-    if (!liUrl.hostname.endsWith('linkedin.com')) {
+    const liHost = liUrl.hostname;
+    if (liHost !== 'linkedin.com' && liHost !== 'www.linkedin.com' && !liHost.endsWith('.linkedin.com')) {
       return res.status(400).json({
         success: false,
         error: 'Please enter a valid LinkedIn profile URL.',
@@ -177,13 +177,15 @@ export default async function handler(req, res) {
   // Writes the prepared rate-limit timestamps — called only on failure paths so successful
   // submissions don't consume quota. Fire-and-forget; a write failure here is acceptable.
   const recordFailedAttempt = () => {
+    // expiresAt enables Firestore TTL auto-deletion — enable TTL on these collections in Firebase Console
+    const expiry = admin.firestore.Timestamp.fromMillis(Date.now() + 4 * 60 * 60 * 1000);
     const writes = [];
     if (_ipRateLimitRef && _ipTimestampsToWrite) {
-      writes.push(_ipRateLimitRef.set({ timestamps: _ipTimestampsToWrite }));
+      writes.push(_ipRateLimitRef.set({ timestamps: _ipTimestampsToWrite, expiresAt: expiry }));
     }
     if (_emailRateLimitRef && _emailTimestampsToWrite) {
-      writes.push(_emailRateLimitRef.set({ timestamps: _emailTimestampsToWrite }));
-      writes.push(_handleRateLimitRef.set({ timestamps: _handleTimestampsToWrite }));
+      writes.push(_emailRateLimitRef.set({ timestamps: _emailTimestampsToWrite, expiresAt: expiry }));
+      writes.push(_handleRateLimitRef.set({ timestamps: _handleTimestampsToWrite, expiresAt: expiry }));
     }
     Promise.all(writes).catch(() => {});
   };

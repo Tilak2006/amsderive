@@ -85,6 +85,28 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
+  // Idempotency — Resend retries failed deliveries. A second delivery of the same event
+  // would overwrite deliveryStatus with an older state. Store svix-id to deduplicate.
+  const svixId = req.headers['svix-id'];
+  if (svixId) {
+    try {
+      const idRef = db.collection('_webhook_ids').doc(svixId);
+      const already = await idRef.get();
+      if (already.exists) {
+        logger.info('webhook', 'duplicate_ignored', { detail: { svixId }, status: 'ok' });
+        return res.status(200).json({ ok: true, duplicate: true });
+      }
+      // Mark as processed — TTL 7 days (enable TTL on _webhook_ids.expiresAt in Firebase Console)
+      await idRef.set({
+        processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+    } catch (err) {
+      // Fail open — a dedup miss is far less harmful than dropping a real event
+      logger.warn('webhook', 'dedup_check_failed', { detail: { svixId, message: err.message }, status: 'degraded' });
+    }
+  }
+
   let event;
   try {
     event = JSON.parse(rawBody.toString('utf8'));

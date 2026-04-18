@@ -7,7 +7,7 @@ import RegistrationCard from '../components/ui/RegistrationCard';
 import RegistrationForm from '../components/form/RegistrationForm';
 import styles from './register.module.css';
 import PerformanceLogger from '../utils/performanceLogger';
-import { TIMEOUT_MS } from '../lib/constants';
+import { TIMEOUT_MS, MAX_REGISTRATIONS } from '../lib/constants';
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
@@ -242,7 +242,7 @@ export default function Register() {
         {countData?.warning && !countData?.full && (
           <div className={styles.warningBanner}>
             <span className={styles.warningIcon}>⚡</span>
-            <span>Only <strong>{10000 - countData.count} spots remaining</strong>. Registration closes at 10,000 participants.</span>
+            <span>Only <strong>{MAX_REGISTRATIONS - countData.count} spots remaining</strong>. Registration closes at {MAX_REGISTRATIONS.toLocaleString()} participants.</span>
           </div>
         )}
 

@@ -73,7 +73,10 @@ export default async function handler(req, res) {
       }
 
       recent.push(Date.now());
-      tx.set(ref, { timestamps: recent });
+      tx.set(ref, {
+        timestamps: recent,
+        expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 4 * 60 * 60 * 1000),
+      });
 
       return {
         allowed: true,

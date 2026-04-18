@@ -69,6 +69,72 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
+      // CSP for /register — no external JS allowed; only self + Firebase Storage for file previews.
+      // 'unsafe-inline' required for Next.js __NEXT_DATA__ inline script. Upgrade to nonce-based
+      // CSP if stricter enforcement is needed in future.
+      {
+        source: '/register',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self'",
+              "frame-src 'none'",
+              "object-src 'none'",
+              "form-action 'self'",
+              "base-uri 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+      // CSP for /admin/* — allows Firebase Auth APIs for signInWithEmailAndPassword
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              // Firebase Auth + Firestore client SDK endpoints
+              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com",
+              "frame-src 'none'",
+              "object-src 'none'",
+              "form-action 'self'",
+              "base-uri 'self'",
+            ].join('; '),
+          },
+        ],
+      },
+      // CSP for /firm/* — same Firebase Auth needs as admin
+      {
+        source: '/firm/:path*',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com",
+              "frame-src 'none'",
+              "object-src 'none'",
+              "form-action 'self'",
+              "base-uri 'self'",
+            ].join('; '),
+          },
+        ],
+      },
       // Public static pages — CDN edge cache 1hr, stale-while-revalidate 24hr.
       // These pages have no auth, no dynamic data, and are pre-rendered at build time.
       // s-maxage controls Vercel's CDN; max-age=0 prevents browser from staling silently.
@@ -100,6 +166,13 @@ const nextConfig = {
       // Rank page — dynamic data with 60s API cache; match edge TTL
       {
         source: '/rank/:slug',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=120' },
+        ],
+      },
+      // registration-count is explicitly CDN-cached — must precede the catch-all
+      {
+        source: '/api/registration-count',
         headers: [
           { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=120' },
         ],

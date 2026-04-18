@@ -19,9 +19,9 @@ import { validateFileType, validateFileSize } from '../../utils/fileValidation';
 import { createValidationDebouncer } from '../../utils/formOptimization';
 
 const RESUME_ALLOWED_TYPES = ['application/pdf'];
-const RESUME_MAX_SIZE = 300 * 1024; // 300KB
+const RESUME_MAX_SIZE = 500 * 1024; // 500KB
 const ID_ALLOWED_TYPES = ['application/pdf'];
-const ID_MAX_SIZE = 300 * 1024; // 300KB
+const ID_MAX_SIZE = 500 * 1024; // 500KB
 
 /**
  * Registration form collecting participant information.
@@ -206,7 +206,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         newErrors.resume = 'Resume must be a PDF';
       } else {
         const resumeSizeResult = validateFileSize(resumeFile, RESUME_MAX_SIZE);
-        if (!resumeSizeResult.valid) newErrors.resume = 'Resume must be under 300KB';
+        if (!resumeSizeResult.valid) newErrors.resume = 'Resume must be under 500KB';
       }
     }
 
@@ -219,7 +219,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         newErrors.transcript = 'Transcript must be a PDF';
       } else {
         const transcriptSizeResult = validateFileSize(transcriptFile, ID_MAX_SIZE);
-        if (!transcriptSizeResult.valid) newErrors.transcript = 'Transcript must be under 300KB';
+        if (!transcriptSizeResult.valid) newErrors.transcript = 'Transcript must be under 500KB';
       }
     }
 
@@ -410,7 +410,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         onFileSelect={handleResumeSelect}
         error={errors.resume}
         file={resumeFile}
-        hint="PDF only, max 300KB"
+        hint="PDF only, max 500KB"
         required
       />
 
@@ -421,7 +421,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         onFileSelect={handleTranscriptSelect}
         error={errors.transcript}
         file={transcriptFile}
-        hint="PDF only, max 300KB"
+        hint="PDF only, max 500KB"
         infoTooltip="Most recent transcript (college / highschool marksheet)"
         required
       />

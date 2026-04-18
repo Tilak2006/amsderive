@@ -19,9 +19,23 @@ if (!admin.apps.length) {
 // Disable Next.js body parser — formidable needs the raw stream
 export const config = { api: { bodyParser: false } };
 
-const MAX_SIZE_BYTES = 300 * 1024; // 300 KB
+const MAX_SIZE_BYTES = 500 * 1024; // 500 KB
 const ALLOWED_MIME = 'application/pdf';
 const PDF_MAGIC = '%PDF';
+
+const ALLOWED_ORIGINS = [
+  'https://amsderive.in',
+  'https://www.amsderive.in',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
+
+// IP upload cap: 100/hr = ~50 students on shared college NAT (2 uploads each).
+// Hard block above this threshold to prevent storage abuse.
+const UPLOAD_RATE_LIMIT = 100;
+const UPLOAD_RATE_WINDOW_MS = 60 * 60 * 1000;
+
+const db = admin.firestore();
 
 function sanitizeName(raw) {
   return (raw || 'file')
@@ -34,6 +48,38 @@ function sanitizeName(raw) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Cross-origin upload guard — multipart/form-data is a "simple request" so browsers send it
+  // without a preflight even cross-origin. Reject if Origin is present but not ours.
+  const origin = req.headers['origin'];
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
+  // IP rate limit — checked before parsing body (cheap Firestore read before expensive file buffer)
+  const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '')
+    .toString().split(',')[0].trim();
+  const ipHash = crypto.createHash('sha256').update(clientIp || 'unknown').digest('hex');
+  try {
+    const rateLimitRef = db.collection('_rate_limits').doc(`upload_${ipHash}`);
+    const result = await db.runTransaction(async (tx) => {
+      const doc = await tx.get(rateLimitRef);
+      const cutoff = Date.now() - UPLOAD_RATE_WINDOW_MS;
+      const recent = (doc.exists ? doc.data().timestamps || [] : []).filter((ts) => ts > cutoff);
+      if (recent.length >= UPLOAD_RATE_LIMIT) return false;
+      recent.push(Date.now());
+      tx.set(rateLimitRef, {
+        timestamps: recent,
+        expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 2 * 60 * 60 * 1000),
+      });
+      return true;
+    });
+    if (!result) {
+      return res.status(429).json({ error: 'Too many uploads from this network. Please try again later.' });
+    }
+  } catch {
+    // Fail open — don't block legit users if rate limit check errors
   }
 
   // Parse multipart form — maxFileSize enforced here
@@ -49,7 +95,7 @@ export default async function handler(req, res) {
     });
   } catch (err) {
     if (err.message?.includes('maxFileSize')) {
-      return res.status(400).json({ error: 'File exceeds 300 KB limit.' });
+      return res.status(400).json({ error: 'File exceeds 500 KB limit.' });
     }
     return res.status(400).json({ error: 'Invalid upload request.' });
   }
@@ -71,7 +117,7 @@ export default async function handler(req, res) {
   // Size double-check (formidable may allow slightly over due to chunking)
   if (uploadedFile.size > MAX_SIZE_BYTES) {
     fs.unlink(uploadedFile.filepath, () => {});
-    return res.status(400).json({ error: 'File exceeds 300 KB limit.' });
+    return res.status(400).json({ error: 'File exceeds 500 KB limit.' });
   }
 
   // Magic bytes check — read first 4 bytes to confirm actual PDF

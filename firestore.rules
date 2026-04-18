@@ -48,6 +48,32 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Codeforces handle sentinel docs — Admin SDK only (duplicate prevention)
+    match /cfHandles/{docId} {
+      allow read, write: if false;
+    }
+
+    // Pre-registration interest emails — Admin SDK only
+    match /pre_registrations/{docId} {
+      allow read, write: if false;
+    }
+
+    // Audit log — Admin SDK only; never accessible by clients
+    match /_audit_log/{docId} {
+      allow read, write: if false;
+    }
+
+    // Webhook deduplication IDs — Admin SDK only
+    match /_webhook_ids/{docId} {
+      allow read, write: if false;
+    }
+
+    // Per-institution registration counters (stats_inst) — written by Admin SDK increment
+    // Already covered above; this alias ensures future collection group queries are denied
+    match /stats/{docId} {
+      allow read, write: if false;
+    }
+
     // Block everything else
     match /{document=**} {
       allow read, write: if false;

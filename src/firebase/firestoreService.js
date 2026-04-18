@@ -1,4 +1,5 @@
 import { db } from './firebaseConfig';
+import { MAX_REGISTRATIONS } from '../lib/constants';
 import {
   collection,
   addDoc,
@@ -17,7 +18,6 @@ import {
 } from 'firebase/firestore';
 
 // ── Hard cap ───────────────────────────────────────────────────────────────
-const MAX_REGISTRATIONS = 10000;
 
 export async function checkRegistrationCap() {
   try {

@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
 
 if (!admin.apps.length) {
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ registrants });
   } catch (error) {
-    console.error('[export-registrants] Error:', error);
+    logger.error('admin', 'export_registrants_error', { reqId: genReqId(), actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to export registrants.' });
   }
 }

@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 import crypto from 'crypto';
 import logger, { genReqId } from '../../utils/logger';
+import { MAX_REGISTRATIONS } from '../../lib/constants';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -14,7 +15,6 @@ if (!admin.apps.length) {
 }
 
 const db = admin.firestore();
-const MAX_REGISTRATIONS = 10000;
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
@@ -43,7 +43,10 @@ export default async function handler(req, res) {
       const recent = (doc.exists ? doc.data().timestamps || [] : []).filter((ts) => ts > oneHourAgo);
       if (recent.length >= RATE_LIMIT_MAX) return { allowed: false };
       recent.push(Date.now());
-      tx.set(rateLimitRef, { timestamps: recent });
+      tx.set(rateLimitRef, {
+        timestamps: recent,
+        expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 4 * 60 * 60 * 1000),
+      });
       return { allowed: true };
     });
 

@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import * as admin from 'firebase-admin';
+import logger, { genReqId } from '../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -61,7 +62,10 @@ export default async function handler(req, res) {
         const recent = timestamps.filter(ts => ts > twelveHoursAgo);
         if (recent.length >= MAX_CHECKS_PER_WINDOW) return false;
         recent.push(Date.now());
-        tx.set(rateLimitRef, { timestamps: recent });
+        tx.set(rateLimitRef, {
+          timestamps: recent,
+          expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 4 * 60 * 60 * 1000),
+        });
         return true;
       });
 
@@ -105,7 +109,7 @@ export default async function handler(req, res) {
       },
     });
   } catch (error) {
-    console.error('[check-status] Error:', error);
+    logger.error('registration', 'check_status_error', { reqId: genReqId(), status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to check registration. Please try again.' });
   }
 }

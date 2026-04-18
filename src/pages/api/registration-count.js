@@ -1,5 +1,6 @@
 import * as admin from 'firebase-admin';
 import logger, { genReqId } from '../../utils/logger';
+import { MAX_REGISTRATIONS } from '../../lib/constants';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -37,8 +38,7 @@ export default async function handler(req, res) {
   }
 
   const reqId = genReqId();
-  const MAX_REGISTRATIONS = 10000;
-
+  
   try {
     // Use count() aggregate — stats/global was retired to avoid single-doc write hotspot.
     const countSnap = await db.collection('registrants').count().get();
