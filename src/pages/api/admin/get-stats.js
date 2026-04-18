@@ -45,16 +45,20 @@ export default async function handler(req, res) {
     todayIST.setUTCHours(0, 0, 0, 0);
     const todayUTC = new Date(todayIST.getTime() - istOffset);
 
-    const [totalSnap, consentSnap, todaySnap] = await Promise.all([
+    const [totalSnap, consentSnap, todaySnap, approvedSnap, bouncedSnap] = await Promise.all([
       ref.count().get(),
       ref.where('dataConsent', '==', true).count().get(),
       ref.where('submittedAt', '>=', admin.firestore.Timestamp.fromDate(todayUTC)).count().get(),
+      ref.where('status', '==', 'approved').count().get(),
+      ref.where('deliveryStatus', '==', 'bounced').count().get(),
     ]);
 
     cachedStats = {
       total: totalSnap.data().count,
       consentGiven: consentSnap.data().count,
       today: todaySnap.data().count,
+      approved: approvedSnap.data().count,
+      bounced: bouncedSnap.data().count,
     };
     cacheTime = Date.now();
 

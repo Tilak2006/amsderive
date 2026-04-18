@@ -70,11 +70,12 @@ export default async function handler(req, res) {
         subject: emailTemplate.subject,
         html: emailTemplate.html,
       });
-      await Promise.race([
+      const sendResult = await Promise.race([
         sendPromise,
         new Promise((_, reject) => setTimeout(() => reject(new Error('email send timed out')), 8000)),
       ]);
       emailSent = true;
+      const resendEmailId = sendResult?.data?.id || null;
       logger.info('admin', 'status_update_email_sent', {
         reqId,
         entityId: docId,
@@ -103,6 +104,7 @@ export default async function handler(req, res) {
     await docRef.update({
       status,
       statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      ...(resendEmailId ? { lastApprovalEmailId: resendEmailId } : {}),
     });
 
     logger.info('admin', 'status_updated', {
@@ -112,6 +114,21 @@ export default async function handler(req, res) {
       detail: { newStatus: status },
       status: 'ok',
     });
+
+    // Persist to audit log — survives Vercel log expiry
+    try {
+      await db.collection('_audit_log').add({
+        type: status === 'approved' ? 'approve' : 'reject',
+        actorId: 'admin',
+        reqId,
+        entityId: docId,
+        emailMasked: maskEmail(data.email),
+        newStatus: status,
+        emailSent: true,
+        resendEmailId: resendEmailId || null,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch { /* audit log must never fail the main path */ }
 
     return res.status(200).json({ success: true, emailSent, emailError });
   } catch (error) {

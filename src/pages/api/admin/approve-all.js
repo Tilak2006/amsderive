@@ -146,6 +146,23 @@ export default async function handler(req, res) {
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
+
+    try {
+      await db.collection('_audit_log').add({
+        type: 'approve_all',
+        actorId: 'admin',
+        reqId,
+        approved: approvedIds.length,
+        emailsSent,
+        emailsFailed,
+        skipped: pending.length - approvedIds.length,
+        pendingTotal: pending.length,
+        failedBatches,
+        durationMs: Date.now() - handlerStart,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch { /* audit log must never fail the main path */ }
+
     return res.status(200).json({
       success: true,
       approved: approvedIds.length,

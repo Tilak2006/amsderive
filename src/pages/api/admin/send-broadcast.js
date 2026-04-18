@@ -125,6 +125,22 @@ export default async function handler(req, res) {
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
+
+    try {
+      await db.collection('_audit_log').add({
+        type: 'broadcast',
+        actorId: 'admin',
+        reqId,
+        subject: subject.trim(),
+        sent,
+        emailsFailed,
+        total: recipients.length,
+        filter,
+        durationMs: Date.now() - handlerStart,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch { /* audit log must never fail the main path */ }
+
     return res.status(200).json({ success: true, sent, emailsFailed });
   } catch (error) {
     logger.error('admin', 'broadcast_error', { reqId, actorId: 'admin', status: 'failed' }, error);

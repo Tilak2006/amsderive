@@ -71,7 +71,7 @@ export default function AdminDashboard() {
   const [loadingData, setLoadingData] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const [stats, setStats] = useState({ total: 0, consentGiven: 0, today: 0 });
+  const [stats, setStats] = useState({ total: 0, consentGiven: 0, today: 0, approved: 0, bounced: 0 });
 
   // Separate input state (changes on every keystroke) from filter state (debounced 200ms)
   const [searchInput, setSearchInput] = useState('');
@@ -555,12 +555,14 @@ export default function AdminDashboard() {
           <div className={styles.statsGrid}>
             {[
               { label: 'Total Registrants', value: stats.total },
-              { label: 'Data Consent', value: stats.consentGiven },
+              { label: 'Approved', value: stats.approved },
               { label: "Today's Registrations", value: stats.today },
+              { label: 'Data Consent', value: stats.consentGiven },
+              { label: 'Bounced Emails', value: stats.bounced, alert: stats.bounced > 0 },
             ].map((s) => (
-              <div key={s.label} className={styles.statCard}>
+              <div key={s.label} className={`${styles.statCard} ${s.alert ? styles.statCardAlert : ''}`}>
                 <span className={styles.statLabel}>{s.label}</span>
-                <span className={styles.statValue}>{s.value}</span>
+                <span className={`${styles.statValue} ${s.alert ? styles.statValueAlert : ''}`}>{s.value}</span>
               </div>
             ))}
           </div>
@@ -843,6 +845,29 @@ export default function AdminDashboard() {
                 <p className={styles.panelLabel}>Submitted At</p>
                 <p className={`${styles.panelValue} ${styles.mono}`}>{formatDate(r.submittedAt)}</p>
               </div>
+              {r.status === 'approved' && (
+                <div className={styles.panelSection}>
+                  <p className={styles.panelLabel}>Email Delivery</p>
+                  {!r.deliveryStatus ? (
+                    <span className={styles.badgeGrey}>PENDING</span>
+                  ) : r.deliveryStatus === 'delivered' ? (
+                    <span className={styles.badgeGreen}>DELIVERED</span>
+                  ) : r.deliveryStatus === 'bounced' ? (
+                    <span className={styles.badgeRed}>BOUNCED</span>
+                  ) : r.deliveryStatus === 'complained' ? (
+                    <span className={styles.badgeRed}>SPAM COMPLAINT</span>
+                  ) : r.deliveryStatus === 'delayed' ? (
+                    <span className={styles.badgeYellow}>DELAYED</span>
+                  ) : (
+                    <span className={styles.badgeGrey}>{r.deliveryStatus.toUpperCase()}</span>
+                  )}
+                  {r.deliveryStatusAt && (
+                    <p className={`${styles.panelValue} ${styles.mono}`} style={{ fontSize: '0.72rem', marginTop: '4px' }}>
+                      {formatDate(r.deliveryStatusAt)}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>IP Hash</p>
                 <p className={`${styles.panelValue} ${styles.mono}`}>{r.ipHash}</p>

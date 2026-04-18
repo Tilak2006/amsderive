@@ -621,6 +621,38 @@
   letter-spacing: 0.08em;
 }
 
+.badgeGrey {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(107, 101, 96, 0.12);
+  color: #6b6560;
+  border: 1px solid rgba(107, 101, 96, 0.25);
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.badgeYellow {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(234, 179, 8, 0.1);
+  color: #eab308;
+  border: 1px solid rgba(234, 179, 8, 0.25);
+  border-radius: 2px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.statCardAlert {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.statValueAlert {
+  color: #ef4444;
+}
+
 .badgeAmber {
   display: inline-block;
   padding: 2px 8px;

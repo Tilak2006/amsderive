@@ -67,6 +67,8 @@ export default async function handler(req, res) {
         transcriptFileName: data.transcriptFileName || null,
         ipHash: data.ipHash ? '••••••••' + data.ipHash.slice(-8) : '—',
         refCode: data.refCode || null,
+        deliveryStatus: data.deliveryStatus || null,
+        deliveryStatusAt: data.deliveryStatusAt ? data.deliveryStatusAt.toDate().toISOString() : null,
       };
     });
 
