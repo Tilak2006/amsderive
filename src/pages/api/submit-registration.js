@@ -271,6 +271,7 @@ export default async function handler(req, res) {
         ipHash,
         refCode: refCode?.trim() || null,
         round: 'prior',
+        status: 'pending',
         submittedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 

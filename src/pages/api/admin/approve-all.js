@@ -55,22 +55,28 @@ export default async function handler(req, res) {
   const handlerStart = Date.now();
 
   try {
-    // 1. Fetch all pending registrants (email + fullName only for efficiency)
+    // 1. Fetch all registrants not yet approved or rejected.
+    //    Docs created before status field was added have no status field —
+    //    Firestore equality queries exclude them, so we fetch all and filter in code.
     const snapshot = await db
       .collection('registrants')
-      .where('status', '==', 'pending')
-      .select('email', 'fullName')
+      .select('email', 'fullName', 'status')
       .get();
 
-    if (snapshot.empty) {
+    const pending = snapshot.docs
+      .filter((d) => {
+        const s = d.data().status;
+        return !s || s === 'pending';
+      })
+      .map((d) => ({
+        id: d.id,
+        email: d.data().email,
+        fullName: d.data().fullName,
+      }));
+
+    if (pending.length === 0) {
       return res.status(200).json({ success: true, approved: 0, emailsSent: 0 });
     }
-
-    const pending = snapshot.docs.map((d) => ({
-      id: d.id,
-      email: d.data().email,
-      fullName: d.data().fullName,
-    }));
 
     // 2. Firestore batch updates — committed before any emails are sent
     for (let i = 0; i < pending.length; i += FIRESTORE_CHUNK) {
