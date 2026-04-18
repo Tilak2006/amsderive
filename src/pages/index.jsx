@@ -32,7 +32,7 @@ export default function Maintenance() {
 
           <p className={styles.footer}>
             Questions?&ensp;
-            <a href="mailto:team@amsderive.in" className={styles.link}>team@amsderive.in</a>
+            <a href="mailto:admin@amsociety.in" className={styles.link}>admin@amsociety.in</a>
           </p>
         </div>
       </main>
