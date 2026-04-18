@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import styles from './Navbar.module.css';
-import { REGISTRATION_OPENS } from '../lib/constants';
 
 const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -63,11 +62,6 @@ const Navbar = () => {
           <Link href="/about" className={styles.navLink} onClick={closeMenu}>
             ABOUT US
           </Link>
-          {Date.now() >= REGISTRATION_OPENS.getTime() && (
-            <Link href="/check-registration" className={styles.navLink} onClick={closeMenu}>
-              CHECK STATUS
-            </Link>
-          )}
         </div>
 
         <div className={styles.navActions}>

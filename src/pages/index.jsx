@@ -1,8 +1,8 @@
-import { memo, useCallback, useState, Suspense, useEffect, useRef } from 'react';
+import { memo, Suspense, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import Navbar from '../components/Navbar';
-import Countdown from '../components/Countdown';
+import Link from 'next/link';
 import FadeInSection from '../components/FadeInSection';
 import Footer from '../components/Footer';
 import styles from '../styles/hero.module.css';
@@ -73,30 +73,25 @@ const SponsorsSection = dynamic(() => import('../components/sections/SponsorsSec
 //     due to countdown changes.
 //  2. `handleExpired` is stable via useCallback — no prop reference churn.
 const HeroContent = memo(function HeroContent() {
-  const [expired, setExpired] = useState(false);
-  const handleExpired = useCallback(() => setExpired(true), []);
-
   return (
     <div className={styles.heroOverlay}>
       <div className={styles.heroContent}>
         <div className={styles.titleGroup}>
           <p className={styles.eyebrow}>Algorithms &amp; Mathematics Society</p>
           <h1 className={styles.mainTitle}>AMS DERIVE</h1>
-          <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>        </div>
+          <p className={styles.subTitle}>FIRST-PRINCIPLES THINKING × PROBABILISTIC REASONING</p>
+        </div>
 
-        <p className={styles.signupLabel}>
-          {expired ? 'REGISTRATIONS ARE OPEN NOW' : 'REGISTRATIONS OPEN IN'}
-        </p>
-        <Countdown onExpiredChange={handleExpired} />
+        <p className={styles.signupLabel}>REGISTRATIONS ARE NOW OPEN</p>
 
-        <a
-          href="https://chat.whatsapp.com/D3OxCs0L1V8IodpRVzG6cw"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={styles.mobileNotifyBtn}
-        >
-          Join Community
-        </a>
+        <div className={styles.heroBtnGroup}>
+          <Link href="/register" className={styles.heroRegisterBtn}>
+            REGISTER
+          </Link>
+          <Link href="/check-registration" className={styles.heroCheckBtn}>
+            CHECK STATUS
+          </Link>
+        </div>
       </div>
     </div>
   );

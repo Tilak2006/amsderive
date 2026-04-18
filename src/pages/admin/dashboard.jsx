@@ -288,9 +288,16 @@ export default function AdminDashboard() {
           prev.map((reg) => reg.id === selectedRegistrant.id ? { ...reg, status: newStatus } : reg)
         );
         setSelectedRegistrant((prev) => prev ? { ...prev, status: newStatus } : prev);
-        setStatusMsg({ type: 'success', text: `Marked as ${newStatus}` });
+        const emailPart = data.skipped
+          ? 'no email sent (already set)'
+          : 'email sent ✓';
+        setStatusMsg({ type: 'success', text: `Marked as ${newStatus} · ${emailPart}` });
       } else {
-        setStatusMsg({ type: 'error', text: data.error || 'Update failed.' });
+        // Email failed → status NOT changed in DB; row stays pending
+        const msg = data.emailError
+          ? `Email failed — status NOT changed. ${data.emailError}`
+          : (data.error || 'Update failed.');
+        setStatusMsg({ type: 'error', text: msg });
       }
     } catch {
       setStatusMsg({ type: 'error', text: 'Network error. Please try again.' });
@@ -313,12 +320,20 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setRegistrants((prev) =>
-          prev.map((reg) => reg.status === 'pending' ? { ...reg, status: 'approved' } : reg)
-        );
+        // Refetch is safest — we don't know which specific rows got approved
+        // when some batches failed. For simplicity, optimistically update only
+        // if everything succeeded; otherwise leave local state, admin can refresh.
+        if (!data.emailsFailed && !data.skipped) {
+          setRegistrants((prev) =>
+            prev.map((reg) => reg.status === 'pending' || !reg.status ? { ...reg, status: 'approved' } : reg)
+          );
+        }
+        const parts = [`Approved ${data.approved}`, `${data.emailsSent} emails sent`];
+        if (data.emailsFailed) parts.push(`${data.emailsFailed} failed`);
+        if (data.skipped) parts.push(`${data.skipped} NOT approved (email failed) — reload to see`);
         setApproveAllMsg({
-          type: 'success',
-          text: `Approved ${data.approved} · ${data.emailsSent} emails sent${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}`,
+          type: data.emailsFailed || data.skipped ? 'error' : 'success',
+          text: parts.join(' · '),
         });
       } else {
         setApproveAllMsg({ type: 'error', text: data.error || 'Bulk approval failed.' });

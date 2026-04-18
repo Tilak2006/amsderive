@@ -292,7 +292,7 @@ export default function Register() {
                   <h3 className={styles.registerSuccessTitle}>Registration Received</h3>
                   <p className={styles.registerSuccessName}>{submittedName}</p>
                   <p className={styles.registerSuccessMessage}>
-                    We&apos;ll reach out before the event starts.
+                    You&apos;ll receive an email from <strong>team@amsderive.in</strong> once your application is reviewed and approved. Please check your inbox — and <strong>spam/quarantine folder</strong> — periodically. Institutional mail servers (IITs, NITs) sometimes hold external mail for review.
                   </p>
                   <RegistrationCard fullName={submittedName} university={submittedUniversity} />
                 </div>

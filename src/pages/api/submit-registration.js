@@ -43,22 +43,20 @@ export default async function handler(req, res) {
 
   // IP soft throttle — 10/hour. Never hard-blocks alone; campus WiFi (many students,
   // one NAT IP) won't get locked out. Sets ipOverLimit flag for combined-abuse detection.
+  // Read-only here — timestamp written only on failure so successful submissions don't
+  // erode the budget for legitimate classmates sharing the same NAT IP.
   let ipOverLimit = false;
+  let _ipRateLimitRef = null;
+  let _ipTimestampsToWrite = null;
   try {
-    const rateLimitRef = db.collection('_rate_limits').doc(ipHash);
+    _ipRateLimitRef = db.collection('_rate_limits').doc(ipHash);
     const MAX_PER_HOUR = 10;
-
-    ipOverLimit = await db.runTransaction(async (transaction) => {
-      const rateLimitDoc = await transaction.get(rateLimitRef);
-      const oneHourAgo = Date.now() - 60 * 60 * 1000;
-      const timestamps = rateLimitDoc.exists ? rateLimitDoc.data().timestamps || [] : [];
-      const recent = timestamps.filter((ts) => ts > oneHourAgo);
-      const over = recent.length >= MAX_PER_HOUR;
-      recent.push(Date.now());
-      transaction.set(rateLimitRef, { timestamps: recent });
-      return over;
-    });
-
+    const rateLimitDoc = await _ipRateLimitRef.get();
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    const timestamps = rateLimitDoc.exists ? rateLimitDoc.data().timestamps || [] : [];
+    const recent = timestamps.filter((ts) => ts > oneHourAgo);
+    ipOverLimit = recent.length >= MAX_PER_HOUR;
+    _ipTimestampsToWrite = [...recent, Date.now()];
     if (ipOverLimit) {
       logger.warn('registration', 'ip_soft_throttle', { reqId, actorId: ipHash, status: 'soft_throttle' });
     }
@@ -125,59 +123,70 @@ export default async function handler(req, res) {
   const cfHandle = codeforcesHandle.trim();
 
   // Per-identifier rate limit — defense in depth against IP rotation and enumeration.
-  // Sliding window: 3 attempts per 30 min per email AND per CF handle.
-  // Single transaction covers both docs so bursts from different IPs serialize cleanly.
+  // Sliding window: 3 failures per 30 min per email AND per CF handle.
+  // Read-only here — timestamps written only on failure so successful submissions
+  // don't consume the budget (the duplicate-check already blocks a second attempt anyway).
+  let _emailRateLimitRef = null, _handleRateLimitRef = null;
+  let _emailTimestampsToWrite = null, _handleTimestampsToWrite = null;
   try {
     const emailHash = crypto.createHash('sha256').update(normalizedEmail).digest('hex');
     const handleHash = crypto.createHash('sha256').update(cfHandle.toLowerCase()).digest('hex');
-    const emailRef = db.collection('_rate_limits_email').doc(emailHash);
-    const handleRef = db.collection('_rate_limits_handle').doc(handleHash);
+    _emailRateLimitRef = db.collection('_rate_limits_email').doc(emailHash);
+    _handleRateLimitRef = db.collection('_rate_limits_handle').doc(handleHash);
     const windowStart = Date.now() - 30 * 60 * 1000;
     const MAX_PER_IDENTIFIER = 3;
 
-    const identResult = await db.runTransaction(async (transaction) => {
-      const [emailDoc, handleDoc] = await Promise.all([
-        transaction.get(emailRef),
-        transaction.get(handleRef),
-      ]);
+    const [emailDoc, handleDoc] = await Promise.all([
+      _emailRateLimitRef.get(),
+      _handleRateLimitRef.get(),
+    ]);
 
-      const emailRecent = (emailDoc.exists ? emailDoc.data().timestamps || [] : [])
-        .filter((ts) => ts > windowStart);
-      const handleRecent = (handleDoc.exists ? handleDoc.data().timestamps || [] : [])
-        .filter((ts) => ts > windowStart);
+    const emailRecent = (emailDoc.exists ? emailDoc.data().timestamps || [] : [])
+      .filter((ts) => ts > windowStart);
+    const handleRecent = (handleDoc.exists ? handleDoc.data().timestamps || [] : [])
+      .filter((ts) => ts > windowStart);
 
-      if (emailRecent.length >= MAX_PER_IDENTIFIER) {
-        return { allowed: false, reason: 'email_limit' };
-      }
-      if (handleRecent.length >= MAX_PER_IDENTIFIER) {
-        return { allowed: false, reason: 'handle_limit' };
-      }
-
-      const now = Date.now();
-      emailRecent.push(now);
-      handleRecent.push(now);
-      transaction.set(emailRef, { timestamps: emailRecent });
-      transaction.set(handleRef, { timestamps: handleRecent });
-      return { allowed: true };
-    });
-
-    if (!identResult.allowed) {
-      // combined: true means IP is also over threshold — high-confidence scripted abuse
+    if (emailRecent.length >= MAX_PER_IDENTIFIER) {
       logger.warn('registration', 'identifier_rate_limit_exceeded', {
-        reqId,
-        actorId: ipHash,
-        detail: { reason: identResult.reason, combined: ipOverLimit },
-        status: 'blocked',
+        reqId, actorId: ipHash, detail: { reason: 'email_limit', combined: ipOverLimit }, status: 'blocked',
       });
       return res.status(429).json({
         success: false,
         error: 'Too many attempts for this email or handle. Please try again in 30 minutes.',
       });
     }
+    if (handleRecent.length >= MAX_PER_IDENTIFIER) {
+      logger.warn('registration', 'identifier_rate_limit_exceeded', {
+        reqId, actorId: ipHash, detail: { reason: 'handle_limit', combined: ipOverLimit }, status: 'blocked',
+      });
+      return res.status(429).json({
+        success: false,
+        error: 'Too many attempts for this email or handle. Please try again in 30 minutes.',
+      });
+    }
+
+    // Prepare updated timestamps — written only if this request fails later.
+    const now = Date.now();
+    _emailTimestampsToWrite = [...emailRecent, now];
+    _handleTimestampsToWrite = [...handleRecent, now];
   } catch (error) {
     logger.error('registration', 'identifier_rate_limit_error', { reqId, actorId: ipHash, status: 'failed' }, error);
     return res.status(500).json({ success: false, error: 'Rate limit check failed.' });
   }
+
+  // Writes the prepared rate-limit timestamps — called only on failure paths so successful
+  // submissions don't consume quota. Fire-and-forget; a write failure here is acceptable.
+  const recordFailedAttempt = () => {
+    const writes = [];
+    if (_ipRateLimitRef && _ipTimestampsToWrite) {
+      writes.push(_ipRateLimitRef.set({ timestamps: _ipTimestampsToWrite }));
+    }
+    if (_emailRateLimitRef && _emailTimestampsToWrite) {
+      writes.push(_emailRateLimitRef.set({ timestamps: _emailTimestampsToWrite }));
+      writes.push(_handleRateLimitRef.set({ timestamps: _handleTimestampsToWrite }));
+    }
+    Promise.all(writes).catch(() => {});
+  };
 
   // Validate CF handle before the write transaction — fail open if CF is down
   const cfResult = await (async () => {
@@ -210,6 +219,7 @@ export default async function handler(req, res) {
   })();
 
   if (!cfResult.valid) {
+    recordFailedAttempt();
     return res.status(400).json({
       success: false,
       error: 'Codeforces handle not found. Please check your handle and try again.',
@@ -290,10 +300,12 @@ export default async function handler(req, res) {
 
   if (!transactionResult.written) {
     if (transactionResult.reason === 'duplicate_email') {
+      recordFailedAttempt();
       logger.warn('registration', 'duplicate_rejected', { reqId, actorId: ipHash, status: 'blocked' });
       return res.status(409).json({ success: false, error: 'This email is already registered.' });
     }
     if (transactionResult.reason === 'duplicate_cf') {
+      recordFailedAttempt();
       logger.warn('registration', 'duplicate_cf_rejected', { reqId, actorId: ipHash, status: 'blocked' });
       return res.status(409).json({ success: false, error: 'This Codeforces handle is already registered.' });
     }

@@ -54,7 +54,52 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true });
     }
 
-    // Update Firestore
+    // Send email FIRST. Status flip only happens if email lands.
+    // Rationale: a "approved" row in the DB with no confirmation email means
+    // a participant has no idea they got in — strictly worse than staying pending.
+    let emailSent = false;
+    let emailError = null;
+    try {
+      const emailTemplate = statusUpdateEmail({ fullName: data.fullName || 'there', status });
+      if (!emailTemplate || !emailTemplate.from || !emailTemplate.subject || !emailTemplate.html) {
+        throw new Error('email template missing required fields');
+      }
+      const sendPromise = resend.emails.send({
+        from: emailTemplate.from,
+        to: data.email,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+      });
+      await Promise.race([
+        sendPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('email send timed out')), 8000)),
+      ]);
+      emailSent = true;
+      logger.info('admin', 'status_update_email_sent', {
+        reqId,
+        entityId: docId,
+        actorId: 'admin',
+        detail: { emailMasked: maskEmail(data.email), newStatus: status },
+        status: 'ok',
+      });
+    } catch (emailErr) {
+      emailError = emailErr?.message || 'Email send failed';
+      logger.warn('admin', 'status_update_email_failed', {
+        reqId,
+        entityId: docId,
+        actorId: 'admin',
+        detail: { emailMasked: maskEmail(data.email), newStatus: status, message: emailError },
+        status: 'degraded',
+      });
+      return res.status(502).json({
+        success: false,
+        emailSent: false,
+        emailError,
+        error: `Email send failed — status NOT changed. Reason: ${emailError}`,
+      });
+    }
+
+    // Email landed — now flip Firestore
     await docRef.update({
       status,
       statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -68,34 +113,7 @@ export default async function handler(req, res) {
       status: 'ok',
     });
 
-    // Awaited — fire-and-forget is unsafe in Vercel/Lambda: the runtime freezes
-    // after res.json() with no guarantee pending HTTP promises complete.
-    // ~200ms delay is acceptable for an admin-only single-email operation.
-    (async () => {
-      try {
-        const emailTemplate = statusUpdateEmail({ fullName: data.fullName || 'there', status });
-        if (emailTemplate && emailTemplate.from && emailTemplate.subject && emailTemplate.html) {
-          await resend.emails.send({ from: emailTemplate.from, to: data.email, subject: emailTemplate.subject, html: emailTemplate.html });
-          logger.info('admin', 'status_update_email_sent', {
-            reqId,
-            entityId: docId,
-            actorId: 'admin',
-            detail: { emailMasked: maskEmail(data.email), newStatus: status },
-            status: 'ok',
-          });
-        }
-      } catch (emailErr) {
-        logger.warn('admin', 'status_update_email_failed', {
-          reqId,
-          entityId: docId,
-          actorId: 'admin',
-          detail: { emailMasked: maskEmail(data.email), newStatus: status, message: (emailErr?.message || 'unknown error') },
-          status: 'degraded',
-        });
-      }
-    })();
-
-    return res.status(200).json({ success: true });
+    return res.status(200).json({ success: true, emailSent, emailError });
   } catch (error) {
     logger.error('admin', 'status_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update status.' });

@@ -4,7 +4,7 @@ import styles from '../../styles/registrationCard.module.css';
 const CARD_W = 1200;
 const CARD_H = 630;
 
-function drawCard(canvas, fullName, university) {
+function drawCard(canvas, fullName, university, svgImg) {
   const ctx = canvas.getContext('2d');
 
   canvas.width = CARD_W;
@@ -36,10 +36,24 @@ function drawCard(canvas, fullName, university) {
   ctx.fillStyle = 'rgba(212,175,55,0.25)';
   ctx.fillRect(cx - 200, 100, 400, 1);
 
-  // Main title
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 62px "PT Serif", Georgia, serif';
-  ctx.fillText('AMS DERIVE 2026', cx, 200);
+  // AMS DERIVE SVG logo — 247×53 native, scaled to 440px wide
+  const svgW = 440;
+  const svgH = Math.round(svgW * 53 / 247); // ≈ 94px
+  const svgY = 113;
+  if (svgImg) {
+    ctx.drawImage(svgImg, cx - svgW / 2, svgY, svgW, svgH);
+  } else {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 62px "PT Serif", Georgia, serif';
+    ctx.fillText('AMS DERIVE', cx, 200);
+  }
+
+  // "2026" label beneath SVG
+  ctx.fillStyle = 'rgba(212,175,55,0.7)';
+  ctx.font = '500 16px "IBM Plex Mono", "Courier New", monospace';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '8px';
+  ctx.fillText('2026', cx, svgY + svgH + 22);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 
   // Middle divider + "OFFICIAL PARTICIPANT" badge
   const rulePad = 130;
@@ -99,7 +113,10 @@ export default function RegistrationCard({ fullName, university }) {
     if (typeof window === 'undefined') return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    drawCard(canvas, fullName, university);
+    const img = new Image();
+    img.onload = () => drawCard(canvas, fullName, university, img);
+    img.onerror = () => drawCard(canvas, fullName, university, null);
+    img.src = '/AMS_DERIVE_TEXT.svg';
   }, [fullName, university]);
 
   function handleDownload() {

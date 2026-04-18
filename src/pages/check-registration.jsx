@@ -2,7 +2,14 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import RegistrationCard from '../components/ui/RegistrationCard';
 import styles from './check-registration.module.css';
+
+const STATUS_LABEL = {
+  pending: 'UNDER REVIEW',
+  approved: 'APPROVED',
+  rejected: 'NOT SELECTED',
+};
 
 function formatDate(isoString) {
   if (!isoString) return '—';
@@ -119,18 +126,41 @@ export default function CheckRegistration() {
               )}
 
               {result?.found && reg && (
-                <div className={styles.resultCard}>
-                  <div className={styles.resultHeader}>
-                    <span className={styles.resultCheck}>✓</span>
-                    <span className={styles.resultTitle}>Registration Found</span>
-                  </div>
-                  <div className={styles.resultGrid}>
-                    <div className={styles.resultRow}>
-                      <span className={styles.resultLabel}>SUBMITTED</span>
-                      <span className={`${styles.resultValue} ${styles.mono}`}>{formatDate(reg.submittedAt)}</span>
+                <>
+                  <div className={styles.resultCard}>
+                    <div className={styles.resultHeader}>
+                      <span className={styles.resultCheck}>✓</span>
+                      <span className={styles.resultTitle}>Registration Found</span>
+                    </div>
+                    <div className={styles.resultGrid}>
+                      <div className={styles.resultRow}>
+                        <span className={styles.resultLabel}>NAME</span>
+                        <span className={styles.resultValue}>{reg.fullName}</span>
+                      </div>
+                      <div className={styles.resultRow}>
+                        <span className={styles.resultLabel}>UNIVERSITY</span>
+                        <span className={styles.resultValue}>{reg.university}</span>
+                      </div>
+                      <div className={styles.resultRow}>
+                        <span className={styles.resultLabel}>STATUS</span>
+                        <span className={`${styles.resultValue} ${styles.mono}`}>
+                          {STATUS_LABEL[reg.status] || 'UNDER REVIEW'}
+                        </span>
+                      </div>
+                      <div className={styles.resultRow}>
+                        <span className={styles.resultLabel}>ROUND</span>
+                        <span className={`${styles.resultValue} ${styles.mono}`}>{(reg.round || 'prior').toUpperCase()}</span>
+                      </div>
+                      <div className={styles.resultRow}>
+                        <span className={styles.resultLabel}>SUBMITTED</span>
+                        <span className={`${styles.resultValue} ${styles.mono}`}>{formatDate(reg.submittedAt)}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                  {reg.status !== 'rejected' && (
+                    <RegistrationCard fullName={reg.fullName} university={reg.university} />
+                  )}
+                </>
               )}
             </div>
           </div>

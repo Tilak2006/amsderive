@@ -75,32 +75,20 @@ export default async function handler(req, res) {
       }));
 
     if (pending.length === 0) {
-      return res.status(200).json({ success: true, approved: 0, emailsSent: 0 });
+      return res.status(200).json({ success: true, approved: 0, emailsSent: 0, emailsFailed: 0 });
     }
 
-    // 2. Firestore batch updates — committed before any emails are sent
-    for (let i = 0; i < pending.length; i += FIRESTORE_CHUNK) {
-      const batch = db.batch();
-      for (const reg of pending.slice(i, i + FIRESTORE_CHUNK)) {
-        batch.update(db.collection('registrants').doc(reg.id), {
-          status: 'approved',
-          statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      }
-      await batch.commit();
-      logger.info('admin', 'bulk_approve_db_batch_committed', {
-        reqId,
-        actorId: 'admin',
-        detail: { batchNumber: Math.floor(i / FIRESTORE_CHUNK) + 1, count: pending.slice(i, i + FIRESTORE_CHUNK).length },
-        status: 'ok',
-      });
-    }
-
-    // 3. Send approval emails in batches with retry — failures are logged, not fatal
+    // Send emails FIRST, chunk by chunk. Only approve rows whose email landed.
+    // A batch.send is all-or-nothing from Resend's side — a thrown error means
+    // the entire chunk failed, so none of those rows get approved.
+    const approvedIds = [];
     let emailsSent = 0;
     let emailsFailed = 0;
+    const failedBatches = [];
+
     for (let i = 0; i < pending.length; i += EMAIL_CHUNK) {
-      const chunk = pending.slice(i, i + EMAIL_CHUNK).map((r) => {
+      const chunkRegs = pending.slice(i, i + EMAIL_CHUNK);
+      const chunk = chunkRegs.map((r) => {
         const { from, subject, html } = statusUpdateEmail({ fullName: r.fullName, status: 'approved' });
         return { from, to: r.email, subject, html };
       });
@@ -111,13 +99,15 @@ export default async function handler(req, res) {
       emailsFailed += result.failed;
 
       if (result.failed > 0) {
+        failedBatches.push(batchNumber);
         logger.warn('admin', 'bulk_approve_email_batch_failed', {
           reqId,
           actorId: 'admin',
-          detail: { batchNumber, failed: result.failed, message: result.err?.message },
+          detail: { batchNumber, failed: result.failed, message: result.err?.message, skippingDbUpdate: true },
           status: 'degraded',
         });
       } else {
+        approvedIds.push(...chunkRegs.map((r) => r.id));
         logger.info('admin', 'bulk_approve_email_batch_sent', {
           reqId,
           actorId: 'admin',
@@ -131,14 +121,38 @@ export default async function handler(req, res) {
       }
     }
 
+    // Now flip Firestore only for rows whose email actually sent.
+    for (let i = 0; i < approvedIds.length; i += FIRESTORE_CHUNK) {
+      const batch = db.batch();
+      for (const id of approvedIds.slice(i, i + FIRESTORE_CHUNK)) {
+        batch.update(db.collection('registrants').doc(id), {
+          status: 'approved',
+          statusUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      }
+      await batch.commit();
+      logger.info('admin', 'bulk_approve_db_batch_committed', {
+        reqId,
+        actorId: 'admin',
+        detail: { batchNumber: Math.floor(i / FIRESTORE_CHUNK) + 1, count: approvedIds.slice(i, i + FIRESTORE_CHUNK).length },
+        status: 'ok',
+      });
+    }
+
     logger.info('admin', 'bulk_approve_complete', {
       reqId,
       actorId: 'admin',
-      detail: { approved: pending.length, emailsSent },
+      detail: { approved: approvedIds.length, emailsSent, emailsFailed, pendingTotal: pending.length, failedBatches },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
-    return res.status(200).json({ success: true, approved: pending.length, emailsSent, emailsFailed });
+    return res.status(200).json({
+      success: true,
+      approved: approvedIds.length,
+      emailsSent,
+      emailsFailed,
+      skipped: pending.length - approvedIds.length,
+    });
   } catch (error) {
     logger.error('admin', 'bulk_approve_error', { reqId, actorId: 'admin', status: 'failed' }, error);
     return res.status(500).json({ error: 'Bulk approval failed.' });
