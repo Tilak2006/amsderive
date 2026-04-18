@@ -71,25 +71,29 @@ export default async function handler(req, res) {
     // Awaited — fire-and-forget is unsafe in Vercel/Lambda: the runtime freezes
     // after res.json() with no guarantee pending HTTP promises complete.
     // ~200ms delay is acceptable for an admin-only single-email operation.
-    try {
-      const { from, subject, html } = statusUpdateEmail({ fullName: data.fullName, status });
-      await resend.emails.send({ from, to: data.email, subject, html });
-      logger.info('admin', 'status_update_email_sent', {
-        reqId,
-        entityId: docId,
-        actorId: 'admin',
-        detail: { emailMasked: maskEmail(data.email), newStatus: status },
-        status: 'ok',
-      });
-    } catch (emailErr) {
-      logger.warn('admin', 'status_update_email_failed', {
-        reqId,
-        entityId: docId,
-        actorId: 'admin',
-        detail: { emailMasked: maskEmail(data.email), newStatus: status, message: emailErr.message },
-        status: 'degraded',
-      });
-    }
+    (async () => {
+      try {
+        const emailTemplate = statusUpdateEmail({ fullName: data.fullName || 'there', status });
+        if (emailTemplate && emailTemplate.from && emailTemplate.subject && emailTemplate.html) {
+          await resend.emails.send({ from: emailTemplate.from, to: data.email, subject: emailTemplate.subject, html: emailTemplate.html });
+          logger.info('admin', 'status_update_email_sent', {
+            reqId,
+            entityId: docId,
+            actorId: 'admin',
+            detail: { emailMasked: maskEmail(data.email), newStatus: status },
+            status: 'ok',
+          });
+        }
+      } catch (emailErr) {
+        logger.warn('admin', 'status_update_email_failed', {
+          reqId,
+          entityId: docId,
+          actorId: 'admin',
+          detail: { emailMasked: maskEmail(data.email), newStatus: status, message: (emailErr?.message || 'unknown error') },
+          status: 'degraded',
+        });
+      }
+    })();
 
     return res.status(200).json({ success: true });
   } catch (error) {

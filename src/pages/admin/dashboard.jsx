@@ -668,7 +668,7 @@ export default function AdminDashboard() {
                     ) : filtered.map((reg, i) => (
                       <tr
                         key={reg.id}
-                        className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''}`}
+                        className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''} ${reg.status === 'approved' ? styles.trApproved : ''}`}
                         onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); }}
                       >
                         <td className={styles.td}>{i + 1}</td>
