@@ -234,6 +234,23 @@
   }
 }
 
+@media (max-width: 600px) {
+  .heroBtnGroup {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .heroRegisterBtn,
+  .heroCheckBtn {
+    width: auto;
+    min-width: unset;
+    padding: 14px 20px;
+    font-size: 0.72rem;
+  }
+}
+
 @keyframes beamPulse {
   0%, 100% { opacity: 0.4; transform: translateX(-50%) scaleX(1); }
   50% { opacity: 0.8; transform: translateX(-50%) scaleX(1.5); }
@@ -286,10 +303,21 @@
   }
 
   .heroBtnGroup {
-    flex-direction: column;
-    align-items: stretch;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
     margin-top: 20px;
-    max-width: 260px;
+    max-width: none;
+    gap: 10px;
+  }
+
+  .heroRegisterBtn,
+  .heroCheckBtn {
+    width: auto;
+    min-width: unset;
+    padding: 13px 22px;
+    font-size: 0.72rem;
   }
 
   .heroMain::after {
