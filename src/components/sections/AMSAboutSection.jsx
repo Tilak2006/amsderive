@@ -90,6 +90,15 @@ function AMSLogoCard() {
   );
 }
 
+const COMMUNITY_PARTNERS = [
+  { institution: 'IIT Bombay', club: 'Quant Club', logo: '/IITB-Quant_Club.svg' },
+  { institution: 'IIT Delhi', club: 'ANCC', logo: '/IITD_ANCC.png' },
+  { institution: 'IIT Kanpur', club: 'Programming Club', logo: '/IITKanpur_PC.png' },
+  { institution: 'IIT Kharagpur', club: 'Grimoire of Code', logo: '/IITKGP_GOC.png' },
+  { institution: 'IIT Guwahati', club: 'Coding Club', logo: '/IITGuwahati_CodingClub.png' },
+  { institution: 'IIIT Hyderabad', club: 'Programming Club', logo: '/IIITH_ProgrammingClub.jpeg' },
+];
+
 const stats = [
   { number: '2000+', label: 'High-Signal Members' },
   { number: '1500+', label: 'Problems Solved' },
@@ -137,6 +146,37 @@ const AMSAboutSection = () => {
 
         {/* ── Sponsors ── */}
         <SponsorsSection />
+
+        <hr className={styles.divider} />
+
+        {/* ── Community Partners ── */}
+        <div className={styles.communityPartnersBlock}>
+          <p className={styles.communityPartnersEyebrow}>Outreach Network</p>
+          <h2 className={styles.subsectionLabel}>Community Partners</h2>
+          <p className={styles.communityPartnersText}>
+            We&apos;re grateful to the student clubs and technical societies from India&apos;s top institutions who championed AMS Derive 2026 within their communities. Their outreach brought the contest to thousands of students who thrive on rigor. We look forward to building lasting partnerships with each of these organisations and collaborating on future editions.
+          </p>
+          <div className={styles.partnerGrid}>
+            {COMMUNITY_PARTNERS.map((partner) => (
+              <div key={`${partner.institution}-${partner.club}`} className={styles.partnerCard}>
+                <div className={styles.partnerLogoWrap}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={partner.logo}
+                    alt={`${partner.institution} ${partner.club}`}
+                    className={styles.partnerLogo}
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <div className={styles.partnerInfo}>
+                  <span className={styles.partnerInstitution}>{partner.institution}</span>
+                  <span className={styles.partnerClub}>{partner.club}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <hr className={styles.divider} />
 
