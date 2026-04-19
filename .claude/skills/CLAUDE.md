@@ -59,8 +59,8 @@ firebase deploy --only firestore:rules,storage  # deploy rules
 - Signed URLs expire in 15 minutes. Admin: `/api/admin/get-signed-url`. Firm: `/api/firm/get-signed-url` (requires `access.resumeDownload`).
 
 ## Registration Flow
-1. Client checks: gate (date open?), cap (3000), duplicate (email + handle + phone)
-2. File upload: resume + transcript → Firebase Storage as `registrants/{timestamp}_{name}_resume.pdf` / `_transcript.pdf` (<400KB, PDF only)
+1. Client checks: gate (date open?), cap (10000), duplicate (email + handle + phone)
+2. File upload: resume + transcript → Firebase Storage as `registrants/{timestamp}_{name}_resume.pdf` / `_transcript.pdf` (≤500KB, PDF only)
 3. POST `/api/submit-registration` → server validates, rate-limit transaction (3/hr/device), writes to `registrants` with `status: 'pending'`
 
 ## Admin Auth Flow
@@ -74,12 +74,20 @@ firebase deploy --only firestore:rules,storage  # deploy rules
 - API guard: token verify + `firms/{uid}` doc exists in every `/api/firm/*` route
 
 ## Firestore Collections
-| Collection | Purpose |
-|---|---|
-| `registrants` | Full registration data (Admin SDK only for reads) |
-| `firms` | Firm partner accounts (tier, access flags, logoUrl) |
-| `stats/leaderboard` | Institution → registration count map |
-| `_rate_limits` | Rate limit timestamps (Admin SDK only) |
+| Collection | Purpose | Access |
+|---|---|---|
+| `registrants` | Full registration data | Admin SDK only |
+| `firms` | Firm partner accounts (tier, access flags, logoUrl) | Admin SDK only |
+| `stats/leaderboard` | Institution → registration count map | Admin SDK only |
+| `stats/ambassador-offsets` | Admin display offsets per institution | Admin SDK only |
+| `stats_inst/{slug}` | Per-institution registration counters (no hotspot) | Admin SDK only |
+| `cfHandles/{handle}` | Sentinel docs for CF handle dedup (transaction) | Admin SDK only |
+| `pre_registrations` | Early-interest emails + refCode (closed) | Admin SDK only |
+| `_rate_limits` | Rate limit timestamps by IP fingerprint | Admin SDK only |
+| `_rate_limits_email` | Rate limit by email hash | Admin SDK only |
+| `_rate_limits_handle` | Rate limit by CF handle hash | Admin SDK only |
+| `_audit_log` | Immutable audit trail | Admin SDK only |
+| `_webhook_ids` | Resend webhook svix-id dedup (7-day TTL) | Admin SDK only |
 
 ## Firm Access Flags
 All stored under `access.*` in `firms/{uid}`:
@@ -125,7 +133,7 @@ Never: `transcriptUrl, transcriptFileName, phoneNumber, ipHash, status, refCode`
 | `src/pages/api/firm/get-signed-url.js` | Firm signed URL (same fix, requires `resumeDownload` flag) |
 | `src/pages/api/firm/get-registrants.js` | Firm registrant data (access-gated, conditional fields) |
 | `src/pages/api/firm/get-finalists.js` | Firm finalist data (access-gated, conditional fields) |
-| `src/lib/constants.js` | `REGISTRATION_OPENS`, `TIMEOUT_MS` |
+| `src/lib/constants.js` | `REGISTRATION_OPENS`, `MAX_REGISTRATIONS`, `TIMEOUT_MS` |
 | `src/utils/validators.js` | All form validation logic |
 | `src/utils/hashIp.js` | Rate limit fingerprinting (SHA-256 IP+UA) |
 
@@ -237,9 +245,19 @@ src/
     └── sponsors.module.css
 ```
 
+## Security Rules
+- **Origin check on upload-file**: `ALLOWED_ORIGINS` list — rejects cross-origin multipart POSTs (simple requests bypass CORS preflight).
+- **CSP headers**: Set via `next.config.js` `headers()` for `/register`, `/admin/:path*`, `/firm/:path*`.
+- **Webhook idempotency**: `svix-id` stored in `_webhook_ids` (7-day TTL) to prevent Resend double-delivery.
+- **Rate limit TTL**: All `_rate_limits*` docs include `expiresAt` Timestamp → Firestore TTL policy cleans them automatically.
+- **upload-file rate limit**: 100 req/hr/IP (college WiFi-aware soft limit; identifier checks are the hard boundary).
+
 ## Gotchas
-- Registration cap is **3000** — enforce consistently across all routes.
-- `REGISTRATION_OPENS` = April 20, 2026 00:00 IST. `ADMIN_KEY` env var bypasses the date gate.
+- Registration cap is **10000** — `MAX_REGISTRATIONS` exported from `src/lib/constants.js`. Never hardcode.
+- `REGISTRATION_OPENS` = April 20, 2026 00:00 IST (`2026-04-19T18:30:00Z` UTC). `ADMIN_KEY` env var bypasses the date gate.
+- File size limit is **500KB** for both resume and transcript. Updated in `RegistrationForm.jsx`, `FileUpload.jsx`, and `upload-file.js`.
 - Recharts uses modular aliased imports configured in `next.config.js`.
 - Signed URL bug pattern: never pass a raw Firebase Storage URL to `bucket.file()` — strip `?alt=media` (and any query params) from the path before `decodeURIComponent`.
 - `submittedAt` is a Firestore `Timestamp` — call `.toDate().toISOString()` before JSON serialization, never send a raw Timestamp object to the client.
+- `registration-count` API cache: `/api/registration-count` has an explicit `s-maxage=60` rule in `next.config.js` headers **before** the `/api/(.*)` catch-all (which sets `no-store`). Order matters.
+- LinkedIn validation: check `liUrl.hostname` against `linkedin.com`, `www.linkedin.com`, and `*.linkedin.com` — not a raw string includes check.
