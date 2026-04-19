@@ -128,7 +128,11 @@ export default async function handler(req, res) {
         resendEmailId: resendEmailId || null,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
-    } catch { /* audit log must never fail the main path */ }
+    } catch (auditErr) {
+      logger.error('admin', 'status_audit_log_failed', {
+        reqId, entityId: docId, actorId: 'admin', detail: { newStatus: status, resendEmailId: resendEmailId || null }, status: 'degraded',
+      }, auditErr);
+    }
 
     return res.status(200).json({ success: true, emailSent, emailError });
   } catch (error) {

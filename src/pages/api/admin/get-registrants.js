@@ -36,7 +36,10 @@ export default async function handler(req, res) {
 
     if (lastDocId) {
       const lastSnap = await db.collection('registrants').doc(lastDocId).get();
-      if (lastSnap.exists) q = ref.startAfter(lastSnap).limit(PAGE_SIZE + 1);
+      if (!lastSnap.exists) {
+        return res.status(410).json({ error: 'cursor_gone', message: 'Pagination cursor no longer exists. Reload the list.' });
+      }
+      q = ref.startAfter(lastSnap).limit(PAGE_SIZE + 1);
     }
 
     const snapshot = await q.get();

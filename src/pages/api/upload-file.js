@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
+import logger, { genReqId } from '../../utils/logger';
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -158,7 +159,9 @@ export default async function handler(req, res) {
       },
     });
   } catch (err) {
-    console.error('[upload-file] Storage write failed:', err.message);
+    logger.error('registration', 'storage_write_failed', {
+      reqId: genReqId(), status: 'failed',
+    }, err);
     return res.status(500).json({ error: 'Upload failed. Please try again.' });
   } finally {
     fs.unlink(uploadedFile.filepath, () => {});

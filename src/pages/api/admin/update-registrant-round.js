@@ -50,6 +50,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, skipped: true });
     }
 
+    const prevRound = snap.data().round || null;
+
     await docRef.update({
       round,
       roundUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -59,9 +61,26 @@ export default async function handler(req, res) {
       reqId,
       entityId: docId,
       actorId: 'admin',
-      detail: { round },
+      detail: { round, prevRound },
       status: 'ok',
     });
+
+    try {
+      await db.collection('_audit_log').add({
+        type: 'round_update',
+        actorId: 'admin',
+        reqId,
+        entityId: docId,
+        prevRound,
+        newRound: round,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (auditErr) {
+      logger.error('admin', 'round_audit_log_failed', {
+        reqId, entityId: docId, actorId: 'admin', detail: { round, prevRound }, status: 'degraded',
+      }, auditErr);
+    }
+
     return res.status(200).json({ success: true });
   } catch (error) {
     logger.error('admin', 'round_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);

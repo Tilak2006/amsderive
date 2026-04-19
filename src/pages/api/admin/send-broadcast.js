@@ -53,14 +53,39 @@ export default async function handler(req, res) {
 
   const reqId = genReqId();
   const handlerStart = Date.now();
-  const { subject, body, roundFilter } = req.body;
+  const { subject, body, roundFilter, broadcastId } = req.body;
 
   if (!subject?.trim() || !body?.trim()) {
     return res.status(400).json({ error: 'Subject and body are required.' });
   }
 
+  if (!broadcastId || typeof broadcastId !== 'string' || broadcastId.length < 8 || broadcastId.length > 64) {
+    return res.status(400).json({ error: 'broadcastId required (8–64 chars).' });
+  }
+
   const validFilters = ['all', 'prior', 'posterior', 'convergence'];
   const filter = validFilters.includes(roundFilter) ? roundFilter : 'all';
+
+  // Idempotency guard — atomic create prevents duplicate sends from double-clicks or retries.
+  // Any concurrent second request hits ALREADY_EXISTS and is rejected before any email fires.
+  const lockRef = db.collection('_broadcasts').doc(broadcastId);
+  try {
+    await lockRef.create({
+      status: 'in_progress',
+      subject: subject.trim(),
+      filter,
+      startedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (err) {
+    if (err.code === 6 || /ALREADY_EXISTS/i.test(err.message || '')) {
+      logger.warn('admin', 'broadcast_duplicate_blocked', {
+        reqId, actorId: 'admin', detail: { broadcastId, subject: subject.trim() }, status: 'blocked',
+      });
+      return res.status(409).json({ error: 'This broadcast was already submitted.' });
+    }
+    logger.error('admin', 'broadcast_lock_failed', { reqId, actorId: 'admin', status: 'failed' }, err);
+    return res.status(500).json({ error: 'Broadcast failed.' });
+  }
 
   try {
     // Only approved registrants receive broadcasts — pending/rejected are excluded
@@ -131,6 +156,7 @@ export default async function handler(req, res) {
         type: 'broadcast',
         actorId: 'admin',
         reqId,
+        broadcastId,
         subject: subject.trim(),
         sent,
         emailsFailed,
@@ -139,11 +165,28 @@ export default async function handler(req, res) {
         durationMs: Date.now() - handlerStart,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
-    } catch { /* audit log must never fail the main path */ }
+    } catch (auditErr) {
+      logger.error('admin', 'broadcast_audit_log_failed', {
+        reqId, actorId: 'admin', detail: { broadcastId, sent, emailsFailed }, status: 'degraded',
+      }, auditErr);
+    }
+
+    await lockRef.update({
+      status: 'complete',
+      sent,
+      emailsFailed,
+      total: recipients.length,
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => {});
 
     return res.status(200).json({ success: true, sent, emailsFailed });
   } catch (error) {
-    logger.error('admin', 'broadcast_error', { reqId, actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'broadcast_error', { reqId, actorId: 'admin', detail: { broadcastId }, status: 'failed' }, error);
+    await lockRef.update({
+      status: 'failed',
+      error: error.message?.slice(0, 500) || 'unknown',
+      completedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }).catch(() => {});
     return res.status(500).json({ error: 'Broadcast failed.' });
   }
 }

@@ -230,6 +230,12 @@ export default function AdminDashboard() {
         headers: hdrs,
         body: JSON.stringify({ lastDocId: lastDoc }),
       });
+      if (res.status === 410) {
+        setLastDoc(null);
+        setHasMore(false);
+        setStatusMsg({ type: 'error', text: 'Pagination cursor expired. Reload the page to continue.' });
+        return;
+      }
       const result = await res.json();
       setRegistrants((prev) => [...prev, ...attachTs(result.registrants || [])]);
       setLastDoc(result.lastDocId);
@@ -378,18 +384,25 @@ export default function AdminDashboard() {
     setBroadcastConfirming(false);
     setBroadcastLoading(true);
     setBroadcastMsg(null);
+    // Generate a fresh broadcastId per send attempt. The server dedupes against
+    // _broadcasts/{id}, so any lower-level retry of this exact request is rejected.
+    const broadcastId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
     try {
       const hdrs = await authHeaders();
       const res = await fetch('/api/admin/send-broadcast', {
         method: 'POST',
         headers: hdrs,
-        body: JSON.stringify({ subject: broadcastSubject, body: broadcastBody, roundFilter: broadcastFilter }),
+        body: JSON.stringify({ subject: broadcastSubject, body: broadcastBody, roundFilter: broadcastFilter, broadcastId }),
       });
       const data = await res.json();
       if (data.success) {
         setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} registrant${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
         setBroadcastSubject('');
         setBroadcastBody('');
+      } else if (res.status === 409) {
+        setBroadcastMsg({ type: 'error', text: 'This broadcast was already submitted.' });
       } else {
         setBroadcastMsg({ type: 'error', text: data.error || 'Broadcast failed.' });
       }
