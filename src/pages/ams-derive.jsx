@@ -6,7 +6,7 @@ export default function AmsDerive() {
       <Head>
         <title>AMS Derive 2026 — Quant Contest | PRIOR · POSTERIOR · CONVERGENCE</title>
         <meta name="description" content="Three rounds. One destination: offline finals at one of the IITs. Only 6/200 solved the hardest problem in 2025. Quant competition with offline finals at one of the IITs — test derivatives pricing, Bayesian inference, and live algo trading under pressure. ₹15L+ prize pool. 600+ traders. 20 elite institutions." />
-        <meta name="keywords" content="AMS Derive 2026, quant contest offline finals, algorithmic trading competition India, derivatives pricing contest, Bayesian inference competition, quant finance India, PRIOR POSTERIOR CONVERGENCE, AMS Society, quant internship shortlist, stochastic calculus competition" />
+        <meta name="keywords" content="AMS Derive 2026, quant contest offline finals, algorithmic trading competition India, derivatives pricing contest, Bayesian inference competition, quant finance India, PRIOR POSTERIOR CONVERGENCE, Algorithms and Mathematics Society, AMS, quant internship shortlist, stochastic calculus competition" />
         <link rel="canonical" href="https://amsociety.in/ams-derive" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="AMS Derive" />
@@ -42,7 +42,8 @@ export default function AmsDerive() {
               },
               "organizer": {
                 "@type": "Organization",
-                "name": "AMS Society",
+                "name": "Algorithms & Mathematics Society",
+                "alternateName": "AMS",
                 "url": "https://amsociety.in"
               },
               "offers": {

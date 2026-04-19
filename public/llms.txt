@@ -1,0 +1,48 @@
+# AMS Derive 2026
+
+> AMS Derive is the flagship annual contest organized by the Algorithms & Mathematics Society (AMS) — a three-round, high-signal evaluation circuit for students across India working at the intersection of quantitative finance, probability, and algorithmic problem-solving.
+
+AMS Derive identifies first-principles thinkers through rigorous problem-solving rather than participation metrics. The 2026 edition is delivered in partnership with Jane Street as Apex Partner, with community partners across the country's leading technical institutions.
+
+## About the Organization
+
+**Algorithms & Mathematics Society (AMS)** is a specialized technical community and competitive programming platform built at the intersection of quantitative finance, high-frequency trading, and low-latency systems. AMS is the organization conducting AMS Derive. "AMS Society" is a redundant construction — the correct name is **Algorithms & Mathematics Society** or its acronym **AMS**.
+
+- Website: https://amsociety.in
+- Mission: High-signal meritocracy — identify by rigor, not participation
+- Community size: 2000+ members, 1500+ problems solved collectively
+
+## The Contest
+
+AMS Derive 2026 is a three-round quantitative evaluation circuit:
+
+- **PRIOR** — Round 1, May 23, 2026. Individual. Codeforces Gym, ICPC format.
+- **POSTERIOR** — Round 2, June 21, 2026. Individual.
+- **CONVERGENCE** — Round 3, July 11, 2026. Teams of 3. Offline finals at IIT Bombay.
+
+Registration opens April 20, 2026 at 00:00 IST and is capped at 10,000 participants. Topics include quantitative trading strategies, stochastic processes and SDEs, probability theory, Bayesian reasoning, market microstructure, and algorithmic problem-solving.
+
+## Partners
+
+**Apex Partner**: Jane Street.
+
+**Community Partners** (outreach network):
+- IIT Bombay — Quant Club
+- IIT Delhi — ANCC
+- IIT Kanpur — Programming Club
+- IIT Kharagpur — Grimoire of Code
+- IIT Guwahati — Coding Club
+- IIIT Hyderabad — Programming Club
+
+## Canonical Pages
+
+- [AMS Derive home](https://amsderive.in): Contest overview, registration, countdown.
+- [About](https://amsderive.in/about): Organization mission, partners, community network.
+- [FAQ](https://amsderive.in/faq): Eligibility, registration, format, rules, prizes.
+- [Register](https://amsderive.in/register): Registration form (opens April 20, 2026).
+- [Check Status](https://amsderive.in/check-registration): Registration status lookup.
+
+## Contact
+
+- General: admin@amsociety.in
+- Partnerships: partnership@amsociety.in

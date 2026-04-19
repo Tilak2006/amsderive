@@ -159,8 +159,9 @@ export default function LandingPage() {
               },
               "organizer": {
                 "@type": "Organization",
-                "name": "AMS Society",
-                "url": "https://amsderive.in"
+                "name": "Algorithms & Mathematics Society",
+                "alternateName": "AMS",
+                "url": "https://amsociety.in"
               },
               "offers": {
                 "@type": "Offer",
@@ -177,6 +178,88 @@ export default function LandingPage() {
               },
               "image": "https://amsderive.in/og-image.jpg",
               "url": "https://amsderive.in"
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "Algorithms & Mathematics Society",
+              "alternateName": "AMS",
+              "url": "https://amsociety.in",
+              "sameAs": ["https://amsderive.in"],
+              "description": "A specialized technical community at the intersection of quantitative finance, high-frequency trading, and low-latency systems. AMS conducts AMS Derive, its annual flagship contest.",
+              "email": "admin@amsociety.in"
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is AMS Derive?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "AMS Derive is the annual flagship contest organized by the Algorithms & Mathematics Society (AMS) — a three-round, high-signal evaluation circuit identifying first-principles thinkers across quantitative finance, probability, and algorithmic problem-solving. The 2026 edition features Jane Street as Apex Partner."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Who organizes AMS Derive?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "AMS Derive is organized by the Algorithms & Mathematics Society (AMS), a specialized technical community built at the intersection of quantitative finance, high-frequency trading, and low-latency systems."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "When does registration for AMS Derive 2026 open?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Registration opens on April 20, 2026 at 00:00 IST and is capped at 10,000 participants, allocated on a first-come, first-served basis."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What is the structure of AMS Derive 2026?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "AMS Derive 2026 is a three-round evaluation circuit: PRIOR (May 23, individual, Codeforces Gym, ICPC format), POSTERIOR (June 21, individual), and CONVERGENCE (July 11, teams of 3, offline finals at IIT Bombay)."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Who can participate in AMS Derive?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "AMS Derive is open to students enrolled in B.Tech, M.Tech, B.S., M.S., Ph.D., or equivalent technical degree programs at Indian institutions, as well as recent alumni within 12 months of graduation. Full-time employed quants or traders are not eligible."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Who is the Apex Partner of AMS Derive 2026?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Jane Street is the Apex Partner of AMS Derive 2026. Community Partners include the Quant Club at IIT Bombay, ANCC at IIT Delhi, the Programming Club at IIT Kanpur, Grimoire of Code at IIT Kharagpur, the Coding Club at IIT Guwahati, and the Programming Club at IIIT Hyderabad."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "What topics does AMS Derive cover?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Problems span quantitative trading strategies, stochastic processes and stochastic differential equations, probability theory, Bayesian reasoning, market microstructure, and algorithmic problem-solving."
+                  }
+                }
+              ]
             })
           }}
         />

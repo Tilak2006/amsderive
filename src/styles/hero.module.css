@@ -158,6 +158,13 @@
   }
 }
 
+.heroRegisterBtn:focus-visible,
+.heroCheckBtn:focus-visible,
+.mobileNotifyBtn:focus-visible {
+  outline: 2px solid #D4AF37;
+  outline-offset: 3px;
+}
+
 .heroCheckBtn {
   font-family: var(--font-mono), monospace;
   font-size: 0.9rem;

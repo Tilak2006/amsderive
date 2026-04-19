@@ -76,7 +76,7 @@ export default function PrivacyPage() {
                 To attribute campus ambassador referrals for leaderboard tracking purposes.
               </li>
               <li className={styles.rulesListItem}>
-                We do not use your data for any purpose unrelated to the administration of AMS Derive 2026 or AMS Society communications.
+                We do not use your data for any purpose unrelated to the administration of AMS Derive 2026 or Algorithms & Mathematics Society (AMS) communications.
               </li>
             </ul>
           </div>

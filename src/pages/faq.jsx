@@ -122,6 +122,22 @@ export default function FAQPage() {
           name="description"
           content="Frequently asked questions about AMS Derive 2026 — eligibility, registration, contest format, rules, prizes, and more."
         />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": FAQS.flatMap(({ items }) =>
+                items.map(({ q, a }) => ({
+                  "@type": "Question",
+                  "name": q,
+                  "acceptedAnswer": { "@type": "Answer", "text": a },
+                }))
+              ),
+            }),
+          }}
+        />
       </Head>
 
       <Navbar />
