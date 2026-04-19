@@ -231,12 +231,19 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
     return newErrors;
   }, [fields, resumeFile, transcriptFile]);
 
+  const FIELD_ORDER = ['fullName', 'email', 'university', 'branch', 'graduationYear', 'codeforcesHandle', 'phoneNumber', 'linkedIn', 'gitHub', 'resume', 'transcript', 'dataConsent'];
+
   function handleSubmit(e) {
     e.preventDefault();
     const snapshot = { ...fields };
     const newErrors = validateAll();
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      const firstError = FIELD_ORDER.find((f) => newErrors[f]);
+      if (firstError) {
+        const el = document.getElementById(firstError) ?? document.querySelector(`[name="${firstError}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     if (onSubmit) {
