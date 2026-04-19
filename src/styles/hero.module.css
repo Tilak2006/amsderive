@@ -132,44 +132,45 @@
 
 .heroRegisterBtn {
   font-family: var(--font-mono), monospace;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-decoration: none;
   background: #D4AF37;
   color: #0a0a0a;
-  padding: 13px 32px;
+  border: 1px solid #D4AF37;
+  padding: 16px 0;
   border-radius: 2px;
-  min-height: 44px;
-  min-width: 160px;
+  width: 220px;
   justify-content: center;
   display: inline-flex;
   align-items: center;
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, filter 0.3s ease;
 }
 
 @media (hover: hover) {
   .heroRegisterBtn:hover {
-    background: #c9a227;
-    box-shadow: 0 0 16px rgba(212, 175, 55, 0.35);
+    background: #0a0a0a;
+    color: #D4AF37;
+    border-color: #D4AF37;
+    filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
   }
 }
 
 .heroCheckBtn {
   font-family: var(--font-mono), monospace;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-decoration: none;
   background: transparent;
   color: #D4AF37;
-  padding: 13px 32px;
+  padding: 16px 0;
   border: 1px solid rgba(212, 175, 55, 0.45);
   border-radius: 2px;
-  min-height: 44px;
-  min-width: 160px;
+  width: 220px;
   justify-content: center;
   display: inline-flex;
   align-items: center;
@@ -240,13 +241,18 @@
     flex-wrap: nowrap;
     justify-content: center;
     gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .heroRegisterBtn,
   .heroCheckBtn {
+    flex: 1;
     width: auto;
     min-width: unset;
-    padding: 14px 20px;
+    padding: 14px 0;
     font-size: 0.72rem;
   }
 }
@@ -308,16 +314,20 @@
     align-items: center;
     justify-content: center;
     margin-top: 20px;
-    max-width: none;
+    max-width: 440px;
+    width: 100%;
     gap: 10px;
+    margin-left: auto;
+    margin-right: auto;
   }
 
   .heroRegisterBtn,
   .heroCheckBtn {
+    flex: 1;
     width: auto;
     min-width: unset;
-    padding: 13px 22px;
-    font-size: 0.72rem;
+    padding: 15px 0;
+    font-size: 0.78rem;
   }
 
   .heroMain::after {
