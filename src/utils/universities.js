@@ -56,6 +56,11 @@ export const UNIVERSITIES = [
   { category: 'NIT', name: 'NIT Manipur' },
   { category: 'NIT', name: 'NIT Mizoram' },
   { category: 'NIT', name: 'NIT Patna' },
+  { category: 'NIT', name: 'NIT Jamshedpur' },
+  { category: 'NIT', name: 'NIT Delhi' },
+  { category: 'NIT', name: 'NIT Meghalaya' },
+  { category: 'NIT', name: 'NIT Sikkim' },
+  { category: 'NIT', name: 'NIT Arunachal Pradesh' },
 
   // IIIT
   { category: 'IIIT', name: 'IIIT Hyderabad' },
@@ -65,9 +70,18 @@ export const UNIVERSITIES = [
   { category: 'IIIT', name: 'IIIT Pune' },
   { category: 'IIIT', name: 'IIIT Nagpur' },
   { category: 'IIIT', name: 'IIIT Guwahati' },
+  { category: 'IIIT', name: 'IIIT Kota' },
+  { category: 'IIIT', name: 'IIIT Lucknow' },
+  { category: 'IIIT', name: 'IIIT Vadodara' },
+  { category: 'IIIT', name: 'IIIT Sri City' },
+  { category: 'IIIT', name: 'IIIT Kancheepuram' },
+  { category: 'IIIT', name: 'IIIT Bhopal' },
+  { category: 'IIIT', name: 'IIIT Kalyani' },
 
   // Top Private Universities & Colleges
   { category: 'Top Colleges', name: 'BITS Pilani' },
+  { category: 'Top Colleges', name: 'BITS Goa' },
+  { category: 'Top Colleges', name: 'BITS Hyderabad' },
   { category: 'Top Colleges', name: 'VIT Vellore' },
   { category: 'Top Colleges', name: 'NMIMS Mumbai' },
   { category: 'Top Colleges', name: 'SP Jain Mumbai' },
