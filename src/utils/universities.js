@@ -23,6 +23,11 @@ export const UNIVERSITIES = [
   { category: 'IIT', name: 'IIT Goa' },
   { category: 'IIT', name: 'IIT Dhanbad (ISM)' },
   { category: 'IIT', name: 'IIT Bhilai' },
+  { category: 'IIT', name: 'IIT Jodhpur' },
+  { category: 'IIT', name: 'IIT Patna' },
+  { category: 'IIT', name: 'IIT Ropar' },
+  { category: 'IIT', name: 'IIT Gandhinagar' },
+  { category: 'IIT', name: 'IIT Dharwad' },
 
   // NITs
   { category: 'NIT', name: 'NIT Warangal' },

@@ -22,16 +22,20 @@ export default function UniversitySelect({
   const inputRef = useRef(null);
   const listRef = useRef(null);
 
-  // Filter universities based on search term — cap at 25 to limit DOM nodes.
-  // Users narrow results by typing; showing the full list is never necessary.
+  // Filter universities based on search term — cap at 25 (excluding Other) to limit DOM nodes.
+  // "Other" is always appended so it's reachable without typing.
   const filteredUniversities = useMemo(() => {
     const term = searchTerm.toLowerCase();
     const results = [];
     for (const u of UNIVERSITIES) {
+      if (u.name === 'Other') continue;
       if (u.name.toLowerCase().includes(term)) {
         results.push(u);
         if (results.length === 25) break;
       }
+    }
+    if ('other'.includes(term) || !term) {
+      results.push({ category: 'Other', name: 'Other' });
     }
     return results;
   }, [searchTerm]);
@@ -165,6 +169,13 @@ export default function UniversitySelect({
       <label htmlFor={name} className={styles['university-select-label']}>
         {label}
         {required && <span className={styles['university-select-required']}> *</span>}
+        <span
+          className={styles['university-select-info']}
+          title="If your institution is not listed, select 'Other' and type the full name in the field that appears."
+          aria-label="Institution selection help"
+        >
+          &#9432;
+        </span>
       </label>
 
       <div className={styles['university-select-wrapper']}>
