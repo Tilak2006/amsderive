@@ -209,7 +209,12 @@ export default function Register() {
     } catch (err) {
       submittingRef.current = false;
       setStatus('error');
-      setErrorMessage(err.message || 'Something went wrong. Please try again.');
+      const isNetworkError = err instanceof TypeError && err.message === 'Failed to fetch';
+      setErrorMessage(
+        isNetworkError
+          ? 'Network error — please check your connection and try again. If the issue persists, try on a different network or browser.'
+          : err.message || 'Something went wrong. Please try again.'
+      );
     }
   }
 

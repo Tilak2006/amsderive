@@ -17,6 +17,9 @@ export default function UniversitySelect({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(value && !UNIVERSITIES.some((u) => u.name === value));
+  const [selectedLabel, setSelectedLabel] = useState(
+    showCustomInput ? 'Other' : value || ''
+  );
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef(null);
   const inputRef = useRef(null);
@@ -63,6 +66,7 @@ export default function UniversitySelect({
     setIsOpen(false);
     setHighlightedIndex(-1);
     setShowCustomInput(selectedValue === 'Other');
+    setSelectedLabel(selectedValue);
 
     if (selectedValue === 'Other') {
       onChange({
@@ -183,7 +187,7 @@ export default function UniversitySelect({
           ref={inputRef}
           id={name}
           type="text"
-          placeholder={value || 'Search institution...'}
+          placeholder={selectedLabel || 'Search institution...'}
           value={searchTerm}
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
