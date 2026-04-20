@@ -360,7 +360,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
           onChange={handleChange}
           error={errors.codeforcesHandle}
           placeholder="cf_username"
-          hint="Alphanumeric and underscores only. Max 24 characters"
+          hint="Letters, numbers, underscores, and dots. Max 24 characters"
           required
         />
         {cfVerifying && !errors.codeforcesHandle && (
