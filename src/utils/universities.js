@@ -102,6 +102,7 @@ export const UNIVERSITIES = [
   { category: 'Top Colleges', name: 'LJIET Ahmedabad' },
   { category: 'Top Colleges', name: 'Thadomal Shahani Engineering College' },
   { category: 'Top Colleges', name: 'DJ Sanghvi College of Engineering' },
+  { category: 'Top Colleges', name: 'VJTI Mumbai' },
   { category: 'Top Colleges', name: 'CBIT Hyderabad' },
   { category: 'Top Colleges', name: 'Osmania University' },
   { category: 'Top Colleges', name: 'KIIT Bhubaneswar' },
