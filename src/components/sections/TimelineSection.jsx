@@ -111,7 +111,7 @@ const TimelineSection = () => {
                   {isActive && (
                     <span className={styles.activeBadge}>
                       <span className={styles.activeDot} />
-                      {cta ? 'Opening soon' : 'Active'}
+                      {cta ? 'Now Opened' : 'Active'}
                     </span>
                   )}
 
