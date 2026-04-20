@@ -79,6 +79,7 @@ export const UNIVERSITIES = [
   { category: 'IIIT', name: 'IIIT Kalyani' },
 
   // Top Private Universities & Colleges
+  { category: 'Top Colleges', name: 'ISI Kolkata' },
   { category: 'Top Colleges', name: 'BITS Pilani' },
   { category: 'Top Colleges', name: 'BITS Goa' },
   { category: 'Top Colleges', name: 'BITS Hyderabad' },

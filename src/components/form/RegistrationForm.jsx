@@ -210,10 +210,8 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
       }
     }
 
-    // Transcript file validation
-    if (!transcriptFile) {
-      newErrors.transcript = 'Transcript is required';
-    } else {
+    // Transcript file validation (optional)
+    if (transcriptFile) {
       const transcriptTypeResult = validateFileType(transcriptFile, ID_ALLOWED_TYPES);
       if (!transcriptTypeResult.valid) {
         newErrors.transcript = 'Transcript must be a PDF';
@@ -429,8 +427,7 @@ export default function RegistrationForm({ onSubmit, loading = false }) {
         error={errors.transcript}
         file={transcriptFile}
         hint="PDF only, max 500KB"
-        infoTooltip="Most recent transcript (college / highschool marksheet)"
-        required
+        infoTooltip="Most recent transcript (college / highschool marksheet) — optional"
       />
 
       {/* Data Consent Checkbox */}
