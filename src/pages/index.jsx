@@ -248,7 +248,7 @@ export default function LandingPage() {
                   "name": "Who is the Apex Partner of AMS Derive 2026?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Jane Street is the Apex Partner of AMS Derive 2026. Community Partners include the Quant Club at IIT Bombay, ANCC at IIT Delhi, the Programming Club at IIT Kanpur, Grimoire of Code at IIT Kharagpur, the Coding Club at IIT Guwahati, and the Programming Club at IIIT Hyderabad."
+                    "text": "Jane Street is the Apex Partner of AMS Derive 2026. Community Partners include the Quant Club at IIT Bombay, ANCC at IIT Delhi, the Programming Club at IIT Kanpur, Grimoire of Code at IIT Kharagpur, the Coding Club at IIT Guwahati, the Programming Club at IIIT Hyderabad, and the Computer Club at MNNIT Allahabad."
                   }
                 },
                 {
