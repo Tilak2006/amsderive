@@ -59,6 +59,7 @@ export default async function handler(req, res) {
     // a participant has no idea they got in — strictly worse than staying pending.
     let emailSent = false;
     let emailError = null;
+    let resendEmailId = null;
     try {
       const emailTemplate = statusUpdateEmail({ fullName: data.fullName || 'there', status });
       if (!emailTemplate || !emailTemplate.from || !emailTemplate.subject || !emailTemplate.html) {
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
         new Promise((_, reject) => setTimeout(() => reject(new Error('email send timed out')), 8000)),
       ]);
       emailSent = true;
-      const resendEmailId = sendResult?.data?.id || null;
+      resendEmailId = sendResult?.data?.id || null;
       logger.info('admin', 'status_update_email_sent', {
         reqId,
         entityId: docId,
