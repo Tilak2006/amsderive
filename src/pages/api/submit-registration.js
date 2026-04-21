@@ -73,7 +73,7 @@ export default async function handler(req, res) {
   // Server-side validation — never trust client
   // linkedIn is required but handled separately so we can return a field-level error
   if (!fullName || !email || !university || !branch || !graduationYear || !codeforcesHandle || !phoneNumber ||
-    !resumeUrl || !transcriptUrl || dataConsent !== true) {
+    !resumeUrl || dataConsent !== true) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
