@@ -124,8 +124,8 @@ export function validateCodeforcesHandleFormat(value) {
   const trimmed = (value || '').trim();
   if (!trimmed) return { valid: false, error: 'Codeforces handle is required' };
   if (trimmed.length > 24) return { valid: false, error: 'Codeforces handle must be under 24 characters' };
-  if (!/^[a-zA-Z0-9_.]+$/.test(trimmed)) {
-    return { valid: false, error: 'Codeforces handle can only contain letters, numbers, underscores, and dots' };
+  if (!/^[a-zA-Z0-9_.\-]+$/.test(trimmed)) {
+    return { valid: false, error: 'Codeforces handle can only contain letters, numbers, underscores, dots, and hyphens' };
   }
   return { valid: true };
 }
