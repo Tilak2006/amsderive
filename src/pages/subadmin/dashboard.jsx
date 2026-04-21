@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
+import Link from 'next/link';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../../firebase/firebaseConfig';
 import styles from '../../styles/admin.module.css';
@@ -233,6 +234,7 @@ export default function SubadminDashboard() {
           {/* Tabs */}
           <div className={styles.tabBar}>
             <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
+            <Link href="/subadmin/analytics" className={styles.tab}>ANALYTICS</Link>
           </div>
 
           {/* Stats */}
