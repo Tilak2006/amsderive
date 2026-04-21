@@ -42,6 +42,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // amsderive.in — subadmin team accounts
+    // Managed exclusively via Admin SDK. No client SDK access permitted.
+    match /subadmins/{uid} {
+      allow read, write: if false;
+    }
+
     // amsderive.in — per-institution registration counters
     // Written by Admin SDK only (one doc per university slug, no single-doc hotspot).
     match /stats_inst/{docId} {

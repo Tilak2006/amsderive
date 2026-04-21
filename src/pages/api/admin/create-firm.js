@@ -56,8 +56,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -100,7 +101,7 @@ export default async function handler(req, res) {
     logger.info('admin', 'firm_auth_created', {
       reqId,
       entityId: uid,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { tier, firmSlug },
       status: 'ok',
     });
@@ -110,7 +111,7 @@ export default async function handler(req, res) {
     }
     logger.error('admin', 'firm_auth_create_error', {
       reqId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { tier, firmSlug },
       status: 'failed',
     }, err);
@@ -133,7 +134,7 @@ export default async function handler(req, res) {
     logger.info('admin', 'firm_created', {
       reqId,
       entityId: uid,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { tier, firmSlug },
       status: 'ok',
     });
@@ -142,13 +143,13 @@ export default async function handler(req, res) {
     logger.error('admin', 'firm_firestore_failed', {
       reqId,
       entityId: uid,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { tier, firmSlug },
       status: 'failed',
     }, err);
     // Attempt cleanup — Auth user was created but Firestore failed
     admin.auth().deleteUser(uid).catch((e) =>
-      logger.error('admin', 'firm_cleanup_failed', { reqId, entityId: uid, actorId: 'admin', status: 'failed' }, e)
+      logger.error('admin', 'firm_cleanup_failed', { reqId, entityId: uid, actorId: decoded.uid, status: 'failed' }, e)
     );
     return res.status(500).json({
       error: 'Firm created in Auth but Firestore write failed. Please retry or manually add the Firestore document.',

@@ -27,8 +27,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -55,13 +56,13 @@ export default async function handler(req, res) {
 
     logger.info('admin', 'firms_listed', {
       reqId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { count: firms.length },
       status: 'ok',
     });
     return res.status(200).json({ firms });
   } catch (err) {
-    logger.error('admin', 'firms_list_error', { reqId, actorId: 'admin', status: 'failed' }, err);
+    logger.error('admin', 'firms_list_error', { reqId, actorId: decoded.uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

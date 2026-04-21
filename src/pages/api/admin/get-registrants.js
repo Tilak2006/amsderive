@@ -21,8 +21,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
 
     logger.info('admin', 'registrants_fetched', {
       reqId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { count: pageDocs.length, hasMore, cursor: lastDocId || null },
       status: 'ok',
     });
@@ -87,7 +88,7 @@ export default async function handler(req, res) {
       hasMore,
     });
   } catch (error) {
-    logger.error('admin', 'registrants_fetch_error', { reqId, actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'registrants_fetch_error', { reqId, actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to fetch registrants.' });
   }
 }

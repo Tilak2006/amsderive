@@ -20,8 +20,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ registrants });
   } catch (error) {
-    logger.error('admin', 'export_registrants_error', { reqId: genReqId(), actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'export_registrants_error', { reqId: genReqId(), actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to export registrants.' });
   }
 }

@@ -32,7 +32,10 @@ export default async function handler(req, res) {
     let hasMoreDocs = true;
 
     while (hasMoreDocs) {
-      let query = db.collection('registrants').orderBy('submittedAt', 'desc').limit(500);
+      let query = db.collection('registrants')
+        .select('fullName', 'university', 'branch', 'graduationYear', 'codeforcesHandle', 'dataConsent', 'submittedAt', 'status', 'round')
+        .orderBy('submittedAt', 'desc')
+        .limit(500);
       if (lastDoc) query = query.startAfter(lastDoc);
 
       const snapshot = await query.get();

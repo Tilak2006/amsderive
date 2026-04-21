@@ -45,8 +45,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -102,7 +103,7 @@ export default async function handler(req, res) {
         failedBatches.push(batchNumber);
         logger.warn('admin', 'bulk_approve_email_batch_failed', {
           reqId,
-          actorId: 'admin',
+          actorId: decoded.uid,
           detail: { batchNumber, failed: result.failed, message: result.err?.message, skippingDbUpdate: true },
           status: 'degraded',
         });
@@ -110,7 +111,7 @@ export default async function handler(req, res) {
         approvedIds.push(...chunkRegs.map((r) => r.id));
         logger.info('admin', 'bulk_approve_email_batch_sent', {
           reqId,
-          actorId: 'admin',
+          actorId: decoded.uid,
           detail: { batchNumber, count: result.sent },
           status: 'ok',
         });
@@ -133,7 +134,7 @@ export default async function handler(req, res) {
       await batch.commit();
       logger.info('admin', 'bulk_approve_db_batch_committed', {
         reqId,
-        actorId: 'admin',
+        actorId: decoded.uid,
         detail: { batchNumber: Math.floor(i / FIRESTORE_CHUNK) + 1, count: approvedIds.slice(i, i + FIRESTORE_CHUNK).length },
         status: 'ok',
       });
@@ -141,7 +142,7 @@ export default async function handler(req, res) {
 
     logger.info('admin', 'bulk_approve_complete', {
       reqId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { approved: approvedIds.length, emailsSent, emailsFailed, pendingTotal: pending.length, failedBatches },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
@@ -150,7 +151,7 @@ export default async function handler(req, res) {
     try {
       await db.collection('_audit_log').add({
         type: 'approve_all',
-        actorId: 'admin',
+        actorId: decoded.uid,
         reqId,
         approved: approvedIds.length,
         emailsSent,
@@ -171,7 +172,7 @@ export default async function handler(req, res) {
       skipped: pending.length - approvedIds.length,
     });
   } catch (error) {
-    logger.error('admin', 'bulk_approve_error', { reqId, actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'bulk_approve_error', { reqId, actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Bulk approval failed.' });
   }
 }

@@ -23,8 +23,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -80,7 +81,7 @@ export default async function handler(req, res) {
       logger.info('admin', 'status_update_email_sent', {
         reqId,
         entityId: docId,
-        actorId: 'admin',
+        actorId: decoded.uid,
         detail: { emailMasked: maskEmail(data.email), newStatus: status },
         status: 'ok',
       });
@@ -89,7 +90,7 @@ export default async function handler(req, res) {
       logger.warn('admin', 'status_update_email_failed', {
         reqId,
         entityId: docId,
-        actorId: 'admin',
+        actorId: decoded.uid,
         detail: { emailMasked: maskEmail(data.email), newStatus: status, message: emailError },
         status: 'degraded',
       });
@@ -111,7 +112,7 @@ export default async function handler(req, res) {
     logger.info('admin', 'status_updated', {
       reqId,
       entityId: docId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { newStatus: status },
       status: 'ok',
     });
@@ -120,7 +121,7 @@ export default async function handler(req, res) {
     try {
       await db.collection('_audit_log').add({
         type: status === 'approved' ? 'approve' : 'reject',
-        actorId: 'admin',
+        actorId: decoded.uid,
         reqId,
         entityId: docId,
         emailMasked: maskEmail(data.email),
@@ -131,13 +132,13 @@ export default async function handler(req, res) {
       });
     } catch (auditErr) {
       logger.error('admin', 'status_audit_log_failed', {
-        reqId, entityId: docId, actorId: 'admin', detail: { newStatus: status, resendEmailId: resendEmailId || null }, status: 'degraded',
+        reqId, entityId: docId, actorId: decoded.uid, detail: { newStatus: status, resendEmailId: resendEmailId || null }, status: 'degraded',
       }, auditErr);
     }
 
     return res.status(200).json({ success: true, emailSent, emailError });
   } catch (error) {
-    logger.error('admin', 'status_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'status_update_error', { reqId, entityId: docId, actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update status.' });
   }
 }

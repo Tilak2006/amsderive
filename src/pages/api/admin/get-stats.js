@@ -26,8 +26,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -63,13 +64,13 @@ export default async function handler(req, res) {
     cacheTime = Date.now();
 
     logger.info('admin', 'stats_fetched', {
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { total: cachedStats.total, today: cachedStats.today, fromCache: false },
       status: 'ok',
     });
     return res.status(200).json(cachedStats);
   } catch (error) {
-    logger.error('admin', 'stats_fetch_error', { actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'stats_fetch_error', { actorId: decoded.uid, status: 'failed' }, error);
     // Return stale if available
     if (cachedStats) return res.status(200).json(cachedStats);
     return res.status(500).json({ total: 0, consentGiven: 0, today: 0 });

@@ -21,8 +21,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -60,7 +61,7 @@ export default async function handler(req, res) {
     logger.info('admin', 'round_updated', {
       reqId,
       entityId: docId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { round, prevRound },
       status: 'ok',
     });
@@ -68,7 +69,7 @@ export default async function handler(req, res) {
     try {
       await db.collection('_audit_log').add({
         type: 'round_update',
-        actorId: 'admin',
+        actorId: decoded.uid,
         reqId,
         entityId: docId,
         prevRound,
@@ -77,13 +78,13 @@ export default async function handler(req, res) {
       });
     } catch (auditErr) {
       logger.error('admin', 'round_audit_log_failed', {
-        reqId, entityId: docId, actorId: 'admin', detail: { round, prevRound }, status: 'degraded',
+        reqId, entityId: docId, actorId: decoded.uid, detail: { round, prevRound }, status: 'degraded',
       }, auditErr);
     }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    logger.error('admin', 'round_update_error', { reqId, entityId: docId, actorId: 'admin', status: 'failed' }, error);
+    logger.error('admin', 'round_update_error', { reqId, entityId: docId, actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update round.' });
   }
 }

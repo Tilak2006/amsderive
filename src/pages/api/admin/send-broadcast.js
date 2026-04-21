@@ -45,8 +45,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  let decoded;
   try {
-    await requireAdmin(req, admin.auth());
+    decoded = await requireAdmin(req, admin.auth());
   } catch (e) {
     return res.status(e.status).json({ error: e.error });
   }
@@ -79,11 +80,11 @@ export default async function handler(req, res) {
   } catch (err) {
     if (err.code === 6 || /ALREADY_EXISTS/i.test(err.message || '')) {
       logger.warn('admin', 'broadcast_duplicate_blocked', {
-        reqId, actorId: 'admin', detail: { broadcastId, subject: subject.trim() }, status: 'blocked',
+        reqId, actorId: decoded.uid, detail: { broadcastId, subject: subject.trim() }, status: 'blocked',
       });
       return res.status(409).json({ error: 'This broadcast was already submitted.' });
     }
-    logger.error('admin', 'broadcast_lock_failed', { reqId, actorId: 'admin', status: 'failed' }, err);
+    logger.error('admin', 'broadcast_lock_failed', { reqId, actorId: decoded.uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Broadcast failed.' });
   }
 
@@ -125,14 +126,14 @@ export default async function handler(req, res) {
       if (result.failed > 0) {
         logger.warn('admin', 'broadcast_batch_failed', {
           reqId,
-          actorId: 'admin',
+          actorId: decoded.uid,
           detail: { batchNumber, failed: result.failed, message: result.err?.message, filter },
           status: 'degraded',
         });
       } else {
         logger.info('admin', 'broadcast_batch_sent', {
           reqId,
-          actorId: 'admin',
+          actorId: decoded.uid,
           detail: { batchNumber, count: result.sent, filter },
           status: 'ok',
         });
@@ -145,7 +146,7 @@ export default async function handler(req, res) {
 
     logger.info('admin', 'broadcast_complete', {
       reqId,
-      actorId: 'admin',
+      actorId: decoded.uid,
       detail: { sent, emailsFailed, total: recipients.length, filter },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
@@ -154,7 +155,7 @@ export default async function handler(req, res) {
     try {
       await db.collection('_audit_log').add({
         type: 'broadcast',
-        actorId: 'admin',
+        actorId: decoded.uid,
         reqId,
         broadcastId,
         subject: subject.trim(),
@@ -167,7 +168,7 @@ export default async function handler(req, res) {
       });
     } catch (auditErr) {
       logger.error('admin', 'broadcast_audit_log_failed', {
-        reqId, actorId: 'admin', detail: { broadcastId, sent, emailsFailed }, status: 'degraded',
+        reqId, actorId: decoded.uid, detail: { broadcastId, sent, emailsFailed }, status: 'degraded',
       }, auditErr);
     }
 
@@ -181,7 +182,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ success: true, sent, emailsFailed });
   } catch (error) {
-    logger.error('admin', 'broadcast_error', { reqId, actorId: 'admin', detail: { broadcastId }, status: 'failed' }, error);
+    logger.error('admin', 'broadcast_error', { reqId, actorId: decoded.uid, detail: { broadcastId }, status: 'failed' }, error);
     await lockRef.update({
       status: 'failed',
       error: error.message?.slice(0, 500) || 'unknown',
