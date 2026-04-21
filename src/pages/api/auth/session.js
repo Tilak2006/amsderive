@@ -43,7 +43,7 @@ export default async function handler(req, res) {
   const idToken = authHeader.split('Bearer ')[1];
   const { type } = req.body;
 
-  if (type !== 'admin' && type !== 'firm') {
+  if (type !== 'admin' && type !== 'firm' && type !== 'subadmin') {
     return res.status(400).json({ error: 'Invalid session type' });
   }
 
@@ -69,6 +69,19 @@ export default async function handler(req, res) {
     }
   }
 
+  // For subadmin sessions: verify the user has a subadmins document
+  if (type === 'subadmin') {
+    try {
+      const subSnap = await db.collection('subadmins').doc(decoded.uid).get();
+      if (!subSnap.exists) {
+        return res.status(403).json({ error: 'Not a subadmin account' });
+      }
+    } catch (err) {
+      logger.error('auth', 'session_subadmin_lookup_failed', { reqId, actorId: decoded.uid, status: 'failed' }, err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+
   // For admin sessions: verify the admin custom claim
   if (type === 'admin') {
     if (!decoded.admin) {
@@ -82,7 +95,7 @@ export default async function handler(req, res) {
       expiresIn: SESSION_DURATION_MS,
     });
 
-    const cookieName = type === 'admin' ? '__session' : '__firmSession';
+    const cookieName = type === 'admin' ? '__session' : type === 'subadmin' ? '__subadminSession' : '__firmSession';
     const cookieOptions = [
       `${cookieName}=${sessionCookie}`,
       'HttpOnly',

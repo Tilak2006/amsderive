@@ -28,11 +28,11 @@ export default async function handler(req, res) {
   }
 
   const { type } = req.body;
-  if (type !== 'admin' && type !== 'firm') {
+  if (type !== 'admin' && type !== 'firm' && type !== 'subadmin') {
     return res.status(400).json({ error: 'Invalid session type' });
   }
 
-  const cookieName = type === 'admin' ? '__session' : '__firmSession';
+  const cookieName = type === 'admin' ? '__session' : type === 'subadmin' ? '__subadminSession' : '__firmSession';
   const sessionCookie = req.cookies?.[cookieName];
   const reqId = genReqId();
 
