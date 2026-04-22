@@ -97,7 +97,7 @@ const COMMUNITY_PARTNERS = [
   { institution: 'IIT Kharagpur', club: 'Grimoire of Code', logo: '/IITKGP_GOC.png' },
   { institution: 'IIT Guwahati', club: 'Coding Club', logo: '/IITGuwahati_CodingClub.png' },
   { institution: 'IIIT Hyderabad', club: 'Programming Club', logo: '/IIITH_ProgrammingClub.jpeg' },
-  { institution: 'MNNIT Allahabad', club: 'Computer Club', logo: '/MNNIT_Computer_Club.png' },
+  { institution: 'MNNIT Allahabad', club: 'Computer Coding Club', logo: '/MNNIT_Computer_Club.png' },
   { institution: 'VJTI Mumbai', club: 'Coding Club', logo: '/VJTI_CodingClub.jpeg' },
   { institution: 'IIT Mandi', club: 'Programming Club', logo: '/IIT_Mandi_ProgrammingClub.svg' },
 ];
