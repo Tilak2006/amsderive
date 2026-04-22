@@ -111,9 +111,14 @@ export default async function handler(req, res) {
   const validDomains = ['firebasestorage.googleapis.com', 'storage.googleapis.com'];
   try {
     const resumeHostname = new URL(resumeUrl).hostname;
-    const transcriptHostname = new URL(transcriptUrl).hostname;
-    if (!validDomains.includes(resumeHostname) || !validDomains.includes(transcriptHostname)) {
+    if (!validDomains.includes(resumeHostname)) {
       return res.status(400).json({ success: false, error: 'Invalid file URLs.' });
+    }
+    if (transcriptUrl) {
+      const transcriptHostname = new URL(transcriptUrl).hostname;
+      if (!validDomains.includes(transcriptHostname)) {
+        return res.status(400).json({ success: false, error: 'Invalid file URLs.' });
+      }
     }
   } catch (e) {
     return res.status(400).json({ success: false, error: 'Invalid file URLs.' });

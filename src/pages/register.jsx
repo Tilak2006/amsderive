@@ -116,21 +116,24 @@ export default function Register() {
       // Acceptable since gate-rejection is rare (launch edge case only).
       let gateRes, resumeUpload, transcriptUpload;
       try {
+        const uploadTasks = [uploadFileViaApi(data.resumeFile, sanitizedName, 'resume')];
+        if (data.transcriptFile) {
+          uploadTasks.push(uploadFileViaApi(data.transcriptFile, sanitizedName, 'transcript'));
+        }
+
         const [gate, uploads] = await PerformanceLogger.monitor(
           'Gate + File Upload',
           withTimeout(
             Promise.all([
               fetch('/api/check-registration-gate', { method: 'POST' }),
-              Promise.all([
-                uploadFileViaApi(data.resumeFile, sanitizedName, 'resume'),
-                uploadFileViaApi(data.transcriptFile, sanitizedName, 'transcript'),
-              ]),
+              Promise.all(uploadTasks),
             ]),
             30000
           )
         );
         gateRes = gate;
-        [resumeUpload, transcriptUpload] = uploads;
+        [resumeUpload] = uploads;
+        transcriptUpload = data.transcriptFile ? uploads[1] : null;
       } catch (uploadErr) {
         submittingRef.current = false;
         setStatus('error');
@@ -151,8 +154,8 @@ export default function Register() {
       const uploadResult = {
         resumeUrl: resumeUpload.url,
         resumeFileName: resumeUpload.fileName,
-        transcriptUrl: transcriptUpload.url,
-        transcriptFileName: transcriptUpload.fileName,
+        transcriptUrl: transcriptUpload ? transcriptUpload.url : null,
+        transcriptFileName: transcriptUpload ? transcriptUpload.fileName : null,
       };
 
       // Step 3: Submit to server API — 15s cap (server-side only, no upload)
