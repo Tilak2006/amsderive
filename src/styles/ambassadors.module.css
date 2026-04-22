@@ -1,0 +1,255 @@
+/* ── Generate panel ── */
+.generatePanel {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: 2px;
+  padding: 20px 24px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #D4AF37;
+}
+
+.generateRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.generateBtn {
+  height: 40px;
+  padding: 0 24px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #D4AF37;
+  border: 1px solid #D4AF37;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.generateBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.generateBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── New code preview box ── */
+.newCodeBox {
+  background: rgba(212, 175, 55, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 2px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.newCodeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.newCodeLabel {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: #6b6560;
+}
+
+.copyBtn {
+  height: 30px;
+  padding: 0 14px;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+  flex-shrink: 0;
+}
+
+.copyBtn:hover {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: #D4AF37;
+}
+
+.newCodeWrap {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.codePrefix {
+  color: #6b6560;
+}
+
+.codeValue {
+  color: #D4AF37;
+  font-weight: 600;
+}
+
+.newCodeHint {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #4a4a4a;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+}
+
+/* ── Institution sections ── */
+.institutionSections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.institutionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.institutionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+}
+
+.institutionTitle {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #f0ede6;
+}
+
+.institutionTotal {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: #6b6560;
+  letter-spacing: 0.06em;
+}
+
+.tableWrap {
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 2px;
+  overflow-x: auto;
+}
+
+/* ── Count badge ── */
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  padding: 3px 10px;
+  background: rgba(212, 175, 55, 0.1);
+  color: #D4AF37;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ── Link preview in table ── */
+.linkPreview {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: #6b6560;
+}
+
+.linkPreview strong {
+  color: #D4AF37;
+}
+
+/* ── Copy button in table row ── */
+.copyRowBtn {
+  height: 28px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+  white-space: nowrap;
+}
+
+.copyRowBtn:hover {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: #D4AF37;
+}
+
+/* ── Empty state ── */
+.emptyState {
+  padding: 3rem;
+  text-align: center;
+  color: #6b6560;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .generateRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .generateBtn {
+    width: 100%;
+  }
+
+  .newCodeHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .institutionHeader {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

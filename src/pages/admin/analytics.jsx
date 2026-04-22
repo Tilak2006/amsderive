@@ -203,6 +203,7 @@ export default function AdminAnalytics() {
             <Link href="/admin/dashboard" className={styles.tab}>REGISTRANTS</Link>
             <span className={`${styles.tab} ${styles.tabActive}`}>ANALYTICS</span>
             <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
+            <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
           </div>
 
           {loading ? (

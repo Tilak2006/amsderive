@@ -349,6 +349,15 @@ export default async function handler(req, res) {
           status: 'degraded',
         });
       }),
+      // Ambassador referral count — fire-and-forget, never blocks registration
+      ...(refCode && refCode.startsWith('amsderive2026') ? [
+        withTimeout(
+          db.collection('ambassadors').doc(refCode.trim()).update({
+            registrationCount: admin.firestore.FieldValue.increment(1),
+          }),
+          3000
+        ).catch(() => { /* ambassador doc may not exist — silently ignore */ }),
+      ] : []),
     ]);
 
     return res.status(200).json({ success: true, id: docRef.id });

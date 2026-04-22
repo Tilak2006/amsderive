@@ -235,6 +235,7 @@ export default function AdminFirms() {
             <Link href="/admin/dashboard" className={adminStyles.tab}>REGISTRANTS</Link>
             <Link href="/admin/analytics" className={adminStyles.tab}>ANALYTICS</Link>
             <span className={`${adminStyles.tab} ${adminStyles.tabActive}`}>FIRMS</span>
+            <Link href="/admin/ambassadors" className={adminStyles.tab}>AMBASSADORS</Link>
           </div>
 
           {/* Action bar */}
