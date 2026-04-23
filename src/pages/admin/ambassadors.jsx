@@ -10,6 +10,7 @@ import ambStyles from '../../styles/ambassadors.module.css';
 const INSTITUTIONS = [
   { value: 'iitbhu', label: 'IIT BHU' },
   { value: 'bitspilani', label: 'BITS Pilani' },
+  { value: 'iitkgp', label: 'IIT KGP' },
 ];
 
 function formatDate(isoString) {

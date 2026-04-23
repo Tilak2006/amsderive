@@ -14,7 +14,7 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-const ALLOWED_INSTITUTIONS = ['iitbhu', 'bitspilani'];
+const ALLOWED_INSTITUTIONS = ['iitbhu', 'bitspilani', 'iitkgp'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
   const { institution } = req.body;
 
   if (!institution || !ALLOWED_INSTITUTIONS.includes(institution)) {
-    return res.status(400).json({ error: 'Invalid institution. Must be one of: iitbhu, bitspilani' });
+    return res.status(400).json({ error: 'Invalid institution. Must be one of: iitbhu, bitspilani, iitkgp' });
   }
 
   // Generate: amsderive2026 + 6-digit random numeric suffix
@@ -40,6 +40,7 @@ export default async function handler(req, res) {
   const INSTITUTION_LABELS = {
     iitbhu: 'IIT BHU',
     bitspilani: 'BITS Pilani',
+    iitkgp: 'IIT KGP',
   };
 
   const docRef = db.collection('ambassadors').doc(code);
