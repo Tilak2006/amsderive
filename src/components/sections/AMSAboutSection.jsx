@@ -100,6 +100,9 @@ const COMMUNITY_PARTNERS = [
   { institution: 'MNNIT Allahabad', club: 'Computer Coding Club', logo: '/MNNIT_Computer_Club.png' },
   { institution: 'VJTI Mumbai', club: 'Coding Club', logo: '/VJTI_CodingClub.jpeg' },
   { institution: 'IIT Mandi', club: 'Programming Club', logo: '/IIT_Mandi_ProgrammingClub.svg' },
+  { institution: 'BITS Pilani', club: 'Mathematics Association', logo: '/BITS_Pilani_Math_Association.png' },
+  { institution: 'IIT Roorkee', club: 'Finance Club', logo: '/IIT_Roorkee_FinanceClub.png' },
+  { institution: 'DJ Sanghvi', club: 'Codestars', logo: '/DJ_Sanghvi_Codestars.svg' },
 ];
 
 const stats = [
