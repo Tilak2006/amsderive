@@ -109,6 +109,7 @@ export const UNIVERSITIES = [
   { category: 'Top Colleges', name: 'KIIT Bhubaneswar' },
   { category: 'Top Colleges', name: 'Bennett University' },
   { category: 'Top Colleges', name: 'Shiv Nadar University' },
+  { category: 'Top Colleges', name: 'Dhirubhai Ambani University' },
 
   // Add Other option
   { category: 'Other', name: 'Other' },
