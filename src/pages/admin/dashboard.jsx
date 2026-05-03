@@ -52,6 +52,49 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
+const CF_COPIED_STORAGE_KEY = 'amsderive.admin.copiedCodeforcesHandles.v1';
+
+function normalizeCfHandle(handle) {
+  return String(handle || '').trim().toLowerCase();
+}
+
+function getUniqueCfHandles(registrants) {
+  const seen = new Set();
+  const handles = [];
+
+  registrants.forEach((r) => {
+    const handle = String(r.codeforcesHandle || '').trim();
+    const key = normalizeCfHandle(handle);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    handles.push(handle);
+  });
+
+  return handles;
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  try {
+    const copied = document.execCommand('copy');
+    if (!copied) throw new Error('Clipboard copy failed');
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
 // Attach a pre-parsed numeric timestamp to each registrant for fast sorting
 function attachTs(registrants) {
   return registrants.map((r) => ({
@@ -95,6 +138,9 @@ export default function AdminDashboard() {
   const [approveAllConfirm, setApproveAllConfirm] = useState(false);
   const [approveAllLoading, setApproveAllLoading] = useState(false);
   const [approveAllMsg, setApproveAllMsg] = useState(null);
+  const [copiedCfHandles, setCopiedCfHandles] = useState([]);
+  const [cfCopyLoading, setCfCopyLoading] = useState(false);
+  const [cfCopyMsg, setCfCopyMsg] = useState(null);
 
   // Refs: store current user for callbacks that don't need to re-create on user change,
   // and token cache to avoid repeated getIdToken() async calls.
@@ -130,6 +176,16 @@ export default function AdminDashboard() {
     });
     return () => unsubscribe();
   }, [router]);
+
+  // ── Persist copied CF handles locally so repeated invites only include new registrants.
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CF_COPIED_STORAGE_KEY) || '[]');
+      setCopiedCfHandles(Array.isArray(saved) ? saved.map(normalizeCfHandle).filter(Boolean) : []);
+    } catch {
+      setCopiedCfHandles([]);
+    }
+  }, []);
 
   // ── Escape to close panel ────────────────────────────────────────────────
   useEffect(() => {
@@ -348,6 +404,57 @@ export default function AdminDashboard() {
       setApproveAllMsg({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setApproveAllLoading(false);
+    }
+  }
+
+  async function fetchAllRegistrantsForCopy() {
+    const hdrs = await authHeaders();
+    const res = await fetch('/api/admin/export-registrants', {
+      method: 'POST',
+      headers: hdrs,
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.registrants) {
+      throw new Error(data.error || 'Failed to fetch all registrants.');
+    }
+    return data.registrants;
+  }
+
+  async function handleCopyNewCfHandles() {
+    if (cfCopyLoading) return;
+
+    setCfCopyLoading(true);
+    setCfCopyMsg(null);
+
+    try {
+      const allRegistrants = await fetchAllRegistrantsForCopy();
+      const allHandles = getUniqueCfHandles(allRegistrants);
+      const copiedSet = new Set(copiedCfHandles);
+      const newHandles = allHandles.filter((handle) => !copiedSet.has(normalizeCfHandle(handle)));
+
+      if (newHandles.length === 0) {
+        setCfCopyMsg({ type: 'success', text: `No new CF handles · ${allHandles.length} already copied` });
+        return;
+      }
+
+      await copyTextToClipboard(newHandles.join(' '));
+
+      const nextCopied = Array.from(new Set([...copiedCfHandles, ...newHandles.map(normalizeCfHandle)]));
+      try {
+        localStorage.setItem(CF_COPIED_STORAGE_KEY, JSON.stringify(nextCopied));
+      } catch {
+        // The current session still tracks copied handles even if persistent storage is unavailable.
+      }
+      setCopiedCfHandles(nextCopied);
+      setCfCopyMsg({
+        type: 'success',
+        text: `Copied ${newHandles.length} new CF handle${newHandles.length !== 1 ? 's' : ''}`,
+      });
+    } catch (err) {
+      setCfCopyMsg({ type: 'error', text: err.message || 'Could not copy CF handles.' });
+    } finally {
+      setCfCopyLoading(false);
     }
   }
 
@@ -649,6 +756,14 @@ export default function AdminDashboard() {
 
           {/* Bulk actions */}
           <div className={styles.bulkActions}>
+            <button
+              className={styles.copyCfBtn}
+              onClick={handleCopyNewCfHandles}
+              disabled={cfCopyLoading || loadingData}
+              title="Fetch all registrants and copy only CF handles not copied before"
+            >
+              {cfCopyLoading ? 'COPYING...' : 'COPY NEW CF HANDLES'}
+            </button>
             {approveAllConfirm ? (
               <div className={styles.bulkConfirm}>
                 <span className={styles.bulkConfirmText}>
@@ -673,6 +788,11 @@ export default function AdminDashboard() {
             {approveAllMsg && (
               <span className={approveAllMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
                 {approveAllMsg.text}
+              </span>
+            )}
+            {cfCopyMsg && (
+              <span className={cfCopyMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                {cfCopyMsg.text}
               </span>
             )}
           </div>
