@@ -4,23 +4,23 @@ const ROUNDS = [
   {
     num: '01',
     title: 'PRIOR',
-    tags: ['Individual', 'Online'],
-    what: 'Mathematical Modeling',
-    text: 'Problems drawn from probability theory, stochastic processes, expected value, and distribution theory. No templates provided. Build models from first principles and show your full reasoning, partial credit awarded for methodology.',
+    tags: ['Individual', 'Codeforces', 'ICPC Style'],
+    what: 'Qualifier',
+    text: 'Round 1 is the mass filter. Problems focus on probability theory, Bayesian inference, and market microstructure. No templates transfer here — solve from first principles under contest pressure.',
   },
   {
     num: '02',
     title: 'POSTERIOR',
     tags: ['Individual', 'Online'],
-    what: 'Algorithmic + Quant Thinking',
-    text: 'Competitive-programming problems with a quantitative layer. Correct answers alone are not enough, solutions must be efficient and handle edge cases under tight constraints. Filters verified Round 1 performers.',
+    what: 'Prelims',
+    text: 'Round 2 is the difficulty spike. Expect stochastic processes, options pricing, and combinatorics, with external setters and a harder online format designed for true signal validation.',
   },
   {
     num: '03',
     title: 'CONVERGENCE',
-    tags: ['Teams of 3', 'Offline Finals'],
-    what: 'Open-Ended Firm Problems',
-    text: 'Real-world problems co-designed with partner firms. No single correct answer. Evaluated on problem framing, reasoning depth, execution quality, and communication. Finals hosted at one of the prestigious IITs.',
+    tags: ['Invite-Only', 'IIT', 'Live Duel'],
+    what: 'Finals',
+    text: 'Round 3 is the prestige moment. 30–50 finalists meet at IIT, form teams on-site, solve a real derivation problem, and the top 2 enter a live 1v1 Derivation Duel.',
   },
 ];
 

@@ -8,26 +8,26 @@ const ROUNDS = [
   {
     num: '01',
     name: 'PRIOR',
-    what: 'Mathematical Modeling',
-    badges: ['Individual', 'Online', '3 Hours', '23 May 2026'],
-    body: 'Problems are drawn from probability, stochastic processes, expected value, and distribution theory. No templates are provided. Participants are expected to build models from first principles and show their reasoning in full.',
-    evaluated: ['Correctness', 'Clarity of reasoning', 'Rigour of derivation'],
+    what: 'Qualifier',
+    badges: ['Individual', 'Codeforces', 'ICPC Style', '23 May 2026'],
+    body: 'Round 1 is the mass filter. Hosted on Codeforces in ICPC style, it focuses on probability theory, Bayesian inference, and market microstructure. The key idea is simple: no templates, pure first-principles solving.',
+    evaluated: ['Probability theory', 'Bayesian inference', 'Market microstructure'],
   },
   {
     num: '02',
     name: 'POSTERIOR',
-    what: 'Algorithmic + Quant Thinking',
-    badges: ['Individual', 'Online', '3 Hours', '21 June 2026'],
-    body: 'Competitive-programming style problems with a quantitative layer. Correct answers are not enough, solutions must be efficient, well-structured, and handle edge cases under constraints. Problems combine algorithmic thinking with probabilistic reasoning.',
-    evaluated: ['Efficiency', 'Correctness under constraints', 'Approach clarity'],
+    what: 'Prelims',
+    badges: ['Individual', 'Hard Online Round', '21 June 2026'],
+    body: 'Round 2 is the true signal extraction layer. The difficulty spikes, external setters enter the picture, and problems focus on stochastic processes, options pricing, and combinatorics.',
+    evaluated: ['Stochastic processes', 'Options pricing', 'Combinatorics'],
   },
   {
     num: '03',
     name: 'CONVERGENCE',
-    what: 'Open-Ended Firm Problems',
-    badges: ['Teams of 3', 'Offline Finals', '11 July 2026'],
-    body: 'Selected participants are invited to the offline finals. Teams are formed on-site. Problems are open-ended, real-world, and deliberately ambiguous, co-designed with partner firms. There is no single correct answer. Evaluation is based on how the problem is structured, reasoned through, and communicated.',
-    evaluated: ['Problem framing', 'Reasoning depth', 'Execution', 'Communication'],
+    what: 'Finals',
+    badges: ['Invite-Only', 'IIT', '30–50 Finalists', '11 July 2026 Tentative'],
+    body: 'Round 3 is the spectacle and prestige moment. Invite-only finalists meet at IIT, form teams on-site, solve a real derivation problem, and the top 2 advance to a live 1v1 Derivation Duel.',
+    evaluated: ['Team formation on-site', 'Real derivation problem', 'Live 1v1 duel'],
   },
 ];
 
@@ -35,10 +35,10 @@ const TIMELINE = [
   { date: '25 Mar 2026', event: 'Pre-Registration Opens' },
   { date: '20 Apr 2026', event: 'Registration Opens' },
   { date: '15 May 2026', event: 'Registration Closes' },
-  { date: '23 May 2026', event: 'PRIOR | Round 1 (Online, 3 Hours)' },
-  { date: '21 Jun 2026', event: 'POSTERIOR | Round 2 (Online, 3 Hours)' },
+  { date: '23 May 2026', event: 'PRIOR | Round 1 (Codeforces, ICPC Style)' },
+  { date: '21 Jun 2026', event: 'POSTERIOR | Round 2 (Hard Online Round)' },
   { date: '1 Jul 2026', event: 'Finalists Announced' },
-  { date: '11 Jul 2026', event: 'CONVERGENCE | Final Round (Offline)' },
+  { date: '11 Jul 2026', event: 'CONVERGENCE | Finals at IIT (Tentative)' },
 ];
 
 const PHILOSOPHY = [
@@ -47,7 +47,7 @@ const PHILOSOPHY = [
     body: 'Problems are designed so that memorised solutions do not transfer directly. Participants are expected to reason through unfamiliar configurations, not apply known patterns. Partial derivations with sound logic are valued over complete answers with no visible reasoning.',
   },
   {
-    heading: 'Modeling Ability Over Speed.',  
+    heading: 'Modeling Ability Over Speed.',
     body: 'Time pressure exists, but it is not the primary filter. The evaluation prioritises the quality of a participant\'s model — how well they decompose a problem, identify the relevant variables, and structure their approach. A clean, well-reasoned partial solution outranks a fast but shallow complete one.',
   },
   {
@@ -57,10 +57,10 @@ const PHILOSOPHY = [
 ];
 
 const FINAL = [
-  'The offline finals are not just an evaluation. The format is designed to bring together a concentrated group of strong analytical minds — and that itself is valuable.',
-  'Alongside the main event, finalists can expect structured chess and poker sessions — natural extensions of the probabilistic and strategic reasoning AMS Derive selects for.',
-  'Dedicated networking time with peers, the AMS team, and representatives from partner firms including Jane Street.',
-  'The top 3 teams emerge victorious and win the title of AMS Derive Champions.',
+  '30–50 finalists are invited to IIT for an on-site final built around a real derivation problem.',
+  'Teams are formed on-site, so finalists are evaluated on adaptability, communication, and collaborative reasoning under uncertainty.',
+  'The top 2 finalists enter a live 1v1 Derivation Duel — the final spectacle of AMS Derive 2026.',
+  'The finals are designed as the prestige moment of the circuit, bringing together the strongest signal from PRIOR and POSTERIOR.',
 ];
 
 export default function CompetitionPage() {
@@ -70,7 +70,7 @@ export default function CompetitionPage() {
         <title>Competition Structure | AMS Derive 2026</title>
         <meta
           name="description"
-          content="AMS Derive 2026 competition structure — three rounds: PRIOR, POSTERIOR, and CONVERGENCE. Evaluation philosophy, round formats, and how advancement works."
+          content="AMS Derive 2026 competition structure — PRIOR on Codeforces, POSTERIOR hard online prelims, and CONVERGENCE invite-only finals at IIT."
         />
       </Head>
 
@@ -84,9 +84,9 @@ export default function CompetitionPage() {
             <p className={s.eyebrow}>AMS Derive 2026</p>
             <h1 className={s.pageTitle}>Competition Structure</h1>
             <p className={s.subtitle}>
-              Three rounds. Each stage tests a distinct layer of thinking ability — from mathematical
-              precision to open-ended system reasoning. Progression is not guaranteed. Selection at
-              each stage is based on signal quality, not volume.
+              Three rounds. PRIOR filters for first-principles solving, POSTERIOR extracts deeper
+              quantitative signal, and CONVERGENCE turns the strongest finalists into an on-site
+              derivation spectacle at IIT.
             </p>
           </div>
 

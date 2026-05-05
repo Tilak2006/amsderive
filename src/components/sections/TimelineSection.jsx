@@ -23,14 +23,14 @@ const EVENTS = [
     date: 'June 21, 2026',
     timestamp: new Date('2026-06-21'),
     title: 'Round 2 | POSTERIOR',
-    desc: 'Advanced round. Stochastic processes, options pricing. Filters verified Round 1 performers.',
+    desc: 'Hard online prelims. Stochastic processes, options pricing, combinatorics. Difficulty spike with external setters.',
   },
   {
     index: '04',
-    date: 'July 11, 2026',
+    date: 'July 11, 2026 (Tentative)',
     timestamp: new Date('2026-07-11'),
     title: 'Round 3 | CONVERGENCE',
-    desc: 'Finals. Teams of 3. Offline at one of the prestigious IITs. Open-ended quant problems with firm evaluation.',
+    desc: 'Invite-only finals at IIT. 30–50 finalists, teams formed on-site, real derivation problem, live 1v1 duel for the top 2.',
   },
 ];
 
