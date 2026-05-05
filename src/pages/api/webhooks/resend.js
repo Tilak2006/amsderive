@@ -131,21 +131,31 @@ export default async function handler(req, res) {
   const normalizedEmail = emailAddress.trim().toLowerCase();
 
   try {
-    const snapshot = await db.collection('registrants')
+    let snapshot = await db.collection('registrants')
       .where('emailLower', '==', normalizedEmail)
       .limit(1)
       .get();
+    let collectionName = 'registrants';
 
     if (snapshot.empty) {
-      return res.status(200).json({ ok: true, notFound: true });
+      snapshot = await db.collection('outreach_contacts')
+        .where('emailLower', '==', normalizedEmail)
+        .limit(1)
+        .get();
+      collectionName = 'outreach_contacts';
+
+      if (snapshot.empty) {
+        return res.status(200).json({ ok: true, notFound: true });
+      }
     }
 
     const docRef = snapshot.docs[0].ref;
     const data = snapshot.docs[0].data();
     const docId = snapshot.docs[0].id;
 
-    // Only track delivery for approved registrants — no approval emails go to pending/rejected.
-    if (data.status !== 'approved') {
+    // Only track delivery for approved registrants. Outreach contacts do not have
+    // participant status, so their Resend events are tracked directly.
+    if (collectionName === 'registrants' && data.status !== 'approved') {
       return res.status(200).json({ ok: true, skipped: 'not_approved' });
     }
 
@@ -162,7 +172,7 @@ export default async function handler(req, res) {
     logger.info('webhook', 'delivery_status_updated', {
       entityId: docId,
       actorId: 'resend',
-      detail: { eventType, newStatus, resendEmailId },
+      detail: { eventType, newStatus, resendEmailId, collectionName },
       status: 'ok',
     });
 
@@ -173,6 +183,7 @@ export default async function handler(req, res) {
           type: newStatus === 'bounced' ? 'email_bounced' : 'email_complained',
           actorId: 'resend_webhook',
           entityId: docId,
+          collectionName,
           resendEmailId,
           eventType,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),

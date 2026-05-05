@@ -19,6 +19,7 @@ const db = admin.firestore();
 const BATCH_SIZE = 100;
 const BATCH_DELAY_MS = 500;
 const BATCH_RETRY_ATTEMPTS = 3;
+const TERMINAL_DELIVERY_STATUSES = new Set(['bounced', 'complained']);
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -35,6 +36,20 @@ async function sendBatchWithRetry(chunk, attempt = 1) {
     }
     return { sent: 0, failed: chunk.length, err };
   }
+}
+
+function firstNameFrom(fullName) {
+  return String(fullName || '').trim().split(/\s+/)[0] || '';
+}
+
+function renderBroadcastBody(body, recipient) {
+  const variables = {
+    firstName: recipient.firstName || firstNameFrom(recipient.fullName),
+    fullName: recipient.fullName || '',
+    institution: recipient.institution || recipient.university || '',
+  };
+
+  return body.replace(/{{\s*(firstName|fullName|institution)\s*}}/g, (_, key) => variables[key] || '');
 }
 
 // Disable response size limit — broadcast can take a while
@@ -54,7 +69,7 @@ export default async function handler(req, res) {
 
   const reqId = genReqId();
   const handlerStart = Date.now();
-  const { subject, body, roundFilter, broadcastId } = req.body;
+  const { subject, body, roundFilter, broadcastId, targetType } = req.body;
 
   if (!subject?.trim() || !body?.trim()) {
     return res.status(400).json({ error: 'Subject and body are required.' });
@@ -66,6 +81,8 @@ export default async function handler(req, res) {
 
   const validFilters = ['all', 'prior', 'posterior', 'convergence'];
   const filter = validFilters.includes(roundFilter) ? roundFilter : 'all';
+  const validTargetTypes = ['registrants', 'outreach', 'both'];
+  const resolvedTargetType = validTargetTypes.includes(targetType) ? targetType : 'registrants';
 
   // Idempotency guard — atomic create prevents duplicate sends from double-clicks or retries.
   // Any concurrent second request hits ALREADY_EXISTS and is rejected before any email fires.
@@ -75,6 +92,7 @@ export default async function handler(req, res) {
       status: 'in_progress',
       subject: subject.trim(),
       filter,
+      targetType: resolvedTargetType,
       startedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   } catch (err) {
@@ -89,39 +107,137 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Only approved registrants receive broadcasts — pending/rejected are excluded
-    let q = db.collection('registrants')
-      .where('status', '==', 'approved')
-      .select('email', 'fullName');
-    if (filter !== 'all') {
-      q = q.where('round', '==', filter);
+    const recipientsByEmail = new Map();
+    let registrantAttempted = 0;
+    let outreachAttempted = 0;
+
+    if (resolvedTargetType === 'registrants' || resolvedTargetType === 'both') {
+      // Only approved registrants receive broadcasts — pending/rejected are excluded
+      let q = db.collection('registrants')
+        .where('status', '==', 'approved')
+        .select('email', 'fullName', 'university');
+      if (filter !== 'all') {
+        q = q.where('round', '==', filter);
+      }
+      const snapshot = await q.get();
+
+      snapshot.docs
+        .map((d) => ({
+          email: d.data().email,
+          fullName: d.data().fullName,
+          firstName: firstNameFrom(d.data().fullName),
+          institution: d.data().university,
+          targetKind: 'registrant',
+        }))
+        .filter((r) => r.email)
+        .forEach((r) => {
+          registrantAttempted += 1;
+          recipientsByEmail.set(r.email.trim().toLowerCase(), r);
+        });
     }
-    const snapshot = await q.get();
 
-    if (snapshot.empty) {
-      return res.status(200).json({ success: true, sent: 0 });
+    if (resolvedTargetType === 'outreach' || resolvedTargetType === 'both') {
+      const snapshot = await db.collection('outreach_contacts')
+        .where('unsubscribed', '==', false)
+        .select('email', 'fullName', 'firstName', 'institution', 'deliveryStatus')
+        .get();
+
+      snapshot.docs
+        .map((d) => ({
+          email: d.data().email,
+          fullName: d.data().fullName,
+          firstName: d.data().firstName,
+          institution: d.data().institution,
+          deliveryStatus: d.data().deliveryStatus || null,
+          targetKind: 'outreach',
+        }))
+        .filter((r) => r.email && !TERMINAL_DELIVERY_STATUSES.has(String(r.deliveryStatus || '').toLowerCase()))
+        .forEach((r) => {
+          const key = r.email.trim().toLowerCase();
+          if (!recipientsByEmail.has(key)) {
+            outreachAttempted += 1;
+            recipientsByEmail.set(key, r);
+          }
+        });
     }
 
-    const recipients = snapshot.docs
-      .map((d) => ({ email: d.data().email, fullName: d.data().fullName }))
-      .filter((r) => r.email);
+    const recipients = Array.from(recipientsByEmail.values());
 
-    const template = broadcastEmail({ subject: subject.trim(), body: body.trim() });
+    if (recipients.length === 0) {
+      if (resolvedTargetType === 'outreach' || resolvedTargetType === 'both') {
+        await db.collection('_audit_log').add({
+          type: 'broadcast',
+          actorId: decoded.uid,
+          reqId,
+          broadcastId,
+          subject: subject.trim(),
+          sent: 0,
+          emailsFailed: 0,
+          total: 0,
+          filter,
+          targetType: resolvedTargetType,
+          attempted: 0,
+          outreachAttempted: 0,
+          outreachSent: 0,
+          outreachFailed: 0,
+          registrantAttempted,
+          durationMs: Date.now() - handlerStart,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        }).catch(() => {});
+      }
+      await lockRef.update({
+        status: 'complete',
+        sent: 0,
+        emailsFailed: 0,
+        total: 0,
+        targetType: resolvedTargetType,
+        outreachAttempted: 0,
+        outreachSent: 0,
+        outreachFailed: 0,
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }).catch(() => {});
+      return res.status(200).json({
+        success: true,
+        sent: 0,
+        emailsFailed: 0,
+        attempted: 0,
+        targetType: resolvedTargetType,
+        outreachAttempted: 0,
+        outreachSent: 0,
+        outreachFailed: 0,
+        registrantAttempted,
+      });
+    }
+
+    const subjectText = subject.trim();
+    const bodyText = body.trim();
     let sent = 0;
     let emailsFailed = 0;
+    let outreachSent = 0;
+    let outreachFailed = 0;
 
     for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
-      const chunk = recipients.slice(i, i + BATCH_SIZE).map((r) => ({
-        from: template.from,
-        to: r.email,
-        subject: template.subject,
-        html: template.html,
-      }));
+      const chunkRecipients = recipients.slice(i, i + BATCH_SIZE);
+      const chunk = chunkRecipients.map((r) => {
+        const template = broadcastEmail({
+          subject: subjectText,
+          body: renderBroadcastBody(bodyText, r),
+        });
+        return {
+          from: template.from,
+          to: r.email,
+          subject: template.subject,
+          html: template.html,
+        };
+      });
 
       const result = await sendBatchWithRetry(chunk);
       sent += result.sent;
       emailsFailed += result.failed;
+      const outreachCount = chunkRecipients.filter((r) => r.targetKind === 'outreach').length;
+      if (result.failed > 0) outreachFailed += outreachCount;
+      else outreachSent += outreachCount;
 
       if (result.failed > 0) {
         logger.warn('admin', 'broadcast_batch_failed', {
@@ -147,7 +263,7 @@ export default async function handler(req, res) {
     logger.info('admin', 'broadcast_complete', {
       reqId,
       actorId: decoded.uid,
-      detail: { sent, emailsFailed, total: recipients.length, filter },
+      detail: { sent, emailsFailed, total: recipients.length, filter, targetType: resolvedTargetType },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
@@ -163,6 +279,12 @@ export default async function handler(req, res) {
         emailsFailed,
         total: recipients.length,
         filter,
+        targetType: resolvedTargetType,
+        attempted: recipients.length,
+        outreachAttempted,
+        outreachSent,
+        outreachFailed,
+        registrantAttempted,
         durationMs: Date.now() - handlerStart,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -177,10 +299,24 @@ export default async function handler(req, res) {
       sent,
       emailsFailed,
       total: recipients.length,
+      targetType: resolvedTargetType,
+      outreachAttempted,
+      outreachSent,
+      outreachFailed,
       completedAt: admin.firestore.FieldValue.serverTimestamp(),
     }).catch(() => {});
 
-    return res.status(200).json({ success: true, sent, emailsFailed });
+    return res.status(200).json({
+      success: true,
+      sent,
+      emailsFailed,
+      attempted: recipients.length,
+      targetType: resolvedTargetType,
+      outreachAttempted,
+      outreachSent,
+      outreachFailed,
+      registrantAttempted,
+    });
   } catch (error) {
     logger.error('admin', 'broadcast_error', { reqId, actorId: decoded.uid, detail: { broadcastId }, status: 'failed' }, error);
     await lockRef.update({

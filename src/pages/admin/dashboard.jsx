@@ -130,9 +130,12 @@ export default function AdminDashboard() {
   const [broadcastSubject, setBroadcastSubject] = useState('');
   const [broadcastBody, setBroadcastBody] = useState('');
   const [broadcastFilter, setBroadcastFilter] = useState('all');
+  const [broadcastTargetType, setBroadcastTargetType] = useState('registrants');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState(null);
   const [broadcastConfirming, setBroadcastConfirming] = useState(false);
+  const [outreachImportLoading, setOutreachImportLoading] = useState(false);
+  const [outreachImportMsg, setOutreachImportMsg] = useState(null);
   const [roundLoading, setRoundLoading] = useState(false);
   const [roundMsg, setRoundMsg] = useState(null);
   const [approveAllConfirm, setApproveAllConfirm] = useState(false);
@@ -146,6 +149,7 @@ export default function AdminDashboard() {
   // and token cache to avoid repeated getIdToken() async calls.
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
+  const outreachFileInputRef = useRef(null);
 
   // Returns a cached Firebase ID token. Firebase SDK already caches internally,
   // but this avoids the async overhead of calling getIdToken() on every request.
@@ -486,6 +490,35 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleOutreachCsvImport(file) {
+    if (!file || outreachImportLoading) return;
+    setOutreachImportLoading(true);
+    setOutreachImportMsg(null);
+
+    try {
+      const csv = await file.text();
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/import-outreach-contacts', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ csv }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        const parts = [`${data.imported} imported`, `${data.updated} updated`];
+        if (data.invalid) parts.push(`${data.invalid} invalid`);
+        setOutreachImportMsg({ type: 'success', text: parts.join(' · ') });
+      } else {
+        setOutreachImportMsg({ type: 'error', text: data.error || 'Import failed.' });
+      }
+    } catch {
+      setOutreachImportMsg({ type: 'error', text: 'Could not read or import CSV.' });
+    } finally {
+      setOutreachImportLoading(false);
+      if (outreachFileInputRef.current) outreachFileInputRef.current.value = '';
+    }
+  }
+
   async function handleBroadcast() {
     if (!broadcastSubject.trim() || !broadcastBody.trim() || broadcastLoading) return;
     setBroadcastConfirming(false);
@@ -501,11 +534,22 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/send-broadcast', {
         method: 'POST',
         headers: hdrs,
-        body: JSON.stringify({ subject: broadcastSubject, body: broadcastBody, roundFilter: broadcastFilter, broadcastId }),
+        body: JSON.stringify({
+          subject: broadcastSubject,
+          body: broadcastBody,
+          roundFilter: broadcastFilter,
+          targetType: broadcastTargetType,
+          broadcastId,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} registrant${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
+        const target = data.targetType === 'outreach'
+          ? 'outreach contact'
+          : data.targetType === 'both'
+            ? 'recipient'
+            : 'registrant';
+        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} ${target}${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
         setBroadcastSubject('');
         setBroadcastBody('');
       } else if (res.status === 409) {
@@ -553,6 +597,11 @@ export default function AdminDashboard() {
   }
 
   const r = selectedRegistrant;
+  const broadcastTargetLabel = broadcastTargetType === 'outreach'
+    ? 'external outreach contacts'
+    : broadcastTargetType === 'both'
+      ? 'approved registrants and external outreach contacts'
+      : 'approved registrants';
 
   return (
     <>
@@ -607,6 +656,28 @@ export default function AdminDashboard() {
           {broadcastOpen && (
             <div className={styles.broadcastPanel}>
               <p className={styles.broadcastTitle}>BROADCAST EMAIL</p>
+              <div className={styles.broadcastImportRow}>
+                <input
+                  ref={outreachFileInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className={styles.hiddenFileInput}
+                  onChange={(e) => handleOutreachCsvImport(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  className={styles.outreachImportBtn}
+                  onClick={() => outreachFileInputRef.current?.click()}
+                  disabled={outreachImportLoading}
+                >
+                  {outreachImportLoading ? 'IMPORTING...' : 'IMPORT OUTREACH CSV'}
+                </button>
+                {outreachImportMsg && (
+                  <span className={outreachImportMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {outreachImportMsg.text}
+                  </span>
+                )}
+              </div>
               <input
                 className={styles.broadcastInput}
                 type="text"
@@ -624,9 +695,19 @@ export default function AdminDashboard() {
               <div className={styles.broadcastFooter}>
                 <select
                   className={styles.filterSelect}
+                  value={broadcastTargetType}
+                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); }}
+                  disabled={broadcastLoading}
+                >
+                  <option value="registrants">Approved Registrants</option>
+                  <option value="outreach">External Outreach Contacts</option>
+                  <option value="both">Both</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
                   value={broadcastFilter}
                   onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); }}
-                  disabled={broadcastLoading}
+                  disabled={broadcastLoading || broadcastTargetType === 'outreach'}
                 >
                   <option value="all">All Registrants</option>
                   <option value="prior">PRIOR</option>
@@ -637,7 +718,7 @@ export default function AdminDashboard() {
                   <div className={styles.broadcastConfirm}>
                     <span className={styles.broadcastConfirmText}>
                       Send &ldquo;{broadcastSubject}&rdquo; to{' '}
-                      <strong>{broadcastFilter === 'all' ? 'all registrants' : broadcastFilter.toUpperCase()}</strong>?
+                      <strong>{broadcastTargetLabel}</strong>?
                     </span>
                     <button className={styles.confirmBtn} onClick={handleBroadcast} disabled={broadcastLoading}>
                       CONFIRM
