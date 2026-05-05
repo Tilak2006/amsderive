@@ -1,4 +1,5 @@
 import * as admin from 'firebase-admin';
+import crypto from 'crypto';
 import { resend } from '../../../lib/resend';
 import { broadcastEmail } from '../../../emails/templates';
 import logger, { genReqId } from '../../../utils/logger';
@@ -19,7 +20,8 @@ const db = admin.firestore();
 const BATCH_SIZE = 100;
 const BATCH_DELAY_MS = 500;
 const BATCH_RETRY_ATTEMPTS = 3;
-const TERMINAL_DELIVERY_STATUSES = new Set(['bounced', 'complained']);
+const SEND_TIMEOUT_MS = 15000;
+const OUTREACH_SKIP_STATUSES = new Set(['sent', 'delivered', 'bounced', 'complained']);
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -27,7 +29,10 @@ function delay(ms) {
 
 async function sendBatchWithRetry(chunk, attempt = 1) {
   try {
-    await resend.batch.send(chunk);
+    await Promise.race([
+      resend.batch.send(chunk),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('resend batch send timed out')), SEND_TIMEOUT_MS)),
+    ]);
     return { sent: chunk.length, failed: 0 };
   } catch (err) {
     if (attempt < BATCH_RETRY_ATTEMPTS) {
@@ -35,6 +40,43 @@ async function sendBatchWithRetry(chunk, attempt = 1) {
       return sendBatchWithRetry(chunk, attempt + 1);
     }
     return { sent: 0, failed: chunk.length, err };
+  }
+}
+
+async function markOutreachSent(recipients, broadcastId) {
+  if (recipients.length === 0) return { marked: 0, failed: 0 };
+
+  const update = {
+    deliveryStatus: 'sent',
+    deliveryStatusAt: admin.firestore.FieldValue.serverTimestamp(),
+    lastBroadcastAt: admin.firestore.FieldValue.serverTimestamp(),
+    lastBroadcastId: broadcastId,
+  };
+
+  try {
+    const batch = db.batch();
+    recipients.forEach((r) => {
+      batch.update(db.collection('outreach_contacts').doc(r.email.trim().toLowerCase()), update);
+    });
+    await batch.commit();
+    return { marked: recipients.length, failed: 0 };
+  } catch {
+    let marked = 0;
+    let failed = 0;
+    await Promise.all(recipients.map(async (r) => {
+      const ref = db.collection('outreach_contacts').doc(r.email.trim().toLowerCase());
+      for (let attempt = 1; attempt <= 3; attempt += 1) {
+        try {
+          await ref.update(update);
+          marked += 1;
+          return;
+        } catch {
+          if (attempt < 3) await delay(attempt * 250);
+        }
+      }
+      failed += 1;
+    }));
+    return { marked, failed };
   }
 }
 
@@ -50,6 +92,27 @@ function renderBroadcastBody(body, recipient) {
   };
 
   return body.replace(/{{\s*(firstName|fullName|institution)\s*}}/g, (_, key) => variables[key] || '');
+}
+
+function unsubscribeSecret() {
+  return process.env.OUTREACH_UNSUBSCRIBE_SECRET ||
+    process.env.RESEND_WEBHOOK_SECRET ||
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY ||
+    'missing-unsubscribe-secret';
+}
+
+function outreachUnsubscribeToken(email) {
+  return crypto.createHmac('sha256', unsubscribeSecret()).update(email.trim().toLowerCase()).digest('hex');
+}
+
+function siteBaseUrl(req) {
+  return (process.env.NEXT_PUBLIC_SITE_URL || `https://${req.headers.host || 'amsderive.in'}`).replace(/\/$/, '');
+}
+
+function outreachFooterHtml(req, email) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const url = `${siteBaseUrl(req)}/api/unsubscribe-outreach?email=${encodeURIComponent(normalizedEmail)}&token=${outreachUnsubscribeToken(normalizedEmail)}`;
+  return `<p style="margin:28px 0 0;padding-top:16px;border-top:1px solid rgba(212,175,55,0.1);font-family:'Courier New',monospace;font-size:10px;line-height:1.6;color:#4a4540;">You are receiving this because AMS Derive identified your public competitive programming profile for contest outreach. <a href="${url}" style="color:#6b6560;text-decoration:underline;">Unsubscribe</a>.</p>`;
 }
 
 // Disable response size limit — broadcast can take a while
@@ -110,6 +173,36 @@ export default async function handler(req, res) {
     const recipientsByEmail = new Map();
     let registrantAttempted = 0;
     let outreachAttempted = 0;
+    let outreachMarkFailed = 0;
+    const suppressedOutreachEmails = new Set();
+
+    if (resolvedTargetType === 'outreach' || resolvedTargetType === 'both') {
+      const snapshot = await db.collection('outreach_contacts')
+        .select('email', 'fullName', 'firstName', 'institution', 'deliveryStatus', 'unsubscribed')
+        .get();
+
+      snapshot.docs
+        .map((d) => ({
+          email: d.data().email,
+          fullName: d.data().fullName,
+          firstName: d.data().firstName,
+          institution: d.data().institution,
+          deliveryStatus: d.data().deliveryStatus || null,
+          unsubscribed: d.data().unsubscribed === true,
+          targetKind: 'outreach',
+        }))
+        .filter((r) => r.email)
+        .forEach((r) => {
+          const key = r.email.trim().toLowerCase();
+          const status = String(r.deliveryStatus || '').toLowerCase();
+          if (r.unsubscribed || OUTREACH_SKIP_STATUSES.has(status)) {
+            suppressedOutreachEmails.add(key);
+            return;
+          }
+          outreachAttempted += 1;
+          recipientsByEmail.set(key, r);
+        });
+    }
 
     if (resolvedTargetType === 'registrants' || resolvedTargetType === 'both') {
       // Only approved registrants receive broadcasts — pending/rejected are excluded
@@ -131,31 +224,10 @@ export default async function handler(req, res) {
         }))
         .filter((r) => r.email)
         .forEach((r) => {
-          registrantAttempted += 1;
-          recipientsByEmail.set(r.email.trim().toLowerCase(), r);
-        });
-    }
-
-    if (resolvedTargetType === 'outreach' || resolvedTargetType === 'both') {
-      const snapshot = await db.collection('outreach_contacts')
-        .where('unsubscribed', '==', false)
-        .select('email', 'fullName', 'firstName', 'institution', 'deliveryStatus')
-        .get();
-
-      snapshot.docs
-        .map((d) => ({
-          email: d.data().email,
-          fullName: d.data().fullName,
-          firstName: d.data().firstName,
-          institution: d.data().institution,
-          deliveryStatus: d.data().deliveryStatus || null,
-          targetKind: 'outreach',
-        }))
-        .filter((r) => r.email && !TERMINAL_DELIVERY_STATUSES.has(String(r.deliveryStatus || '').toLowerCase()))
-        .forEach((r) => {
           const key = r.email.trim().toLowerCase();
+          if (resolvedTargetType === 'both' && suppressedOutreachEmails.has(key)) return;
+          registrantAttempted += 1;
           if (!recipientsByEmail.has(key)) {
-            outreachAttempted += 1;
             recipientsByEmail.set(key, r);
           }
         });
@@ -177,9 +249,11 @@ export default async function handler(req, res) {
           filter,
           targetType: resolvedTargetType,
           attempted: 0,
+          failed: 0,
           outreachAttempted: 0,
           outreachSent: 0,
           outreachFailed: 0,
+          outreachMarkFailed: 0,
           registrantAttempted,
           durationMs: Date.now() - handlerStart,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -194,17 +268,20 @@ export default async function handler(req, res) {
         outreachAttempted: 0,
         outreachSent: 0,
         outreachFailed: 0,
+        outreachMarkFailed: 0,
         completedAt: admin.firestore.FieldValue.serverTimestamp(),
       }).catch(() => {});
       return res.status(200).json({
         success: true,
         sent: 0,
         emailsFailed: 0,
+        failed: 0,
         attempted: 0,
         targetType: resolvedTargetType,
         outreachAttempted: 0,
         outreachSent: 0,
         outreachFailed: 0,
+        outreachMarkFailed: 0,
         registrantAttempted,
       });
     }
@@ -223,6 +300,7 @@ export default async function handler(req, res) {
         const template = broadcastEmail({
           subject: subjectText,
           body: renderBroadcastBody(bodyText, r),
+          footerHtml: r.targetKind === 'outreach' ? outreachFooterHtml(req, r.email) : '',
         });
         return {
           from: template.from,
@@ -235,9 +313,25 @@ export default async function handler(req, res) {
       const result = await sendBatchWithRetry(chunk);
       sent += result.sent;
       emailsFailed += result.failed;
-      const outreachCount = chunkRecipients.filter((r) => r.targetKind === 'outreach').length;
-      if (result.failed > 0) outreachFailed += outreachCount;
-      else outreachSent += outreachCount;
+      const outreachRecipients = chunkRecipients.filter((r) => r.targetKind === 'outreach');
+      const outreachCount = outreachRecipients.length;
+      if (result.failed > 0) {
+        outreachFailed += outreachCount;
+      } else {
+        outreachSent += outreachCount;
+        if (outreachRecipients.length > 0) {
+          const markResult = await markOutreachSent(outreachRecipients, broadcastId);
+          outreachMarkFailed += markResult.failed;
+          if (markResult.failed > 0) {
+            logger.error('admin', 'outreach_sent_mark_failed', {
+              reqId,
+              actorId: decoded.uid,
+              detail: { batchNumber, failed: markResult.failed, marked: markResult.marked, broadcastId },
+              status: 'degraded',
+            });
+          }
+        }
+      }
 
       if (result.failed > 0) {
         logger.warn('admin', 'broadcast_batch_failed', {
@@ -281,9 +375,11 @@ export default async function handler(req, res) {
         filter,
         targetType: resolvedTargetType,
         attempted: recipients.length,
+        failed: emailsFailed,
         outreachAttempted,
         outreachSent,
         outreachFailed,
+        outreachMarkFailed,
         registrantAttempted,
         durationMs: Date.now() - handlerStart,
         timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -303,6 +399,7 @@ export default async function handler(req, res) {
       outreachAttempted,
       outreachSent,
       outreachFailed,
+      outreachMarkFailed,
       completedAt: admin.firestore.FieldValue.serverTimestamp(),
     }).catch(() => {});
 
@@ -310,11 +407,13 @@ export default async function handler(req, res) {
       success: true,
       sent,
       emailsFailed,
+      failed: emailsFailed,
       attempted: recipients.length,
       targetType: resolvedTargetType,
       outreachAttempted,
       outreachSent,
       outreachFailed,
+      outreachMarkFailed,
       registrantAttempted,
     });
   } catch (error) {

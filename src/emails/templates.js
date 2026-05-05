@@ -37,14 +37,14 @@ export function statusUpdateEmail({ fullName, status }) {
   };
 }
 
-export function broadcastEmail({ subject, body }) {
+export function broadcastEmail({ subject, body, footerHtml = '' }) {
   const safeBody = (body || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>');
 
-  const content = `<div style="font-size:15px;color:#c8c4bc;line-height:1.8;font-family:Georgia,serif;">${safeBody}</div>`;
+  const content = `<div style="font-size:15px;color:#c8c4bc;line-height:1.8;font-family:Georgia,serif;">${safeBody}</div>${footerHtml}`;
 
   return {
     from: FROM,

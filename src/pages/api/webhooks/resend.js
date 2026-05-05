@@ -67,6 +67,22 @@ const EVENT_TO_STATUS = {
   'email.delivery_delayed': 'delayed',
 };
 
+function isTerminalStatus(status) {
+  return TERMINAL_STATUSES.has(String(status || '').toLowerCase());
+}
+
+async function updateDeliveryStatus(docRef, currentData, newStatus) {
+  if (isTerminalStatus(currentData.deliveryStatus)) {
+    return false;
+  }
+
+  await docRef.update({
+    deliveryStatus: newStatus,
+    deliveryStatusAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  return true;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -131,67 +147,67 @@ export default async function handler(req, res) {
   const normalizedEmail = emailAddress.trim().toLowerCase();
 
   try {
-    let snapshot = await db.collection('registrants')
+    const registrantSnapshot = await db.collection('registrants')
       .where('emailLower', '==', normalizedEmail)
       .limit(1)
       .get();
-    let collectionName = 'registrants';
 
-    if (snapshot.empty) {
-      snapshot = await db.collection('outreach_contacts')
-        .where('emailLower', '==', normalizedEmail)
-        .limit(1)
-        .get();
-      collectionName = 'outreach_contacts';
+    const outreachSnapshot = await db.collection('outreach_contacts')
+      .where('emailLower', '==', normalizedEmail)
+      .limit(1)
+      .get();
 
-      if (snapshot.empty) {
-        return res.status(200).json({ ok: true, notFound: true });
+    if (registrantSnapshot.empty && outreachSnapshot.empty) {
+      return res.status(200).json({ ok: true, notFound: true });
+    }
+
+    const updated = [];
+
+    if (!registrantSnapshot.empty) {
+      const doc = registrantSnapshot.docs[0];
+      const data = doc.data();
+      if (data.status === 'approved' && await updateDeliveryStatus(doc.ref, data, newStatus)) {
+        updated.push({ collectionName: 'registrants', docId: doc.id });
       }
     }
 
-    const docRef = snapshot.docs[0].ref;
-    const data = snapshot.docs[0].data();
-    const docId = snapshot.docs[0].id;
-
-    // Only track delivery for approved registrants. Outreach contacts do not have
-    // participant status, so their Resend events are tracked directly.
-    if (collectionName === 'registrants' && data.status !== 'approved') {
-      return res.status(200).json({ ok: true, skipped: 'not_approved' });
+    if (!outreachSnapshot.empty) {
+      const doc = outreachSnapshot.docs[0];
+      const data = doc.data();
+      const currentStatus = String(data.deliveryStatus || '').toLowerCase();
+      // If a registrant with the same email exists, only update outreach when
+      // this contact was actually sent through outreach. This avoids a normal
+      // registrant broadcast turning a never-contacted outreach row green.
+      const shouldUpdateOutreach = registrantSnapshot.empty || currentStatus === 'sent' || currentStatus === 'delayed';
+      if (shouldUpdateOutreach && await updateDeliveryStatus(doc.ref, data, newStatus)) {
+        updated.push({ collectionName: 'outreach_contacts', docId: doc.id });
+      }
     }
 
-    // Don't overwrite terminal failure states with a later success event.
-    if (TERMINAL_STATUSES.has(data.deliveryStatus)) {
-      return res.status(200).json({ ok: true, skipped: 'terminal_status' });
+    if (updated.length === 0) {
+      return res.status(200).json({ ok: true, skipped: 'no_eligible_document' });
     }
-
-    await docRef.update({
-      deliveryStatus: newStatus,
-      deliveryStatusAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
 
     logger.info('webhook', 'delivery_status_updated', {
-      entityId: docId,
       actorId: 'resend',
-      detail: { eventType, newStatus, resendEmailId, collectionName },
+      detail: { eventType, newStatus, resendEmailId, updated },
       status: 'ok',
     });
 
     // Persist permanent failures to audit log so they outlive Vercel log retention.
     if (newStatus === 'bounced' || newStatus === 'complained') {
-      try {
-        await db.collection('_audit_log').add({
-          type: newStatus === 'bounced' ? 'email_bounced' : 'email_complained',
-          actorId: 'resend_webhook',
-          entityId: docId,
-          collectionName,
-          resendEmailId,
-          eventType,
-          timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        });
-      } catch { /* audit log must never fail the main path */ }
+      await Promise.all(updated.map((u) => db.collection('_audit_log').add({
+        type: newStatus === 'bounced' ? 'email_bounced' : 'email_complained',
+        actorId: 'resend_webhook',
+        entityId: u.docId,
+        collectionName: u.collectionName,
+        resendEmailId,
+        eventType,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      }).catch(() => {})));
     }
 
-    return res.status(200).json({ ok: true, updated: newStatus });
+    return res.status(200).json({ ok: true, updated: newStatus, documents: updated.length });
   } catch (error) {
     logger.error('webhook', 'delivery_status_update_failed', { status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to update delivery status' });

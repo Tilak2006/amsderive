@@ -103,6 +103,23 @@ function attachTs(registrants) {
   }));
 }
 
+function attachOutreachTs(contacts) {
+  return contacts.map((c) => ({
+    ...c,
+    _ts: c.createdAt ? new Date(c.createdAt).getTime() : 0,
+  }));
+}
+
+function isSentLike(status) {
+  return ['sent', 'delivered'].includes(String(status || '').toLowerCase());
+}
+
+function deliveryLabel(status, unsubscribed) {
+  if (unsubscribed) return 'UNSUBSCRIBED';
+  if (!status) return 'NOT SENT';
+  return String(status).replace(/_/g, ' ').toUpperCase();
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -113,6 +130,13 @@ export default function AdminDashboard() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [activeList, setActiveList] = useState('registrants');
+  const [outreachContacts, setOutreachContacts] = useState([]);
+  const [outreachLastDoc, setOutreachLastDoc] = useState(null);
+  const [outreachHasMore, setOutreachHasMore] = useState(false);
+  const [loadingOutreach, setLoadingOutreach] = useState(true);
+  const [loadingMoreOutreach, setLoadingMoreOutreach] = useState(false);
+  const [outreachDeliveryFilter, setOutreachDeliveryFilter] = useState('all');
 
   const [stats, setStats] = useState({ total: 0, consentGiven: 0, today: 0, approved: 0, bounced: 0 });
 
@@ -218,12 +242,19 @@ export default function AdminDashboard() {
 
     async function loadAll() {
       setLoadingData(true);
+      setLoadingOutreach(true);
       try {
         const token = await getToken();
         const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        const [regRes, statsRes] = await Promise.all([
+        const [regRes, outreachRes, statsRes] = await Promise.all([
           fetch('/api/admin/get-registrants', {
+            method: 'POST',
+            headers: hdrs,
+            body: JSON.stringify({ lastDocId: null }),
+            signal: controller.signal,
+          }),
+          fetch('/api/admin/get-outreach-contacts', {
             method: 'POST',
             headers: hdrs,
             body: JSON.stringify({ lastDocId: null }),
@@ -237,17 +268,25 @@ export default function AdminDashboard() {
           }),
         ]);
 
-        const [regData, statsData] = await Promise.all([regRes.json(), statsRes.json()]);
+        if (!regRes.ok || !outreachRes.ok || !statsRes.ok) {
+          throw new Error('Admin data load failed');
+        }
+
+        const [regData, outreachData, statsData] = await Promise.all([regRes.json(), outreachRes.json(), statsRes.json()]);
 
         setRegistrants(attachTs(regData.registrants || []));
         setLastDoc(regData.lastDocId);
         setHasMore(regData.hasMore);
+        setOutreachContacts(attachOutreachTs(outreachData.contacts || []));
+        setOutreachLastDoc(outreachData.lastDocId);
+        setOutreachHasMore(outreachData.hasMore);
         setStats(statsData);
       } catch (err) {
         if (err.name === 'AbortError') return;
         console.error('[dashboard] loadAll error:', err);
       } finally {
         setLoadingData(false);
+        setLoadingOutreach(false);
       }
     }
 
@@ -304,6 +343,55 @@ export default function AdminDashboard() {
       console.error('[dashboard] loadMore error:', err);
     } finally {
       setLoadingMore(false);
+    }
+  }
+
+  async function refreshOutreachContacts() {
+    setLoadingOutreach(true);
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/get-outreach-contacts', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ lastDocId: null }),
+      });
+      if (!res.ok) throw new Error('Outreach refresh failed');
+      const result = await res.json();
+      setOutreachContacts(attachOutreachTs(result.contacts || []));
+      setOutreachLastDoc(result.lastDocId);
+      setOutreachHasMore(result.hasMore);
+    } catch (err) {
+      console.error('[dashboard] refreshOutreachContacts error:', err);
+    } finally {
+      setLoadingOutreach(false);
+    }
+  }
+
+  async function loadMoreOutreach() {
+    if (!outreachLastDoc || loadingMoreOutreach) return;
+    setLoadingMoreOutreach(true);
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/get-outreach-contacts', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ lastDocId: outreachLastDoc }),
+      });
+      if (res.status === 410) {
+        setOutreachLastDoc(null);
+        setOutreachHasMore(false);
+        setOutreachImportMsg({ type: 'error', text: 'Outreach cursor expired. Reload the page to continue.' });
+        return;
+      }
+      if (!res.ok) throw new Error('Outreach pagination failed');
+      const result = await res.json();
+      setOutreachContacts((prev) => [...prev, ...attachOutreachTs(result.contacts || [])]);
+      setOutreachLastDoc(result.lastDocId);
+      setOutreachHasMore(result.hasMore);
+    } catch (err) {
+      console.error('[dashboard] loadMoreOutreach error:', err);
+    } finally {
+      setLoadingMoreOutreach(false);
     }
   }
 
@@ -508,6 +596,8 @@ export default function AdminDashboard() {
         const parts = [`${data.imported} imported`, `${data.updated} updated`];
         if (data.invalid) parts.push(`${data.invalid} invalid`);
         setOutreachImportMsg({ type: 'success', text: parts.join(' · ') });
+        setActiveList('outreach');
+        await refreshOutreachContacts();
       } else {
         setOutreachImportMsg({ type: 'error', text: data.error || 'Import failed.' });
       }
@@ -552,6 +642,9 @@ export default function AdminDashboard() {
         setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} ${target}${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
         setBroadcastSubject('');
         setBroadcastBody('');
+        if (['outreach', 'both'].includes(data.targetType)) {
+          await refreshOutreachContacts();
+        }
       } else if (res.status === 409) {
         setBroadcastMsg({ type: 'error', text: 'This broadcast was already submitted.' });
       } else {
@@ -587,6 +680,29 @@ export default function AdminDashboard() {
     if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
     return list;
   }, [registrants, search, filterConsent, filterUniversity, filterBranch, sortOrder]);
+
+  const filteredOutreach = useMemo(() => {
+    const q = search.toLowerCase();
+    const list = outreachContacts.filter((c) => {
+      const status = String(c.deliveryStatus || '').toLowerCase();
+      if (q && !(
+        c.fullName.toLowerCase().includes(q) ||
+        c.email.toLowerCase().includes(q) ||
+        (c.institution || '').toLowerCase().includes(q)
+      )) return false;
+      if (outreachDeliveryFilter === 'sent' && !isSentLike(status)) return false;
+      if (outreachDeliveryFilter === 'not_sent' && status) return false;
+      if (outreachDeliveryFilter === 'bounced' && status !== 'bounced') return false;
+      if (outreachDeliveryFilter === 'complained' && status !== 'complained') return false;
+      if (outreachDeliveryFilter === 'unsubscribed' && !c.unsubscribed) return false;
+      return true;
+    });
+
+    if (sortOrder === 'newest') return list.sort((a, b) => b._ts - a._ts);
+    if (sortOrder === 'oldest') return list.sort((a, b) => a._ts - b._ts);
+    if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    return list;
+  }, [outreachContacts, search, outreachDeliveryFilter, sortOrder]);
 
   if (checking) {
     return (
@@ -747,7 +863,20 @@ export default function AdminDashboard() {
 
           {/* Tabs */}
           <div className={styles.tabBar}>
-            <span className={`${styles.tab} ${styles.tabActive}`}>REGISTRANTS</span>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeList === 'registrants' ? styles.tabActive : ''}`}
+              onClick={() => setActiveList('registrants')}
+            >
+              REGISTRANTS
+            </button>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeList === 'outreach' ? styles.tabActive : ''}`}
+              onClick={() => { setActiveList('outreach'); setSelectedRegistrant(null); }}
+            >
+              OUTREACH
+            </button>
             <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
             <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
             <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
@@ -774,53 +903,70 @@ export default function AdminDashboard() {
             <input
               className={styles.searchInput}
               type="text"
-              placeholder="Search name, email, CF handle..."
+              placeholder={activeList === 'outreach' ? 'Search name, email, institution...' : 'Search name, email, CF handle...'}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
-            <select
-              className={styles.filterSelect}
-              value={filterConsent}
-              onChange={(e) => setFilterConsent(e.target.value)}
-            >
-              <option value="all">All</option>
-              <option value="yes">Consent Given</option>
-              <option value="no">Consent Not Given</option>
-            </select>
-            <select
-              className={styles.filterSelect}
-              value={filterUniversity}
-              onChange={(e) => setFilterUniversity(e.target.value)}
-            >
-              <option value="all">All Universities</option>
-              <option value="iit">IIT</option>
-              <option value="nit">NIT</option>
-              <option value="iiit">IIIT</option>
-              <option value="bits">BITS</option>
-              <option value="vit">VIT</option>
-              <option value="thadomal">Thadomal</option>
-            </select>
-            <select
-              className={styles.filterSelect}
-              value={filterBranch}
-              onChange={(e) => setFilterBranch(e.target.value)}
-            >
-              <option value="all">All Branches</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="AI & Machine Learning">AI &amp; Machine Learning</option>
-              <option value="Electronics & Communication Engineering">Electronics &amp; Communication Engineering</option>
-              <option value="Electrical Engineering">Electrical Engineering</option>
-              <option value="Mechanical Engineering">Mechanical Engineering</option>
-              <option value="Chemical Engineering">Chemical Engineering</option>
-              <option value="Civil Engineering">Civil Engineering</option>
-              <option value="Engineering Physics">Engineering Physics</option>
-              <option value="Mathematics and Computing">Mathematics and Computing</option>
-              <option value="Data Science & Engineering">Data Science &amp; Engineering</option>
-              <option value="Biotechnology">Biotechnology</option>
-              <option value="Statistics">Statistics</option>
-              <option value="Other">Other</option>
-            </select>
+            {activeList === 'registrants' ? (
+              <>
+                <select
+                  className={styles.filterSelect}
+                  value={filterConsent}
+                  onChange={(e) => setFilterConsent(e.target.value)}
+                >
+                  <option value="all">All</option>
+                  <option value="yes">Consent Given</option>
+                  <option value="no">Consent Not Given</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
+                  value={filterUniversity}
+                  onChange={(e) => setFilterUniversity(e.target.value)}
+                >
+                  <option value="all">All Universities</option>
+                  <option value="iit">IIT</option>
+                  <option value="nit">NIT</option>
+                  <option value="iiit">IIIT</option>
+                  <option value="bits">BITS</option>
+                  <option value="vit">VIT</option>
+                  <option value="thadomal">Thadomal</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
+                  value={filterBranch}
+                  onChange={(e) => setFilterBranch(e.target.value)}
+                >
+                  <option value="all">All Branches</option>
+                  <option value="Computer Science">Computer Science</option>
+                  <option value="Information Technology">Information Technology</option>
+                  <option value="AI & Machine Learning">AI &amp; Machine Learning</option>
+                  <option value="Electronics & Communication Engineering">Electronics &amp; Communication Engineering</option>
+                  <option value="Electrical Engineering">Electrical Engineering</option>
+                  <option value="Mechanical Engineering">Mechanical Engineering</option>
+                  <option value="Chemical Engineering">Chemical Engineering</option>
+                  <option value="Civil Engineering">Civil Engineering</option>
+                  <option value="Engineering Physics">Engineering Physics</option>
+                  <option value="Mathematics and Computing">Mathematics and Computing</option>
+                  <option value="Data Science & Engineering">Data Science &amp; Engineering</option>
+                  <option value="Biotechnology">Biotechnology</option>
+                  <option value="Statistics">Statistics</option>
+                  <option value="Other">Other</option>
+                </select>
+              </>
+            ) : (
+              <select
+                className={styles.filterSelect}
+                value={outreachDeliveryFilter}
+                onChange={(e) => setOutreachDeliveryFilter(e.target.value)}
+              >
+                <option value="all">All Outreach</option>
+                <option value="sent">Sent / Delivered</option>
+                <option value="not_sent">Not Sent</option>
+                <option value="bounced">Bounced</option>
+                <option value="complained">Spam Complaint</option>
+                <option value="unsubscribed">Unsubscribed</option>
+              </select>
+            )}
             <select
               className={styles.filterSelect}
               value={sortOrder}
@@ -831,11 +977,14 @@ export default function AdminDashboard() {
               <option value="name">Name A–Z</option>
             </select>
             <span className={styles.resultCount}>
-              Showing {filtered.length} of {registrants.length}
+              {activeList === 'outreach'
+                ? `Showing ${filteredOutreach.length} of ${outreachContacts.length}`
+                : `Showing ${filtered.length} of ${registrants.length}`}
             </span>
           </div>
 
           {/* Bulk actions */}
+          {activeList === 'registrants' && (
           <div className={styles.bulkActions}>
             <button
               className={styles.copyCfBtn}
@@ -877,11 +1026,14 @@ export default function AdminDashboard() {
               </span>
             )}
           </div>
+          )}
 
           {/* Table */}
-          {loadingData ? (
+          {activeList === 'registrants' && loadingData ? (
             <div className={styles.tableLoading}>Loading registrants...</div>
-          ) : (
+          ) : activeList === 'outreach' && loadingOutreach ? (
+            <div className={styles.tableLoading}>Loading outreach contacts...</div>
+          ) : activeList === 'registrants' ? (
             <div className={styles.tableWrap}>
               <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
                 <table className={styles.table}>
@@ -932,12 +1084,63 @@ export default function AdminDashboard() {
                 </table>
               </div>
             </div>
+          ) : (
+            <div className={styles.tableWrap}>
+              <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      {['#', 'Full Name', 'Email', 'Institution', 'Delivery', 'Source', 'Imported At', 'Last Update'].map((h) => (
+                        <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOutreach.length === 0 ? (
+                      <tr>
+                        <td colSpan={8} className={styles.emptyRow}>No outreach contacts found.</td>
+                      </tr>
+                    ) : filteredOutreach.map((contact, i) => {
+                      const status = String(contact.deliveryStatus || '').toLowerCase();
+                      const sent = isSentLike(status);
+                      const failed = status === 'bounced' || status === 'complained';
+                      return (
+                        <tr
+                          key={contact.id}
+                          className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${sent ? styles.trApproved : ''}`}
+                        >
+                          <td className={styles.td}>{i + 1}</td>
+                          <td className={styles.td}>{contact.fullName}</td>
+                          <td className={`${styles.td} ${styles.mono}`}>{contact.email}</td>
+                          <td className={styles.td}>{contact.institution || '—'}</td>
+                          <td className={styles.td}>
+                            <span className={contact.unsubscribed || failed ? styles.badgeRed : sent ? styles.badgeGreen : status === 'delayed' ? styles.badgeYellow : styles.badgeGrey}>
+                              {deliveryLabel(contact.deliveryStatus, contact.unsubscribed)}
+                            </span>
+                          </td>
+                          <td className={`${styles.td} ${styles.mono}`}>{contact.source || '—'}</td>
+                          <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.createdAt)}</td>
+                          <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.deliveryStatusAt || contact.lastBroadcastAt)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
 
-          {hasMore && (
+          {activeList === 'registrants' && hasMore && (
             <div className={styles.loadMoreWrap}>
               <button className={styles.loadMoreBtn} onClick={loadMore} disabled={loadingMore}>
                 {loadingMore ? <span className={styles.loadingDots}>Loading</span> : 'LOAD MORE'}
+              </button>
+            </div>
+          )}
+          {activeList === 'outreach' && outreachHasMore && (
+            <div className={styles.loadMoreWrap}>
+              <button className={styles.loadMoreBtn} onClick={loadMoreOutreach} disabled={loadingMoreOutreach}>
+                {loadingMoreOutreach ? <span className={styles.loadingDots}>Loading</span> : 'LOAD MORE'}
               </button>
             </div>
           )}
