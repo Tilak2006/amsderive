@@ -194,7 +194,7 @@ const AMSAboutSection = () => {
           </p>
           <div className={styles.communityLinks}>
             <a
-              href="https://chat.whatsapp.com/L1N6lksa6t3KW2I9Z7fHyq?mode=gi_t"
+              href="https://chat.whatsapp.com/GSyVZSW3ZgZ1xfJMpzK5cS"
               target="_blank"
               rel="noopener noreferrer"
               className={`${styles.communityBtn} ${styles.communityBtnPrimary}`}

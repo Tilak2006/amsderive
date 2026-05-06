@@ -154,7 +154,7 @@ export default function CompetitionPage() {
             <p className={s.timelineNote}>
               All dates are tentative and subject to confirmation. Registered participants will be
               notified directly via email at each stage transition. Join the{' '}
-              <a href="https://chat.whatsapp.com/D3OxCs0L1V8IodpRVzG6cw" target="_blank" rel="noopener noreferrer">
+              <a href="https://chat.whatsapp.com/GSyVZSW3ZgZ1xfJMpzK5cS" target="_blank" rel="noopener noreferrer">
                 AMS Derive community group
               </a>
               {' '}for live updates.

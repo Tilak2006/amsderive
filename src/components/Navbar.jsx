@@ -66,7 +66,7 @@ const Navbar = () => {
 
         <div className={styles.navActions}>
           <a
-            href="https://chat.whatsapp.com/D3OxCs0L1V8IodpRVzG6cw"
+            href="https://chat.whatsapp.com/GSyVZSW3ZgZ1xfJMpzK5cS"
             target="_blank"
             rel="noopener noreferrer"
             className={styles.notifyBtn}
