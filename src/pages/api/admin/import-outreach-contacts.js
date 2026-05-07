@@ -124,31 +124,36 @@ export default async function handler(req, res) {
   const institutionIdx = headers.indexOf('institution');
   const emailIdx = headers.indexOf('email');
 
-  if (nameIdx < 0 || institutionIdx < 0 || emailIdx < 0) {
-    return res.status(400).json({ error: 'CSV headers must include Full Name, Institution, Email.' });
+  if (emailIdx < 0) {
+    return res.status(400).json({ error: 'CSV headers must include Email.' });
   }
 
   const contactsByEmail = new Map();
   let invalid = 0;
 
   for (const row of rows.slice(1)) {
-    const fullName = String(row[nameIdx] || '').trim();
-    const institution = String(row[institutionIdx] || '').trim();
+    const fullName = nameIdx >= 0 ? String(row[nameIdx] || '').trim() : '';
+    const institution = institutionIdx >= 0 ? String(row[institutionIdx] || '').trim() : '';
     const email = String(row[emailIdx] || '').trim().toLowerCase();
 
-    if (!fullName || !institution || !isValidEmail(email)) {
+    if (!isValidEmail(email)) {
       invalid += 1;
       continue;
     }
 
-    contactsByEmail.set(email, {
+    const contact = {
       email,
       emailLower: email,
-      fullName,
-      institution,
-      firstName: firstNameFrom(fullName),
       source: 'cf_outreach',
-    });
+    };
+
+    if (fullName) {
+      contact.fullName = fullName;
+      contact.firstName = firstNameFrom(fullName);
+    }
+    if (institution) contact.institution = institution;
+
+    contactsByEmail.set(email, contact);
   }
 
   const contacts = Array.from(contactsByEmail.values());
