@@ -67,11 +67,181 @@ const researchAreas = [
   { id: '06', text: 'Quantitative finance & strategy simulation' },
 ];
 
+const roundOneTests = [
+  'Reasoning under pressure',
+  'Mathematical intuition',
+  'Probabilistic thinking',
+  'Algorithmic problem solving',
+  'Strategic decision making',
+];
+
+const roundOneTopics = [
+  {
+    name: 'Probability & Expected Value',
+    topics: [
+      'conditional probability',
+      'linearity of expectation',
+      'intuitive EV reasoning',
+      'distributions/basic variance intuition',
+    ],
+  },
+  {
+    name: 'Combinatorics',
+    topics: [
+      'counting',
+      'constructive thinking',
+      'parity/invariants',
+      'recurrence intuition',
+    ],
+  },
+  {
+    name: 'Game Theory & Brain Teasers',
+    topics: [
+      'adversarial reasoning',
+      'optimal play',
+      'strategic simplification',
+      'puzzle solving',
+    ],
+  },
+  {
+    name: 'Algorithms & Programming',
+    topics: [
+      'implementation',
+      'greedy',
+      'DP intuition',
+      'basic data structures',
+      'Codeforces Div2 C/D level thinking',
+    ],
+  },
+  {
+    name: 'Market Microstructure Basics',
+    topics: [
+      'bid/ask',
+      'spread',
+      'order flow intuition',
+      'matching logic',
+      'simple trading/game simulations',
+    ],
+  },
+];
+
+const practiceGroups = [
+  {
+    name: 'Competitive Programming',
+    topics: [
+      'Solve Div2 A-D regularly on Codeforces',
+      'Focus more on reasoning than memorizing templates',
+    ],
+  },
+  {
+    name: 'Puzzles & Quant Teasers',
+    topics: [
+      'estimation problems',
+      'probability puzzles',
+      'game strategy questions',
+      'mental models',
+    ],
+  },
+];
+
+const recommendedResources = [
+  'Project Euler',
+  'Brilliant.org',
+  'Chess Programming Wiki for strategic/system thinking',
+  'Green Book / classic quant interview puzzles',
+  'YouTube channels around probability, game theory, and mathematical thinking',
+];
+
 const SyllabusSection = () => {
   return (
     <section id="syllabus" className={styles.syllabusPage}>
       <div className={styles.container}>
         <h1 className={styles.pageTitle}>Syllabus</h1>
+
+        <details className={styles.prepGuide}>
+          <summary className={styles.prepGuideSummary}>
+            <span className={styles.prepGuideSummaryCopy}>
+              <span className={styles.prepGuideEyebrow}>Round 1 · PRIOR</span>
+              <span className={styles.prepGuideTitle}>AMS Derive Round 1 | Preparation Guide</span>
+              <span className={styles.prepGuidePreview}>
+                What to build before the first online round.
+              </span>
+            </span>
+            <span className={styles.prepGuideToggle} aria-hidden="true" />
+          </summary>
+
+          <div className={styles.prepGuideBody}>
+            <div className={styles.prepGuideIntro}>
+              <h2 className={styles.prepBlockTitle}>What Round 1 Tests</h2>
+              <p className={styles.prepLead}>
+                Round 1 tests reasoning under pressure, mathematical intuition, probabilistic thinking,
+                algorithmic problem solving, and strategic decision making.
+              </p>
+              <p className={styles.prepEmphasis}>It does not test rote memorization.</p>
+              <div className={styles.focusGrid}>
+                {roundOneTests.map((item) => (
+                  <span key={item} className={styles.focusPill}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Topics You Should Be Comfortable With</h2>
+              <div className={styles.prepTopicGrid}>
+                {roundOneTopics.map((group) => (
+                  <article key={group.name} className={styles.prepTopicCard}>
+                    <h3>{group.name}</h3>
+                    <ul>
+                      {group.topics.map((topic) => (
+                        <li key={topic}>{topic}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Suggested Practice</h2>
+              <div className={styles.practiceGrid}>
+                {practiceGroups.map((group) => (
+                  <article key={group.name} className={styles.practiceCard}>
+                    <h3>{group.name}</h3>
+                    <ul>
+                      {group.topics.map((topic) => (
+                        <li key={topic}>{topic}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Recommended Resources</h2>
+              <ul className={styles.resourceList}>
+                {recommendedResources.map((resource) => (
+                  <li key={resource}>{resource}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles.importantNote}>
+              <span className={styles.importantNoteLabel}>Important Note</span>
+              <p>
+                AMS Derive is designed to reward original thinking and problem solving ability over
+                memorized tricks.
+              </p>
+              <p>
+                You do NOT need prior finance or trading experience to perform well. Anything requiring
+                financial context or prerequisite knowledge will be described in the question for people
+                who do not already know it.
+              </p>
+            </div>
+          </div>
+        </details>
+
+        <hr className={styles.divider} />
 
         <div className={styles.sectionsWrapper}>
           {sections.map((sec, idx) => (

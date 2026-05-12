@@ -146,7 +146,13 @@ const nextConfig = {
         ],
       },
       {
-        source: '/(syllabus|about|competition|rules|ams-derive|campus-ambassador-leaderboard)',
+        source: '/syllabus',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' },
+        ],
+      },
+      {
+        source: '/(about|competition|rules|ams-derive|campus-ambassador-leaderboard)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' },
         ],
