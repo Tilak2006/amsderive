@@ -121,15 +121,46 @@ export function serializeRegistrantDoc(doc) {
   };
 }
 
+export function serializeSubadminRegistrantDoc(doc) {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    fullName: data.fullName || '',
+    university: data.university || '',
+    branch: data.branch || '',
+    graduationYear: data.graduationYear || null,
+    codeforcesHandle: data.codeforcesHandle || '',
+    dataConsent: data.dataConsent || false,
+    submittedAt: timestampIso(data.submittedAt),
+    status: data.status || 'pending',
+    round: data.round || 'prior',
+    refCode: data.refCode || null,
+  };
+}
+
+export function parseSubadminRegistrantFilters(body = {}) {
+  const filters = parseRegistrantFilters(body);
+  return {
+    ...filters,
+    deliveryStatus: 'all',
+    refCode: '',
+    transcript: 'all',
+    searchFields: ['fullName', 'university', 'codeforcesHandle'],
+  };
+}
+
 function matchesRegistrantFilters(data, filters) {
+  const searchFields = filters.searchFields || [
+    'fullName',
+    'email',
+    'emailLower',
+    'university',
+    'codeforcesHandle',
+    'phoneNumber',
+    'refCode',
+  ];
   const searchable = [
-    data.fullName,
-    data.email,
-    data.emailLower,
-    data.university,
-    data.codeforcesHandle,
-    data.phoneNumber,
-    data.refCode,
+    ...searchFields.map((field) => data[field]),
   ].map(lower).join(' ');
 
   if (filters.search && !searchable.includes(filters.search)) return false;
@@ -159,15 +190,49 @@ function matchesRegistrantFilters(data, filters) {
 }
 
 function orderedRegistrantQuery(db, filters) {
-  if (filters.sortOrder === 'name') {
-    return db.collection('registrants').orderBy('fullName', 'asc');
+  let query = db.collection('registrants');
+
+  const pushedEquality = getPushedEqualityFilter(filters);
+  if (pushedEquality) {
+    query = query.where(pushedEquality.field, '==', pushedEquality.value);
   }
-  return db
-    .collection('registrants')
-    .orderBy('submittedAt', filters.sortOrder === 'oldest' ? 'asc' : 'desc');
+
+  if (filters.sortOrder !== 'name' && filters.dateStartMs) {
+    query = query.where('submittedAt', '>=', timestampFromMillis(filters.dateStartMs));
+  }
+  if (filters.sortOrder !== 'name' && filters.dateEndMs) {
+    query = query.where('submittedAt', '<=', timestampFromMillis(filters.dateEndMs));
+  }
+
+  if (filters.sortOrder === 'name') {
+    return query.orderBy('fullName', 'asc');
+  }
+  return query.orderBy('submittedAt', filters.sortOrder === 'oldest' ? 'asc' : 'desc');
 }
 
-export async function queryAdminRegistrants(db, filters, { lastDocId = null, pageSize = DEFAULT_PAGE_SIZE, exportAll = false } = {}) {
+function timestampFromMillis(ms) {
+  const Timestamp = globalThis?.FirebaseFirestore?.Timestamp;
+  if (Timestamp?.fromMillis) return Timestamp.fromMillis(ms);
+  return new Date(ms);
+}
+
+function getPushedEqualityFilter(filters) {
+  if (filters.sortOrder === 'name') return null;
+  if (filters.university) return { field: 'university', value: filters.university };
+  if (filters.graduationYear) return { field: 'graduationYear', value: filters.graduationYear };
+  if (filters.status === 'approved' || filters.status === 'rejected') return { field: 'status', value: filters.status };
+  if (filters.round === 'posterior' || filters.round === 'convergence') return { field: 'round', value: filters.round };
+  if (filters.consent === 'yes') return { field: 'dataConsent', value: true };
+  if (filters.branch) return { field: 'branch', value: filters.branch };
+  return null;
+}
+
+export async function queryAdminRegistrants(db, filters, {
+  lastDocId = null,
+  pageSize = DEFAULT_PAGE_SIZE,
+  exportAll = false,
+  serializer = serializeRegistrantDoc,
+} = {}) {
   const matches = [];
   let cursorSnap = null;
   let exhausted = false;
@@ -209,7 +274,7 @@ export async function queryAdminRegistrants(db, filters, { lastDocId = null, pag
   const hasMore = !exportAll && (matches.length > pageSize || !exhausted);
 
   return {
-    registrants: pageDocs.map(serializeRegistrantDoc),
+    registrants: pageDocs.map(serializer),
     lastDocId: hasMore && pageDocs.length > 0 ? pageDocs[pageDocs.length - 1].id : null,
     hasMore,
   };

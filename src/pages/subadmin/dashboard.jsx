@@ -21,6 +21,30 @@ function attachTs(registrants) {
   return registrants.map((r) => ({ ...r, _ts: r.submittedAt ? new Date(r.submittedAt).getTime() : 0 }));
 }
 
+function buildSubadminRequestBody(filters, lastDocId = null, includeOptions = false) {
+  return {
+    lastDocId,
+    includeOptions,
+    search: filters.search,
+    status: filters.status,
+    round: filters.round,
+    dateRange: filters.dateRange,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    graduationYear: filters.graduationYear,
+    university: filters.university === 'all' ? '' : filters.university,
+    branch: filters.branch === 'all' ? '' : filters.branch,
+    consent: filters.consent,
+    sortOrder: filters.sortOrder,
+  };
+}
+
+function statusBadgeClass(status) {
+  if (status === 'approved') return styles.badgeGreen;
+  if (status === 'rejected') return styles.badgeRed;
+  return styles.badgeGrey;
+}
+
 export default function SubadminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -36,14 +60,25 @@ export default function SubadminDashboard() {
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRound, setFilterRound] = useState('all');
+  const [filterDateRange, setFilterDateRange] = useState('all');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterGraduationYear, setFilterGraduationYear] = useState('all');
   const [filterConsent, setFilterConsent] = useState('all');
   const [filterUniversity, setFilterUniversity] = useState('all');
   const [filterBranch, setFilterBranch] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
+  const [universityOptions, setUniversityOptions] = useState([]);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
 
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
+  const lastUrlQueryRef = useRef('');
+  const tableScrollRef = useRef(null);
+  const lastRegistrantFilterKeyRef = useRef('');
 
   async function getToken() {
     if (tokenCache.current.token && Date.now() < tokenCache.current.expiry) {
@@ -58,6 +93,32 @@ export default function SubadminDashboard() {
     const token = await getToken();
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   }
+
+  const registrantFilters = useMemo(() => ({
+    search,
+    status: filterStatus,
+    round: filterRound,
+    dateRange: filterDateRange,
+    startDate: filterStartDate,
+    endDate: filterEndDate,
+    graduationYear: filterGraduationYear,
+    consent: filterConsent,
+    university: filterUniversity,
+    branch: filterBranch,
+    sortOrder,
+  }), [
+    search,
+    filterStatus,
+    filterRound,
+    filterDateRange,
+    filterStartDate,
+    filterEndDate,
+    filterGraduationYear,
+    filterConsent,
+    filterUniversity,
+    filterBranch,
+    sortOrder,
+  ]);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -82,52 +143,169 @@ export default function SubadminDashboard() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // ── URL-persisted registrant filters ────────────────────────────────────
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query || {};
+    const get = (key, fallback = '') => {
+      const value = q[key];
+      return Array.isArray(value) ? (value[0] || fallback) : (value || fallback);
+    };
+    const urlState = {
+      search: get('search'),
+      status: get('status', 'all'),
+      round: get('round', 'all'),
+      dateRange: get('dateRange', 'all'),
+      startDate: get('startDate'),
+      endDate: get('endDate'),
+      graduationYear: get('graduationYear', 'all'),
+      consent: get('consent', 'all'),
+      university: get('university', 'all'),
+      branch: get('branch', 'all'),
+      sort: get('sort', 'newest'),
+    };
+    const compactQuery = {};
+    if (urlState.search) compactQuery.search = urlState.search;
+    if (urlState.status !== 'all') compactQuery.status = urlState.status;
+    if (urlState.round !== 'all') compactQuery.round = urlState.round;
+    if (urlState.dateRange !== 'all') compactQuery.dateRange = urlState.dateRange;
+    if (urlState.dateRange === 'custom' && urlState.startDate) compactQuery.startDate = urlState.startDate;
+    if (urlState.dateRange === 'custom' && urlState.endDate) compactQuery.endDate = urlState.endDate;
+    if (urlState.graduationYear !== 'all') compactQuery.graduationYear = urlState.graduationYear;
+    if (urlState.consent !== 'all') compactQuery.consent = urlState.consent;
+    if (urlState.university !== 'all') compactQuery.university = urlState.university;
+    if (urlState.branch !== 'all') compactQuery.branch = urlState.branch;
+    if (urlState.sort !== 'newest') compactQuery.sort = urlState.sort;
+    const serialized = JSON.stringify(compactQuery);
+    if (filtersHydrated && serialized === lastUrlQueryRef.current) return;
+    lastUrlQueryRef.current = serialized;
+
+    setSearchInput(urlState.search);
+    setSearch(urlState.search);
+    setFilterStatus(urlState.status);
+    setFilterRound(urlState.round);
+    setFilterDateRange(urlState.dateRange);
+    setFilterStartDate(urlState.startDate);
+    setFilterEndDate(urlState.endDate);
+    setFilterGraduationYear(urlState.graduationYear);
+    setFilterConsent(urlState.consent);
+    setFilterUniversity(urlState.university);
+    setFilterBranch(urlState.branch);
+    setSortOrder(urlState.sort);
+    setFiltersHydrated(true);
+  }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!router.isReady || !filtersHydrated) return;
+
+    const nextQuery = {};
+    if (search) nextQuery.search = search;
+    if (filterStatus !== 'all') nextQuery.status = filterStatus;
+    if (filterRound !== 'all') nextQuery.round = filterRound;
+    if (filterDateRange !== 'all') nextQuery.dateRange = filterDateRange;
+    if (filterDateRange === 'custom' && filterStartDate) nextQuery.startDate = filterStartDate;
+    if (filterDateRange === 'custom' && filterEndDate) nextQuery.endDate = filterEndDate;
+    if (filterGraduationYear !== 'all') nextQuery.graduationYear = filterGraduationYear;
+    if (filterConsent !== 'all') nextQuery.consent = filterConsent;
+    if (filterUniversity !== 'all') nextQuery.university = filterUniversity;
+    if (filterBranch !== 'all') nextQuery.branch = filterBranch;
+    if (sortOrder !== 'newest') nextQuery.sort = sortOrder;
+
+    const serialized = JSON.stringify(nextQuery);
+    if (serialized === lastUrlQueryRef.current) return;
+    lastUrlQueryRef.current = serialized;
+    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true });
+  }, [
+    router,
+    filtersHydrated,
+    search,
+    filterStatus,
+    filterRound,
+    filterDateRange,
+    filterStartDate,
+    filterEndDate,
+    filterGraduationYear,
+    filterConsent,
+    filterUniversity,
+    filterBranch,
+    sortOrder,
+  ]);
+
   // ── Search debounce ──────────────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 200);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // ── Initial data load ────────────────────────────────────────────────────
+  // ── Initial stats load ───────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return;
     const controller = new AbortController();
 
     async function loadAll() {
-      setLoadingData(true);
       try {
         const token = await getToken();
         const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        const [regRes, statsRes] = await Promise.all([
-          fetch('/api/subadmin/get-registrants', {
-            method: 'POST', headers: hdrs,
-            body: JSON.stringify({ lastDocId: null }),
-            signal: controller.signal,
-          }),
-          fetch('/api/subadmin/get-stats', {
-            method: 'POST', headers: hdrs,
-            body: JSON.stringify({}),
-            signal: controller.signal,
-          }),
-        ]);
+        const statsRes = await fetch('/api/subadmin/get-stats', {
+          method: 'POST', headers: hdrs,
+          body: JSON.stringify({}),
+          signal: controller.signal,
+        });
 
-        const [regData, statsData] = await Promise.all([regRes.json(), statsRes.json()]);
-        setRegistrants(attachTs(regData.registrants || []));
-        setLastDoc(regData.lastDocId);
-        setHasMore(regData.hasMore);
+        const statsData = await statsRes.json();
         setStats(statsData);
       } catch (err) {
         if (err.name === 'AbortError') return;
         console.error('[subadmin dashboard] loadAll error:', err);
-      } finally {
-        setLoadingData(false);
       }
     }
 
     loadAll();
     return () => controller.abort();
   }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Filter-aware registrant load ────────────────────────────────────────
+  useEffect(() => {
+    if (!user || !filtersHydrated) return;
+    const controller = new AbortController();
+
+    async function loadRegistrants() {
+      const filterKey = JSON.stringify(registrantFilters);
+      const filtersChanged = lastRegistrantFilterKeyRef.current && lastRegistrantFilterKeyRef.current !== filterKey;
+      lastRegistrantFilterKeyRef.current = filterKey;
+      if (filtersChanged && tableScrollRef.current) {
+        tableScrollRef.current.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      }
+      setLoadingData(true);
+      setSelectedRegistrant(null);
+      try {
+        const hdrs = await authHeaders();
+        const res = await fetch('/api/subadmin/get-registrants', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify(buildSubadminRequestBody(registrantFilters, null, universityOptions.length === 0)),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('Registrant load failed');
+        const result = await res.json();
+        setRegistrants(attachTs(result.registrants || []));
+        setLastDoc(result.lastDocId);
+        setHasMore(result.hasMore);
+        if (result.filterOptions?.universities) {
+          setUniversityOptions(result.filterOptions.universities);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('[subadmin dashboard] loadRegistrants error:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    loadRegistrants();
+    return () => controller.abort();
+  }, [user?.uid, filtersHydrated, registrantFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Stats poll — every 5 min ─────────────────────────────────────────────
   useEffect(() => {
@@ -153,7 +331,7 @@ export default function SubadminDashboard() {
       const hdrs = await authHeaders();
       const res = await fetch('/api/subadmin/get-registrants', {
         method: 'POST', headers: hdrs,
-        body: JSON.stringify({ lastDocId: lastDoc }),
+        body: JSON.stringify(buildSubadminRequestBody(registrantFilters, lastDoc)),
       });
       if (res.status === 410) { setLastDoc(null); setHasMore(false); return; }
       const result = await res.json();
@@ -179,27 +357,8 @@ export default function SubadminDashboard() {
     router.push('/subadmin/login');
   }
 
-  // ── Filtered + sorted list ────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    const list = registrants.filter((r) => {
-      if (q && !(
-        r.fullName.toLowerCase().includes(q) ||
-        r.codeforcesHandle.toLowerCase().includes(q) ||
-        (r.university || '').toLowerCase().includes(q)
-      )) return false;
-      if (filterConsent === 'yes' && !r.dataConsent) return false;
-      if (filterConsent === 'no' && r.dataConsent) return false;
-      if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
-      if (filterBranch !== 'all' && (r.branch || '').toLowerCase() !== filterBranch.toLowerCase()) return false;
-      return true;
-    });
-
-    if (sortOrder === 'newest') return list.sort((a, b) => b._ts - a._ts);
-    if (sortOrder === 'oldest') return list.sort((a, b) => a._ts - b._ts);
-    if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
-    return list;
-  }, [registrants, search, filterConsent, filterUniversity, filterBranch, sortOrder]);
+  // Registrants are filtered and sorted by /api/subadmin/get-registrants.
+  const filtered = registrants;
 
   if (checking) {
     return (
@@ -253,7 +412,7 @@ export default function SubadminDashboard() {
           </div>
 
           {/* Filters */}
-          <div className={styles.filterBar}>
+          <div className={`${styles.filterBar} ${styles.filterBarSticky}`}>
             <input
               className={styles.searchInput}
               type="text"
@@ -261,6 +420,47 @@ export default function SubadminDashboard() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
+            <select className={styles.filterSelect} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+              <option value="all">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+            <select className={styles.filterSelect} value={filterRound} onChange={(e) => setFilterRound(e.target.value)}>
+              <option value="all">All Rounds</option>
+              <option value="prior">PRIOR</option>
+              <option value="posterior">POSTERIOR</option>
+              <option value="convergence">CONVERGENCE</option>
+            </select>
+            <select className={styles.filterSelect} value={filterDateRange} onChange={(e) => setFilterDateRange(e.target.value)}>
+              <option value="all">Any Date</option>
+              <option value="today">Today</option>
+              <option value="last24h">Last 24h</option>
+              <option value="last7d">Last 7d</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            {filterDateRange === 'custom' && (
+              <>
+                <input
+                  className={styles.filterTextInput}
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                />
+                <input
+                  className={styles.filterTextInput}
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                />
+              </>
+            )}
+            <select className={styles.filterSelect} value={filterGraduationYear} onChange={(e) => setFilterGraduationYear(e.target.value)}>
+              <option value="all">All Grad Years</option>
+              {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035].map((year) => (
+                <option key={year} value={String(year)}>{year}</option>
+              ))}
+            </select>
             <select className={styles.filterSelect} value={filterConsent} onChange={(e) => setFilterConsent(e.target.value)}>
               <option value="all">All</option>
               <option value="yes">Consent Given</option>
@@ -268,12 +468,12 @@ export default function SubadminDashboard() {
             </select>
             <select className={styles.filterSelect} value={filterUniversity} onChange={(e) => setFilterUniversity(e.target.value)}>
               <option value="all">All Universities</option>
-              <option value="iit">IIT</option>
-              <option value="nit">NIT</option>
-              <option value="iiit">IIIT</option>
-              <option value="bits">BITS</option>
-              <option value="vit">VIT</option>
-              <option value="thadomal">Thadomal</option>
+              {[
+                ...(filterUniversity !== 'all' && !universityOptions.includes(filterUniversity) ? [filterUniversity] : []),
+                ...universityOptions,
+              ].map((university) => (
+                <option key={university} value={university}>{university}</option>
+              ))}
             </select>
             <select className={styles.filterSelect} value={filterBranch} onChange={(e) => setFilterBranch(e.target.value)}>
               <option value="all">All Branches</option>
@@ -297,28 +497,30 @@ export default function SubadminDashboard() {
               <option value="oldest">Oldest First</option>
               <option value="name">Name A–Z</option>
             </select>
-            <span className={styles.resultCount}>
-              Showing {filtered.length} of {registrants.length}
+            <span className={`${styles.resultCount} ${loadingData && filtered.length > 0 ? styles.resultCountLoading : ''}`}>
+              {loadingData && filtered.length > 0
+                ? 'Refreshing...'
+                : `Showing ${filtered.length}${hasMore ? '+' : ''} result${filtered.length === 1 ? '' : 's'}`}
             </span>
           </div>
 
           {/* Table */}
-          {loadingData ? (
+          {loadingData && filtered.length === 0 ? (
             <div className={styles.tableLoading}>Loading registrants...</div>
           ) : (
-            <div className={styles.tableWrap}>
-              <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
+            <div className={`${styles.tableWrap} ${loadingData ? styles.tableRefreshing : ''}`}>
+              <div ref={tableScrollRef} className={styles.tableViewport}>
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      {['#', 'Full Name', 'University', 'Branch', 'CF Handle', 'Consent', 'Submitted At'].map((h) => (
+                      {['#', 'Full Name', 'Status', 'Round', 'University', 'Branch', 'Grad Year', 'CF Handle', 'Consent', 'Submitted At'].map((h) => (
                         <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filtered.length === 0 ? (
-                      <tr><td colSpan={7} className={styles.emptyRow}>No registrants found.</td></tr>
+                      <tr><td colSpan={10} className={styles.emptyRow}>No registrants found.</td></tr>
                     ) : filtered.map((reg, i) => (
                       <tr
                         key={reg.id}
@@ -327,8 +529,19 @@ export default function SubadminDashboard() {
                       >
                         <td className={styles.td}>{i + 1}</td>
                         <td className={styles.td}>{reg.fullName}</td>
+                        <td className={styles.td}>
+                          <span className={statusBadgeClass(reg.status)}>
+                            {(reg.status || 'pending').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className={styles.td}>
+                          <span className={styles.badgeAmber}>
+                            {(reg.round || 'prior').toUpperCase()}
+                          </span>
+                        </td>
                         <td className={styles.td}>{reg.university}</td>
                         <td className={styles.td}>{reg.branch || '—'}</td>
+                        <td className={`${styles.td} ${styles.mono}`}>{reg.graduationYear || '—'}</td>
                         <td className={`${styles.td} ${styles.mono}`}>
                           <a
                             href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}

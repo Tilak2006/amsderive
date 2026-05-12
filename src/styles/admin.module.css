@@ -454,6 +454,16 @@
   flex-wrap: wrap;
 }
 
+.filterBarSticky {
+  position: sticky;
+  top: 64px;
+  z-index: 80;
+  padding: 12px 0;
+  background: rgba(10, 10, 10, 0.96);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.08);
+  backdrop-filter: blur(10px);
+}
+
 .searchInput {
   flex: 1;
   min-width: 200px;
@@ -525,15 +535,32 @@
   letter-spacing: 0.05em;
 }
 
+.resultCountLoading {
+  color: #D4AF37;
+}
+
 /* Table */
 .tableWrap {
   border: 1px solid rgba(212, 175, 55, 0.1);
   border-radius: 2px;
+  transition: opacity 0.16s ease, border-color 0.16s ease;
 }
 
 .tableScroll {
   overflow-x: auto;
   width: 100%;
+}
+
+.tableViewport {
+  max-height: 65vh;
+  overflow: auto;
+  width: 100%;
+  scroll-behavior: smooth;
+}
+
+.tableRefreshing {
+  opacity: 0.68;
+  border-color: rgba(212, 175, 55, 0.22);
 }
 
 .table {
@@ -881,6 +908,11 @@
 
   .filterBar {
     gap: 8px;
+  }
+
+  .filterBarSticky {
+    top: 56px;
+    padding: 10px 0;
   }
 
   .searchInput {
