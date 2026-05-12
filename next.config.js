@@ -41,6 +41,16 @@ const nextConfig = {
     optimizeCss: true,
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/problems',
+        destination: '/syllabus',
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       // /_next/static/* is handled automatically by Next.js with immutable headers — no override needed.
@@ -93,9 +103,9 @@ const nextConfig = {
           },
         ],
       },
-      // CSP for /admin/* — allows Firebase Auth APIs for signInWithEmailAndPassword
+      // CSP for authenticated portals — allows Firebase Auth APIs for signInWithEmailAndPassword
       {
-        source: '/admin/:path*',
+        source: '/(admin|subadmin)/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
@@ -154,19 +164,25 @@ const nextConfig = {
       {
         source: '/(about|competition|rules|ams-derive|campus-ambassador-leaderboard)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800' },
         ],
       },
-      // Auth-protected pages — never cache. /register is a public form shell and is cached above;
+      {
+        source: '/check-registration',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=1800' },
+        ],
+      },
+      // Auth-protected pages — never cache. /register and /check-registration are public shells cached above;
       // registration APIs remain no-store below.
       {
-        source: '/(admin|firm)/:path*',
+        source: '/(admin|subadmin|firm)/:path*',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
       {
-        source: '/(admin|firm)',
+        source: '/(admin|subadmin|firm)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],

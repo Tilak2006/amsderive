@@ -9,6 +9,8 @@ function hashFingerprint(ip) {
 const MAX_CHECKS_PER_WINDOW = 5;
 
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store, max-age=0');
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
