@@ -1,6 +1,11 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
+import {
+  getRegistrantUniversityOptions,
+  parseRegistrantFilters,
+  queryAdminRegistrants,
+} from '../../../lib/adminRegistrantFilters';
 
 const PAGE_SIZE = 50;
 
@@ -17,65 +22,29 @@ export default async function handler(req, res) {
   }
 
   const reqId = genReqId();
-  const { lastDocId } = req.body;
+  const { lastDocId, includeOptions } = req.body || {};
+  const filters = parseRegistrantFilters(req.body || {});
 
   try {
-    const ref = db.collection('registrants').orderBy('submittedAt', 'desc');
-    let q = ref.limit(PAGE_SIZE + 1);
-
-    if (lastDocId) {
-      const lastSnap = await db.collection('registrants').doc(lastDocId).get();
-      if (!lastSnap.exists) {
-        return res.status(410).json({ error: 'cursor_gone', message: 'Pagination cursor no longer exists. Reload the list.' });
-      }
-      q = ref.startAfter(lastSnap).limit(PAGE_SIZE + 1);
-    }
-
-    const snapshot = await q.get();
-    const docs = snapshot.docs;
-    const hasMore = docs.length > PAGE_SIZE;
-    const pageDocs = hasMore ? docs.slice(0, PAGE_SIZE) : docs;
-
-    const registrants = pageDocs.map((d) => {
-      const data = d.data();
-      return {
-        id: d.id,
-        fullName: data.fullName || '',
-        email: data.email || '',
-        university: data.university || '',
-        branch: data.branch || '',
-        graduationYear: data.graduationYear || null,
-        codeforcesHandle: data.codeforcesHandle || '',
-        phoneNumber: data.phoneNumber || null,
-        linkedIn: data.linkedIn || null,
-        gitHub: data.gitHub || null,
-        dataConsent: data.dataConsent || false,
-        submittedAt: data.submittedAt ? data.submittedAt.toDate().toISOString() : null,
-        status: data.status || 'pending',
-        round: data.round || 'prior',
-        resumeUrl: data.resumeUrl || null,
-        resumeFileName: data.resumeFileName || null,
-        transcriptUrl: data.transcriptUrl || null,
-        transcriptFileName: data.transcriptFileName || null,
-        ipHash: data.ipHash ? '••••••••' + data.ipHash.slice(-8) : '—',
-        refCode: data.refCode || null,
-        deliveryStatus: data.deliveryStatus || null,
-        deliveryStatusAt: data.deliveryStatusAt ? data.deliveryStatusAt.toDate().toISOString() : null,
-      };
-    });
+    const [result, universities] = await Promise.all([
+      queryAdminRegistrants(db, filters, { lastDocId, pageSize: PAGE_SIZE }),
+      includeOptions ? getRegistrantUniversityOptions(db) : Promise.resolve(null),
+    ]);
 
     logger.info('admin', 'registrants_fetched', {
       reqId,
       actorId: decoded.uid,
-      detail: { count: pageDocs.length, hasMore, cursor: lastDocId || null },
+      detail: { count: result.registrants.length, hasMore: result.hasMore, cursor: lastDocId || null, filters },
       status: 'ok',
     });
     return res.status(200).json({
-      registrants,
-      lastDocId: hasMore ? pageDocs[pageDocs.length - 1].id : null,
-      hasMore,
+      ...result,
+      ...(universities ? { filterOptions: { universities } } : {}),
     });
   } catch (error) {
+    if (error.code === 'cursor_gone') {
+      return res.status(410).json({ error: 'cursor_gone', message: error.message });
+    }
     logger.error('admin', 'registrants_fetch_error', { reqId, actorId: decoded.uid, status: 'failed' }, error);
     return res.status(500).json({ error: 'Failed to fetch registrants.' });
   }

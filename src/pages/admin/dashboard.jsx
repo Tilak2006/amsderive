@@ -26,20 +26,32 @@ function csvSafe(raw) {
 
 function exportCSV(data) {
   const headers = [
-    'Full Name', 'Email', 'University', 'Branch',
-    'CF Handle', 'Phone Number', 'Data Consent', 'Submitted At', 'Status', 'Ref Code',
+    'Full Name', 'Email', 'University', 'Branch', 'Graduation Year',
+    'CF Handle', 'Phone Number', 'LinkedIn', 'GitHub', 'Data Consent',
+    'Submitted At', 'Status', 'Round', 'Ref Code', 'Email Delivery',
+    'Email Delivery At', 'Resume File', 'Resume URL', 'Transcript File', 'Transcript URL',
   ];
   const rows = data.map((r) => [
     `"${csvSafe(r.fullName).replace(/"/g, '""')}"`,
     `"${csvSafe(r.email).replace(/"/g, '""')}"`,
     `"${csvSafe(r.university).replace(/"/g, '""')}"`,
     `"${csvSafe(r.branch).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.graduationYear).replace(/"/g, '""')}"`,
     `"${csvSafe(r.codeforcesHandle).replace(/"/g, '""')}"`,
     `"${csvSafe(r.phoneNumber).replace(/"/g, '""')}"`,
-    r.dataConsent ? 'Yes' : 'No',
+    `"${csvSafe(r.linkedIn).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.gitHub).replace(/"/g, '""')}"`,
+    r.dataConsent === true ? 'Yes' : 'No',
     `"${formatDate(r.submittedAt)}"`,
     r.status || 'pending',
+    r.round || 'prior',
     `"${csvSafe(r.refCode).replace(/"/g, '""')}"`,
+    r.deliveryStatus || 'pending',
+    `"${formatDate(r.deliveryStatusAt)}"`,
+    `"${csvSafe(r.resumeFileName).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.resumeUrl).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.transcriptFileName).replace(/"/g, '""')}"`,
+    `"${csvSafe(r.transcriptUrl).replace(/"/g, '""')}"`,
   ]);
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -121,6 +133,46 @@ function deliveryLabel(status, unsubscribed) {
   return String(status).replace(/_/g, ' ').toUpperCase();
 }
 
+function registrantDeliveryLabel(status) {
+  if (!status) return 'PENDING';
+  if (status === 'complained') return 'SPAM COMPLAINT';
+  return String(status).replace(/_/g, ' ').toUpperCase();
+}
+
+function statusBadgeClass(status) {
+  if (status === 'approved') return styles.badgeGreen;
+  if (status === 'rejected') return styles.badgeRed;
+  return styles.badgeGrey;
+}
+
+function deliveryBadgeClass(status) {
+  if (status === 'delivered') return styles.badgeGreen;
+  if (status === 'bounced' || status === 'complained') return styles.badgeRed;
+  if (status === 'delayed') return styles.badgeYellow;
+  return styles.badgeGrey;
+}
+
+function buildRegistrantRequestBody(filters, lastDocId = null, includeOptions = false) {
+  return {
+    lastDocId,
+    includeOptions,
+    search: filters.search,
+    status: filters.status,
+    round: filters.round,
+    deliveryStatus: filters.deliveryStatus,
+    dateRange: filters.dateRange,
+    startDate: filters.startDate,
+    endDate: filters.endDate,
+    graduationYear: filters.graduationYear,
+    refCode: filters.refCode,
+    transcript: filters.transcript,
+    university: filters.university === 'all' ? '' : filters.university,
+    branch: filters.branch === 'all' ? '' : filters.branch,
+    consent: filters.consent,
+    sortOrder: filters.sortOrder,
+  };
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -144,10 +196,21 @@ export default function AdminDashboard() {
   // Separate input state (changes on every keystroke) from filter state (debounced 200ms)
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterRound, setFilterRound] = useState('all');
+  const [filterDeliveryStatus, setFilterDeliveryStatus] = useState('all');
+  const [filterDateRange, setFilterDateRange] = useState('all');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [filterGraduationYear, setFilterGraduationYear] = useState('all');
+  const [filterRefCode, setFilterRefCode] = useState('');
+  const [filterTranscript, setFilterTranscript] = useState('all');
   const [filterConsent, setFilterConsent] = useState('all');
   const [filterUniversity, setFilterUniversity] = useState('all');
   const [filterBranch, setFilterBranch] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
+  const [universityOptions, setUniversityOptions] = useState([]);
+  const [filtersHydrated, setFiltersHydrated] = useState(false);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
@@ -176,6 +239,7 @@ export default function AdminDashboard() {
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
   const outreachFileInputRef = useRef(null);
+  const lastUrlQueryRef = useRef('');
 
   // Returns a cached Firebase ID token. Firebase SDK already caches internally,
   // but this avoids the async overhead of calling getIdToken() on every request.
@@ -192,6 +256,38 @@ export default function AdminDashboard() {
     const token = await getToken();
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   }
+
+  const registrantFilters = useMemo(() => ({
+    search,
+    status: filterStatus,
+    round: filterRound,
+    deliveryStatus: filterDeliveryStatus,
+    dateRange: filterDateRange,
+    startDate: filterStartDate,
+    endDate: filterEndDate,
+    graduationYear: filterGraduationYear,
+    refCode: filterRefCode,
+    transcript: filterTranscript,
+    university: filterUniversity,
+    branch: filterBranch,
+    consent: filterConsent,
+    sortOrder,
+  }), [
+    search,
+    filterStatus,
+    filterRound,
+    filterDeliveryStatus,
+    filterDateRange,
+    filterStartDate,
+    filterEndDate,
+    filterGraduationYear,
+    filterRefCode,
+    filterTranscript,
+    filterUniversity,
+    filterBranch,
+    filterConsent,
+    sortOrder,
+  ]);
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -226,36 +322,131 @@ export default function AdminDashboard() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // ── URL-persisted registrant filters ────────────────────────────────────
+  useEffect(() => {
+    if (!router.isReady) return;
+    const q = router.query || {};
+    const get = (key, fallback = '') => {
+      const value = q[key];
+      return Array.isArray(value) ? (value[0] || fallback) : (value || fallback);
+    };
+    const urlState = {
+      search: get('search'),
+      status: get('status', 'all'),
+      round: get('round', 'all'),
+      deliveryStatus: get('deliveryStatus', 'all'),
+      dateRange: get('dateRange', 'all'),
+      startDate: get('startDate'),
+      endDate: get('endDate'),
+      graduationYear: get('graduationYear', 'all'),
+      refCode: get('refCode'),
+      transcript: get('transcript', 'all'),
+      consent: get('consent', 'all'),
+      university: get('university', 'all'),
+      branch: get('branch', 'all'),
+      sort: get('sort', 'newest'),
+    };
+    const compactQuery = {};
+    if (urlState.search) compactQuery.search = urlState.search;
+    if (urlState.status !== 'all') compactQuery.status = urlState.status;
+    if (urlState.round !== 'all') compactQuery.round = urlState.round;
+    if (urlState.deliveryStatus !== 'all') compactQuery.deliveryStatus = urlState.deliveryStatus;
+    if (urlState.dateRange !== 'all') compactQuery.dateRange = urlState.dateRange;
+    if (urlState.dateRange === 'custom' && urlState.startDate) compactQuery.startDate = urlState.startDate;
+    if (urlState.dateRange === 'custom' && urlState.endDate) compactQuery.endDate = urlState.endDate;
+    if (urlState.graduationYear !== 'all') compactQuery.graduationYear = urlState.graduationYear;
+    if (urlState.refCode) compactQuery.refCode = urlState.refCode;
+    if (urlState.transcript !== 'all') compactQuery.transcript = urlState.transcript;
+    if (urlState.consent !== 'all') compactQuery.consent = urlState.consent;
+    if (urlState.university !== 'all') compactQuery.university = urlState.university;
+    if (urlState.branch !== 'all') compactQuery.branch = urlState.branch;
+    if (urlState.sort !== 'newest') compactQuery.sort = urlState.sort;
+    const serialized = JSON.stringify(compactQuery);
+    if (filtersHydrated && serialized === lastUrlQueryRef.current) return;
+    lastUrlQueryRef.current = serialized;
+
+    const initialSearch = urlState.search;
+    setSearchInput(initialSearch);
+    setSearch(initialSearch);
+    setFilterStatus(urlState.status);
+    setFilterRound(urlState.round);
+    setFilterDeliveryStatus(urlState.deliveryStatus);
+    setFilterDateRange(urlState.dateRange);
+    setFilterStartDate(urlState.startDate);
+    setFilterEndDate(urlState.endDate);
+    setFilterGraduationYear(urlState.graduationYear);
+    setFilterRefCode(urlState.refCode);
+    setFilterTranscript(urlState.transcript);
+    setFilterConsent(urlState.consent);
+    setFilterUniversity(urlState.university);
+    setFilterBranch(urlState.branch);
+    setSortOrder(urlState.sort);
+    setFiltersHydrated(true);
+  }, [router.isReady, router.query]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!router.isReady || !filtersHydrated) return;
+
+    const nextQuery = {};
+    if (search) nextQuery.search = search;
+    if (filterStatus !== 'all') nextQuery.status = filterStatus;
+    if (filterRound !== 'all') nextQuery.round = filterRound;
+    if (filterDeliveryStatus !== 'all') nextQuery.deliveryStatus = filterDeliveryStatus;
+    if (filterDateRange !== 'all') nextQuery.dateRange = filterDateRange;
+    if (filterDateRange === 'custom' && filterStartDate) nextQuery.startDate = filterStartDate;
+    if (filterDateRange === 'custom' && filterEndDate) nextQuery.endDate = filterEndDate;
+    if (filterGraduationYear !== 'all') nextQuery.graduationYear = filterGraduationYear;
+    if (filterRefCode) nextQuery.refCode = filterRefCode;
+    if (filterTranscript !== 'all') nextQuery.transcript = filterTranscript;
+    if (filterConsent !== 'all') nextQuery.consent = filterConsent;
+    if (filterUniversity !== 'all') nextQuery.university = filterUniversity;
+    if (filterBranch !== 'all') nextQuery.branch = filterBranch;
+    if (sortOrder !== 'newest') nextQuery.sort = sortOrder;
+
+    const serialized = JSON.stringify(nextQuery);
+    if (serialized === lastUrlQueryRef.current) return;
+    lastUrlQueryRef.current = serialized;
+    router.replace({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true });
+  }, [
+    router,
+    filtersHydrated,
+    search,
+    filterStatus,
+    filterRound,
+    filterDeliveryStatus,
+    filterDateRange,
+    filterStartDate,
+    filterEndDate,
+    filterGraduationYear,
+    filterRefCode,
+    filterTranscript,
+    filterConsent,
+    filterUniversity,
+    filterBranch,
+    sortOrder,
+  ]);
+
   // ── Search debounce (200ms) ──────────────────────────────────────────────
   useEffect(() => {
     const t = setTimeout(() => setSearch(searchInput), 200);
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  // ── Initial data load ────────────────────────────────────────────────────
+  // ── Initial outreach + stats load ────────────────────────────────────────
   // Depends on uid (stable string), not user object (Firebase may give a new
-  // reference on token refresh). Gets ONE token and fires registrants + stats
-  // in parallel — eliminates the double getIdToken() call and the sequential
-  // fetch waterfall from the original code.
+  // reference on token refresh). Registrants load in a separate filter-aware effect.
   useEffect(() => {
     if (!user) return;
 
     const controller = new AbortController();
 
     async function loadAll() {
-      setLoadingData(true);
       setLoadingOutreach(true);
       try {
         const token = await getToken();
         const hdrs = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
 
-        const [regRes, outreachRes, statsRes] = await Promise.all([
-          fetch('/api/admin/get-registrants', {
-            method: 'POST',
-            headers: hdrs,
-            body: JSON.stringify({ lastDocId: null }),
-            signal: controller.signal,
-          }),
+        const [outreachRes, statsRes] = await Promise.all([
           fetch('/api/admin/get-outreach-contacts', {
             method: 'POST',
             headers: hdrs,
@@ -270,15 +461,12 @@ export default function AdminDashboard() {
           }),
         ]);
 
-        if (!regRes.ok || !outreachRes.ok || !statsRes.ok) {
+        if (!outreachRes.ok || !statsRes.ok) {
           throw new Error('Admin data load failed');
         }
 
-        const [regData, outreachData, statsData] = await Promise.all([regRes.json(), outreachRes.json(), statsRes.json()]);
+        const [outreachData, statsData] = await Promise.all([outreachRes.json(), statsRes.json()]);
 
-        setRegistrants(attachTs(regData.registrants || []));
-        setLastDoc(regData.lastDocId);
-        setHasMore(regData.hasMore);
         setOutreachContacts(attachOutreachTs(outreachData.contacts || []));
         setOutreachLastDoc(outreachData.lastDocId);
         setOutreachHasMore(outreachData.hasMore);
@@ -287,7 +475,6 @@ export default function AdminDashboard() {
         if (err.name === 'AbortError') return;
         console.error('[dashboard] loadAll error:', err);
       } finally {
-        setLoadingData(false);
         setLoadingOutreach(false);
       }
     }
@@ -295,6 +482,43 @@ export default function AdminDashboard() {
     loadAll();
     return () => controller.abort();
   }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Filter-aware registrant load ────────────────────────────────────────
+  useEffect(() => {
+    if (!user || !filtersHydrated) return;
+
+    const controller = new AbortController();
+
+    async function loadRegistrants() {
+      setLoadingData(true);
+      setSelectedRegistrant(null);
+      try {
+        const hdrs = await authHeaders();
+        const res = await fetch('/api/admin/get-registrants', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify(buildRegistrantRequestBody(registrantFilters, null, universityOptions.length === 0)),
+          signal: controller.signal,
+        });
+        if (!res.ok) throw new Error('Registrant load failed');
+        const result = await res.json();
+        setRegistrants(attachTs(result.registrants || []));
+        setLastDoc(result.lastDocId);
+        setHasMore(result.hasMore);
+        if (result.filterOptions?.universities) {
+          setUniversityOptions(result.filterOptions.universities);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+        console.error('[dashboard] loadRegistrants error:', err);
+      } finally {
+        setLoadingData(false);
+      }
+    }
+
+    loadRegistrants();
+    return () => controller.abort();
+  }, [user?.uid, filtersHydrated, registrantFilters]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Stats poll — every 5 min, skips when tab is hidden ──────────────────
   useEffect(() => {
@@ -329,7 +553,7 @@ export default function AdminDashboard() {
       const res = await fetch('/api/admin/get-registrants', {
         method: 'POST',
         headers: hdrs,
-        body: JSON.stringify({ lastDocId: lastDoc }),
+        body: JSON.stringify(buildRegistrantRequestBody(registrantFilters, lastDoc)),
       });
       if (res.status === 410) {
         setLastDoc(null);
@@ -440,10 +664,17 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setRegistrants((prev) =>
-          prev.map((reg) => reg.id === selectedRegistrant.id ? { ...reg, status: newStatus } : reg)
-        );
-        setSelectedRegistrant((prev) => prev ? { ...prev, status: newStatus } : prev);
+        setRegistrants((prev) => prev.reduce((next, reg) => {
+          if (reg.id !== selectedRegistrant.id) return [...next, reg];
+          const updated = { ...reg, status: newStatus };
+          if (filterStatus !== 'all' && filterStatus !== newStatus) return next;
+          return [...next, updated];
+        }, []));
+        setSelectedRegistrant((prev) => {
+          if (!prev) return prev;
+          if (filterStatus !== 'all' && filterStatus !== newStatus) return null;
+          return { ...prev, status: newStatus };
+        });
         const emailPart = data.skipped
           ? 'no email sent (already set)'
           : 'email sent ✓';
@@ -565,10 +796,17 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (data.success) {
-        setRegistrants((prev) =>
-          prev.map((reg) => reg.id === docId ? { ...reg, round: newRound } : reg)
-        );
-        setSelectedRegistrant((prev) => prev ? { ...prev, round: newRound } : prev);
+        setRegistrants((prev) => prev.reduce((next, reg) => {
+          if (reg.id !== docId) return [...next, reg];
+          const updated = { ...reg, round: newRound };
+          if (filterRound !== 'all' && filterRound !== newRound) return next;
+          return [...next, updated];
+        }, []));
+        setSelectedRegistrant((prev) => {
+          if (!prev) return prev;
+          if (filterRound !== 'all' && filterRound !== newRound) return null;
+          return { ...prev, round: newRound };
+        });
         setRoundMsg({ type: 'success', text: `→ ${newRound.toUpperCase()}` });
       } else {
         setRoundMsg({ type: 'error', text: data.error || 'Failed to update round.' });
@@ -703,29 +941,8 @@ export default function AdminDashboard() {
     }
   }
 
-  // ── Filtered + sorted list ────────────────────────────────────────────────
-  // Uses pre-parsed _ts for O(1) numeric sort — no new Date() inside comparator.
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    const list = registrants.filter((r) => {
-      if (q && !(
-        r.fullName.toLowerCase().includes(q) ||
-        r.email.toLowerCase().includes(q) ||
-        r.codeforcesHandle.toLowerCase().includes(q) ||
-        (r.university || '').toLowerCase().includes(q)
-      )) return false;
-      if (filterConsent === 'yes' && !r.dataConsent) return false;
-      if (filterConsent === 'no' && r.dataConsent) return false;
-      if (filterUniversity !== 'all' && !(r.university || '').toLowerCase().includes(filterUniversity.toLowerCase())) return false;
-      if (filterBranch !== 'all' && (r.branch || '').toLowerCase() !== filterBranch.toLowerCase()) return false;
-      return true;
-    });
-
-    if (sortOrder === 'newest') return list.sort((a, b) => b._ts - a._ts);
-    if (sortOrder === 'oldest') return list.sort((a, b) => a._ts - b._ts);
-    if (sortOrder === 'name')   return list.sort((a, b) => a.fullName.localeCompare(b.fullName));
-    return list;
-  }, [registrants, search, filterConsent, filterUniversity, filterBranch, sortOrder]);
+  // Registrants are filtered and sorted by /api/admin/get-registrants.
+  const filtered = registrants;
 
   const filteredOutreach = useMemo(() => {
     const q = search.toLowerCase();
@@ -790,20 +1007,16 @@ export default function AdminDashboard() {
             <button
               className={styles.exportBtn}
               onClick={async () => {
-                if (hasMore) {
-                  const hdrs = await authHeaders();
-                  const res = await fetch('/api/admin/export-registrants', {
-                    method: 'POST',
-                    headers: hdrs,
-                    body: JSON.stringify({}),
-                  });
-                  const data = await res.json();
-                  if (data.registrants) exportCSV(data.registrants);
-                } else {
-                  exportCSV(filtered);
-                }
+                const hdrs = await authHeaders();
+                const res = await fetch('/api/admin/export-registrants', {
+                  method: 'POST',
+                  headers: hdrs,
+                  body: JSON.stringify(buildRegistrantRequestBody(registrantFilters)),
+                });
+                const data = await res.json();
+                if (data.registrants) exportCSV(data.registrants);
               }}
-              title={hasMore ? 'Export all registrants to CSV' : `Export ${filtered.length} filtered registrants to CSV`}
+              title="Export the current filtered registrant view to CSV"
             >
               EXPORT CSV
             </button>
@@ -961,12 +1174,97 @@ export default function AdminDashboard() {
             <input
               className={styles.searchInput}
               type="text"
-              placeholder={activeList === 'outreach' ? 'Search name, email, institution...' : 'Search name, email, CF handle...'}
+              placeholder={activeList === 'outreach' ? 'Search name, email, institution...' : 'Search name, email, CF handle, university...'}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
             {activeList === 'registrants' ? (
               <>
+                <select
+                  className={styles.filterSelect}
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
+                  value={filterRound}
+                  onChange={(e) => setFilterRound(e.target.value)}
+                >
+                  <option value="all">All Rounds</option>
+                  <option value="prior">PRIOR</option>
+                  <option value="posterior">POSTERIOR</option>
+                  <option value="convergence">CONVERGENCE</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
+                  value={filterDeliveryStatus}
+                  onChange={(e) => setFilterDeliveryStatus(e.target.value)}
+                >
+                  <option value="all">All Delivery</option>
+                  <option value="pending">Delivery Pending</option>
+                  <option value="delivered">Delivered</option>
+                  <option value="bounced">Bounced</option>
+                  <option value="complained">Spam Complaint</option>
+                  <option value="delayed">Delayed</option>
+                </select>
+                <select
+                  className={styles.filterSelect}
+                  value={filterDateRange}
+                  onChange={(e) => setFilterDateRange(e.target.value)}
+                >
+                  <option value="all">Any Date</option>
+                  <option value="today">Today</option>
+                  <option value="last24h">Last 24h</option>
+                  <option value="last7d">Last 7d</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+                {filterDateRange === 'custom' && (
+                  <>
+                    <input
+                      className={styles.filterTextInput}
+                      type="date"
+                      value={filterStartDate}
+                      onChange={(e) => setFilterStartDate(e.target.value)}
+                    />
+                    <input
+                      className={styles.filterTextInput}
+                      type="date"
+                      value={filterEndDate}
+                      onChange={(e) => setFilterEndDate(e.target.value)}
+                    />
+                  </>
+                )}
+                <select
+                  className={styles.filterSelect}
+                  value={filterGraduationYear}
+                  onChange={(e) => setFilterGraduationYear(e.target.value)}
+                >
+                  <option value="all">All Grad Years</option>
+                  {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035].map((year) => (
+                    <option key={year} value={String(year)}>{year}</option>
+                  ))}
+                </select>
+                <input
+                  className={styles.filterTextInput}
+                  type="text"
+                  placeholder="Ref code..."
+                  value={filterRefCode}
+                  onChange={(e) => setFilterRefCode(e.target.value)}
+                />
+                <select
+                  className={styles.filterSelect}
+                  value={filterTranscript}
+                  onChange={(e) => setFilterTranscript(e.target.value)}
+                >
+                  <option value="all">All Transcripts</option>
+                  <option value="has">Has Transcript</option>
+                  <option value="missing">Missing Transcript</option>
+                </select>
                 <select
                   className={styles.filterSelect}
                   value={filterConsent}
@@ -982,12 +1280,12 @@ export default function AdminDashboard() {
                   onChange={(e) => setFilterUniversity(e.target.value)}
                 >
                   <option value="all">All Universities</option>
-                  <option value="iit">IIT</option>
-                  <option value="nit">NIT</option>
-                  <option value="iiit">IIIT</option>
-                  <option value="bits">BITS</option>
-                  <option value="vit">VIT</option>
-                  <option value="thadomal">Thadomal</option>
+                  {[
+                    ...(filterUniversity !== 'all' && !universityOptions.includes(filterUniversity) ? [filterUniversity] : []),
+                    ...universityOptions,
+                  ].map((university) => (
+                    <option key={university} value={university}>{university}</option>
+                  ))}
                 </select>
                 <select
                   className={styles.filterSelect}
@@ -1037,7 +1335,7 @@ export default function AdminDashboard() {
             <span className={styles.resultCount}>
               {activeList === 'outreach'
                 ? `Showing ${filteredOutreach.length} of ${outreachContacts.length}`
-                : `Showing ${filtered.length} of ${registrants.length}`}
+                : `Showing ${filtered.length}${hasMore ? '+' : ''} result${filtered.length === 1 ? '' : 's'}`}
             </span>
           </div>
 
@@ -1097,7 +1395,7 @@ export default function AdminDashboard() {
                 <table className={styles.table}>
                   <thead>
                     <tr>
-                      {['#', 'Full Name', 'Email', 'University', 'Branch', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
+                      {['#', 'Full Name', 'Email', 'Status', 'Round', 'Delivery', 'Ref Code', 'University', 'Branch', 'Grad Year', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
                         <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
                       ))}
                     </tr>
@@ -1105,7 +1403,7 @@ export default function AdminDashboard() {
                   <tbody>
                     {filtered.length === 0 ? (
                       <tr>
-                        <td colSpan={9} className={styles.emptyRow}>No registrants found.</td>
+                        <td colSpan={14} className={styles.emptyRow}>No registrants found.</td>
                       </tr>
                     ) : filtered.map((reg, i) => (
                       <tr
@@ -1116,8 +1414,25 @@ export default function AdminDashboard() {
                         <td className={styles.td}>{i + 1}</td>
                         <td className={styles.td}>{reg.fullName}</td>
                         <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
+                        <td className={styles.td}>
+                          <span className={statusBadgeClass(reg.status)}>
+                            {(reg.status || 'pending').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className={styles.td}>
+                          <span className={styles.badgeAmber}>
+                            {(reg.round || 'prior').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className={styles.td}>
+                          <span className={deliveryBadgeClass(reg.deliveryStatus)}>
+                            {registrantDeliveryLabel(reg.deliveryStatus)}
+                          </span>
+                        </td>
+                        <td className={`${styles.td} ${styles.mono}`}>{reg.refCode || '—'}</td>
                         <td className={styles.td}>{reg.university}</td>
                         <td className={styles.td}>{reg.branch || '—'}</td>
+                        <td className={`${styles.td} ${styles.mono}`}>{reg.graduationYear || '—'}</td>
                         <td className={`${styles.td} ${styles.mono}`}>
                           <a
                             href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
