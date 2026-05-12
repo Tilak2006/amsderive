@@ -44,18 +44,18 @@ const nextConfig = {
   async headers() {
     return [
       // /_next/static/* is handled automatically by Next.js with immutable headers — no override needed.
-      // Near-static files — 30-day cache, stale-while-revalidate for edge nodes
+      // Near-static files — 30-day cache, stale-while-revalidate for edge nodes.
+      // Avoid immutable because public/ filenames are not content-hashed.
       {
         source: '/(favicon.ico|favicon-.*|apple-touch-icon.*|android-chrome-.*|manifest.json|robots.txt|sitemap.xml)',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=2592000, stale-while-revalidate=86400' },
         ],
       },
-      // og-image may change per campaign — keep at 1 day
       {
-        source: '/og-image\\.jpg',
+        source: '/:path*\\.(png|jpg|jpeg|svg|webp|pdf)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=2592000, stale-while-revalidate=86400' },
         ],
       },
       // Security headers for all HTML pages (no Cache-Control here — see below)
@@ -75,6 +75,7 @@ const nextConfig = {
       {
         source: '/register',
         headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=1800' },
           {
             key: 'Content-Security-Policy',
             value: [
@@ -135,30 +136,31 @@ const nextConfig = {
           },
         ],
       },
-      // Public static pages — CDN edge cache 1hr, stale-while-revalidate 24hr.
+      // Public static pages — CDN edge cache 6hr, stale-while-revalidate 24hr.
       // These pages have no auth, no dynamic data, and are pre-rendered at build time.
       // s-maxage controls Vercel's CDN; max-age=0 prevents browser from staling silently.
       {
         source: '/',
         headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' },
         ],
       },
       {
         source: '/(syllabus|about|competition|rules|ams-derive|campus-ambassador-leaderboard)',
         headers: [
-          { key: 'Cache-Control', value: 'public, s-maxage=3600, stale-while-revalidate=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=21600, stale-while-revalidate=86400' },
         ],
       },
-      // Auth-protected + sensitive pages — never cache
+      // Auth-protected pages — never cache. /register is a public form shell and is cached above;
+      // registration APIs remain no-store below.
       {
-        source: '/(register|admin|firm)/:path*',
+        source: '/(admin|firm)/:path*',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
       },
       {
-        source: '/(register|admin|firm)',
+        source: '/(admin|firm)',
         headers: [
           { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
         ],
@@ -177,9 +179,9 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, s-maxage=60, stale-while-revalidate=120' },
         ],
       },
-      // API routes — never cache at browser or CDN
+      // API routes — never cache at browser or CDN, except explicit public read-only endpoints above.
       {
-        source: '/api/(.*)',
+        source: '/api/:path((?!registration-count$).*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, max-age=0' },
         ],
