@@ -1,21 +1,9 @@
-import * as admin from 'firebase-admin';
+import { admin, db } from '../../../lib/firebaseAdmin';
 import { resend } from '../../../lib/resend';
 import { statusUpdateEmail } from '../../../emails/templates';
 import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
 const FIRESTORE_CHUNK = 500; // Firestore batch write limit
 const EMAIL_CHUNK = 100;     // Resend batch send limit
 const EMAIL_DELAY_MS = 200;  // Delay between email batches

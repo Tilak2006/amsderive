@@ -1,22 +1,10 @@
-import * as admin from 'firebase-admin';
+import { admin, db } from '../../../lib/firebaseAdmin';
 import crypto from 'crypto';
 import { resend } from '../../../lib/resend';
 import { broadcastEmail } from '../../../emails/templates';
 import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
 const BATCH_SIZE = 100;
 const BATCH_DELAY_MS = 500;
 const BATCH_RETRY_ATTEMPTS = 3;

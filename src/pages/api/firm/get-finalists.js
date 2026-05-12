@@ -11,21 +11,9 @@
  * Never returns: email, phoneNumber, ipHash, codeforcesHandle.
  */
 
-import * as admin from 'firebase-admin';
+import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

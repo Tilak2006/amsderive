@@ -5,21 +5,9 @@
  * Requires the firm to have resumeDownload access enabled.
  */
 
-import * as admin from 'firebase-admin';
+import { admin, db, getStorageBucket } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -92,7 +80,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid file path.' });
     }
 
-    const bucket = admin.storage().bucket();
+    const bucket = getStorageBucket();
     const [signedUrl] = await bucket.file(filePath).getSignedUrl({
       action: 'read',
       expires: Date.now() + 15 * 60 * 1000,

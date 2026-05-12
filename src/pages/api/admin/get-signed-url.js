@@ -1,16 +1,5 @@
-import * as admin from 'firebase-admin';
+import { admin, getStorageBucket } from '../../../lib/firebaseAdmin';
 import { requireAdmin } from '../../../lib/adminAuth';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -48,7 +37,7 @@ export default async function handler(req, res) {
     // decodeURIComponent only the path segment — strip query params first
     const filePath = decodeURIComponent(pathMatch[1].split('?')[0]);
 
-    const bucket = admin.storage().bucket();
+    const bucket = getStorageBucket();
     const [signedUrl] = await bucket.file(filePath).getSignedUrl({
       action: 'read',
       expires: Date.now() + 15 * 60 * 1000,

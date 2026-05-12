@@ -8,20 +8,9 @@
  * - Returns 429 if exceeded
  */
 
-import * as admin from 'firebase-admin';
+import { admin, db } from '../../lib/firebaseAdmin';
 import crypto from 'crypto';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-
-const db = admin.firestore();
 
 const LIMITS = {
   login: { max: 5, windowMs: 15 * 60 * 1000 },       // 5 attempts per 15 min

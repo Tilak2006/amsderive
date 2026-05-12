@@ -1,20 +1,8 @@
-import * as admin from 'firebase-admin';
+import { admin, db } from '../../lib/firebaseAdmin';
 import crypto from 'crypto';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
 import { REGISTRATION_OPENS, MAX_REGISTRATIONS } from '../../lib/constants';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
-
-const db = admin.firestore();
 
 function instSlug(university) {
   return university.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 80);

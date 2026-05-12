@@ -1,21 +1,10 @@
 // src/pages/api/upload-file.js
-import * as admin from 'firebase-admin';
+import { admin, db, getStorageBucket } from '../../lib/firebaseAdmin';
 import crypto from 'crypto';
 import { IncomingForm } from 'formidable';
 import fs from 'fs';
 import path from 'path';
 import logger, { genReqId } from '../../utils/logger';
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_ADMIN_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_ADMIN_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  });
-}
 
 // Disable Next.js body parser — formidable needs the raw stream
 export const config = { api: { bodyParser: false } };
@@ -36,7 +25,6 @@ const ALLOWED_ORIGINS = [
 const UPLOAD_RATE_LIMIT = 100;
 const UPLOAD_RATE_WINDOW_MS = 60 * 60 * 1000;
 
-const db = admin.firestore();
 
 function sanitizeName(raw) {
   return (raw || 'file')
@@ -148,7 +136,7 @@ export default async function handler(req, res) {
 
   // Upload via Admin SDK
   try {
-    const bucket = admin.storage().bucket();
+    const bucket = getStorageBucket();
     const fileRef = bucket.file(storagePath);
     await fileRef.save(fileBuffer, {
       metadata: {
