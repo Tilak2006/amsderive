@@ -1247,6 +1247,12 @@
   border-color: #D4AF37;
 }
 
+.broadcastInput:disabled,
+.broadcastTextarea:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .broadcastTextarea {
   width: 100%;
   padding: 0.75rem 0.875rem;
@@ -1305,6 +1311,14 @@
 .broadcastSendBtn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+.broadcastProgress {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #D4AF37;
+  letter-spacing: 0.06em;
 }
 
 /* ── Bulk Actions ── */

@@ -53,6 +53,7 @@ function exportCSV(data) {
 }
 
 const CF_COPIED_STORAGE_KEY = 'amsderive.admin.copiedCodeforcesHandles.v1';
+const BROADCAST_BATCH_SIZE = 100;
 
 function normalizeCfHandle(handle) {
   return String(handle || '').trim().toLowerCase();
@@ -157,6 +158,7 @@ export default function AdminDashboard() {
   const [broadcastTargetType, setBroadcastTargetType] = useState('registrants');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState(null);
+  const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastConfirming, setBroadcastConfirming] = useState(false);
   const [outreachImportLoading, setOutreachImportLoading] = useState(false);
   const [outreachImportMsg, setOutreachImportMsg] = useState(null);
@@ -614,46 +616,90 @@ export default function AdminDashboard() {
     setBroadcastConfirming(false);
     setBroadcastLoading(true);
     setBroadcastMsg(null);
+    setBroadcastProgress({
+      sent: 0,
+      failed: 0,
+      total: null,
+      batchNumber: 0,
+      totalBatches: null,
+    });
     // Generate a fresh broadcastId per send attempt. The server dedupes against
     // _broadcasts/{id}, so any lower-level retry of this exact request is rejected.
     const broadcastId = (typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
       : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    let sentTotal = 0;
+    let failedTotal = 0;
+    let attemptedTotal = null;
+    let offset = 0;
+    let finalTargetType = broadcastTargetType;
+
     try {
       const hdrs = await authHeaders();
-      const res = await fetch('/api/admin/send-broadcast', {
-        method: 'POST',
-        headers: hdrs,
-        body: JSON.stringify({
-          subject: broadcastSubject,
-          body: broadcastBody,
-          roundFilter: broadcastFilter,
-          targetType: broadcastTargetType,
-          broadcastId,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        const target = data.targetType === 'outreach'
-          ? 'outreach contact'
-          : data.targetType === 'both'
-            ? 'recipient'
-            : 'registrant';
-        setBroadcastMsg({ type: 'success', text: `Sent to ${data.sent} ${target}${data.sent !== 1 ? 's' : ''}${data.emailsFailed ? ` · ${data.emailsFailed} failed` : ''}` });
-        setBroadcastSubject('');
-        setBroadcastBody('');
-        if (['outreach', 'both'].includes(data.targetType)) {
-          await refreshOutreachContacts();
+
+      while (true) {
+        const res = await fetch('/api/admin/send-broadcast', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify({
+            subject: broadcastSubject,
+            body: broadcastBody,
+            roundFilter: broadcastFilter,
+            targetType: broadcastTargetType,
+            broadcastId,
+            batchOffset: offset,
+            batchSize: BROADCAST_BATCH_SIZE,
+          }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          if (res.status === 409) {
+            throw new Error(data.error || 'This broadcast batch is already in progress.');
+          }
+          throw new Error(data.error || 'Broadcast failed.');
         }
-      } else if (res.status === 409) {
-        setBroadcastMsg({ type: 'error', text: 'This broadcast was already submitted.' });
-      } else {
-        setBroadcastMsg({ type: 'error', text: data.error || 'Broadcast failed.' });
+
+        finalTargetType = data.targetType || finalTargetType;
+        sentTotal += Number(data.sentThisBatch ?? data.sent ?? 0);
+        failedTotal += Number(data.failedThisBatch ?? data.emailsFailed ?? 0);
+        attemptedTotal = Number.isFinite(Number(data.attempted)) ? Number(data.attempted) : attemptedTotal;
+
+        setBroadcastProgress({
+          sent: sentTotal,
+          failed: failedTotal,
+          total: attemptedTotal,
+          batchNumber: data.batchNumber || 0,
+          totalBatches: data.totalBatches || null,
+        });
+
+        if (data.done) break;
+        const nextOffset = Number(data.nextOffset);
+        if (!Number.isInteger(nextOffset) || nextOffset <= offset) {
+          throw new Error('Broadcast batch cursor did not advance.');
+        }
+        offset = nextOffset;
       }
-    } catch {
-      setBroadcastMsg({ type: 'error', text: 'Network error. Please try again.' });
+
+      const target = finalTargetType === 'outreach'
+        ? 'outreach contact'
+        : finalTargetType === 'both'
+          ? 'recipient'
+          : 'registrant';
+      setBroadcastMsg({ type: 'success', text: `Sent to ${sentTotal} ${target}${sentTotal !== 1 ? 's' : ''}${failedTotal ? ` · ${failedTotal} failed` : ''}` });
+      setBroadcastSubject('');
+      setBroadcastBody('');
+      if (['outreach', 'both'].includes(finalTargetType)) {
+        await refreshOutreachContacts();
+      }
+    } catch (err) {
+      const stoppedText = sentTotal || failedTotal
+        ? ` Stopped after ${sentTotal} sent${failedTotal ? `, ${failedTotal} failed` : ''}.`
+        : '';
+      setBroadcastMsg({ type: 'error', text: `${err.message || 'Network error. Please try again.'}${stoppedText}` });
     } finally {
       setBroadcastLoading(false);
+      setBroadcastProgress(null);
     }
   }
 
@@ -800,6 +846,7 @@ export default function AdminDashboard() {
                 placeholder="Subject"
                 value={broadcastSubject}
                 onChange={(e) => setBroadcastSubject(e.target.value)}
+                disabled={broadcastLoading}
               />
               <textarea
                 className={styles.broadcastTextarea}
@@ -807,6 +854,7 @@ export default function AdminDashboard() {
                 value={broadcastBody}
                 onChange={(e) => setBroadcastBody(e.target.value)}
                 rows={5}
+                disabled={broadcastLoading}
               />
               <div className={styles.broadcastFooter}>
                 <select
@@ -851,6 +899,16 @@ export default function AdminDashboard() {
                   >
                     {broadcastLoading ? 'SENDING...' : 'SEND'}
                   </button>
+                )}
+                {broadcastProgress && (
+                  <span className={styles.broadcastProgress}>
+                    Batch {broadcastProgress.batchNumber || 1}
+                    {broadcastProgress.totalBatches ? `/${broadcastProgress.totalBatches}` : ''}
+                    {' · '}
+                    {broadcastProgress.sent} sent
+                    {broadcastProgress.total != null ? ` of ${broadcastProgress.total}` : ''}
+                    {broadcastProgress.failed ? ` · ${broadcastProgress.failed} failed` : ''}
+                  </span>
                 )}
                 {broadcastMsg && (
                   <span className={broadcastMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
