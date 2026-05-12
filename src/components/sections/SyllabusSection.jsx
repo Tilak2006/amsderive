@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import styles from '../../styles/syllabus.module.css';
 
 const sections = [
@@ -274,18 +273,6 @@ const SyllabusSection = () => {
               <span className={styles.researchText}>{area.text}</span>
             </div>
           ))}
-        </div>
-
-        <hr className={styles.divider} />
-
-        {/* ── Sample Problem CTA ── */}
-        <div className={styles.problemCta}>
-          <span className={styles.problemCtaEyebrow}>Round I · PRIOR</span>
-          <h2 className={styles.problemCtaTitle}>Sample Problem</h2>
-          <p className={styles.problemCtaDesc}>See what to expect — a problem representative of Round I difficulty</p>
-          <Link href="/problems" className={styles.problemCtaLink}>
-            View Problem →
-          </Link>
         </div>
 
         <hr className={styles.divider} />

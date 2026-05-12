@@ -413,56 +413,6 @@
   line-height: 1.7;
 }
 
-/* ── Sample Problem CTA ── */
-.problemCta {
-  text-align: center;
-  padding: 12px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-
-.problemCtaEyebrow {
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-eyebrow);
-  letter-spacing: 0.25em;
-  color: rgba(212, 175, 55, 0.45);
-  text-transform: uppercase;
-}
-
-.problemCtaTitle {
-  font-family: var(--font-serif);
-  font-size: var(--text-xl);
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: 0.06em;
-  margin: 0;
-}
-
-.problemCtaDesc {
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  color: #555;
-  margin: 0;
-}
-
-.problemCtaLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono), monospace;
-  font-size: var(--text-eyebrow);
-  letter-spacing: 0.1em;
-  color: #D4AF37;
-  text-decoration: none;
-  transition: opacity 0.2s ease;
-}
-
-.problemCtaLink:hover {
-  opacity: 0.7;
-}
-
 /* ── Resources Block ── */
 .resourcesBlock {
   background: #0e0e0e;
