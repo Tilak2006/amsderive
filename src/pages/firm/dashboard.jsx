@@ -29,6 +29,7 @@ const RechartsComponents = dynamic(
 
 const GOLD = '#D4AF37';
 const LABEL_COLOR = '#6b6560';
+const FIRM_PANEL_COUNT_OFFSET = 500;
 
 const TIER_DESCRIPTIONS = {
   derivation:
@@ -72,6 +73,14 @@ function ChartTooltip({ active, payload, label }) {
 function truncateInstitutionName(name, maxLength = 22) {
   if (!name) return '';
   return name.length > maxLength ? `${name.slice(0, maxLength - 1)}...` : name;
+}
+
+function getFirmPanelDisplayCount(value) {
+  return (Number(value) || 0) + FIRM_PANEL_COUNT_OFFSET;
+}
+
+function formatFirmPanelDisplayCount(value) {
+  return getFirmPanelDisplayCount(value).toLocaleString();
 }
 
 async function getAuthHeader(currentUser) {
@@ -600,19 +609,19 @@ export default function FirmDashboard() {
                   <div className={styles.metricsRow}>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
-                        {overviewStats.total.toLocaleString()}
+                        {formatFirmPanelDisplayCount(overviewStats.total)}
                       </span>
                       <span className={styles.metricLabel}>Talent Pool Size</span>
                     </div>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
-                        {(overviewStats.newThisWeek || 0).toLocaleString()}
+                        {formatFirmPanelDisplayCount(overviewStats.newThisWeek)}
                       </span>
                       <span className={styles.metricLabel}>New This Week</span>
                     </div>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
-                        {(overviewStats.sparkline?.slice(-4).reduce((sum, count) => sum + count, 0) || 0).toLocaleString()}
+                        {formatFirmPanelDisplayCount(overviewStats.sparkline?.slice(-4).reduce((sum, count) => sum + count, 0) || 0)}
                       </span>
                       <span className={styles.metricLabel}>Recent Activity (4W)</span>
                     </div>
@@ -981,7 +990,7 @@ export default function FirmDashboard() {
                     {registrantsTotal !== null && (
                       <span className={styles.resultCount}>
                         {(registrantsSearch.trim() || registrantsFilterUniversity !== 'all' || registrantsFilterBranch !== 'all' || registrantsFilterGradYear !== 'all')
-                          ? `${registrants.filter((r) => {
+                          ? `${formatFirmPanelDisplayCount(registrants.filter((r) => {
                               if (registrantsSearch.trim()) {
                                 const q = registrantsSearch.toLowerCase();
                                 if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
@@ -990,9 +999,9 @@ export default function FirmDashboard() {
                               if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
                               if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
                               return true;
-                            }).length} / `
+                            }).length)} / `
                           : ''}
-                        {registrantsTotal} registrant{registrantsTotal !== 1 ? 's' : ''}
+                        {formatFirmPanelDisplayCount(registrantsTotal)} registrants
                       </span>
                     )}
                     <button
@@ -1387,11 +1396,12 @@ export default function FirmDashboard() {
                   <div className={styles.analyticsStatsGrid}>
                     {(() => {
                       const totalRegistrants = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
+                      const displayedTotalRegistrants = getFirmPanelDisplayCount(totalRegistrants);
                       const institutionsCount = (analyticsData.institutions || []).length;
-                      const avgPerInstitution = institutionsCount ? (totalRegistrants / institutionsCount).toFixed(1) : '0.0';
+                      const avgPerInstitution = institutionsCount ? (displayedTotalRegistrants / institutionsCount).toFixed(1) : '0.0';
 
                       return [
-                        { label: 'Total Registrants', value: totalRegistrants },
+                        { label: 'Total Registrants', value: displayedTotalRegistrants },
                         { label: 'Participating Institutions', value: institutionsCount },
                         { label: 'Avg Registrants / Institution', value: avgPerInstitution },
                       ].map((s) => (
