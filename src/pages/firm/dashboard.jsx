@@ -30,7 +30,7 @@ const RechartsComponents = dynamic(
 const GOLD = '#D4AF37';
 const LABEL_COLOR = '#6b6560';
 const FIRM_PANEL_COUNT_OFFSET = 500;
-const FIRM_PARTICIPATING_INSTITUTIONS = 12;
+const FIRM_COMMUNITY_PARTNERS_LABEL = '15+';
 
 const TIER_DESCRIPTIONS = {
   derivation:
@@ -1406,12 +1406,12 @@ export default function FirmDashboard() {
                     {(() => {
                       const totalRegistrants = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
                       const displayedTotalRegistrants = getFirmPanelDisplayCount(totalRegistrants);
-                      const institutionsCount = FIRM_PARTICIPATING_INSTITUTIONS;
+                      const institutionsCount = (analyticsData.institutions || []).length;
                       const avgPerInstitution = institutionsCount ? (displayedTotalRegistrants / institutionsCount).toFixed(1) : '0.0';
 
                       return [
                         { label: 'Total Registrants', value: displayedTotalRegistrants },
-                        { label: 'Participating Institutions', value: institutionsCount },
+                        { label: 'Community Partners', value: FIRM_COMMUNITY_PARTNERS_LABEL },
                         { label: 'Avg Registrants / Institution', value: avgPerInstitution },
                       ].map((s) => (
                         <div key={s.label} className={`${styles.statCard} ${styles.analyticsStatCard}`}>
