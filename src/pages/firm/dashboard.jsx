@@ -940,6 +940,9 @@ export default function FirmDashboard() {
                 </div>
               ) : (
                 <div className={styles.registrantsMain}>
+                  <p className={styles.registrantsNotice}>
+                    Only approved registrants who consented to partner data sharing are shown here and included in CSV exports.
+                  </p>
                   <div className={styles.talentFilterBar}>
                     <input
                       type="text"
