@@ -30,6 +30,7 @@ const RechartsComponents = dynamic(
 const GOLD = '#D4AF37';
 const LABEL_COLOR = '#6b6560';
 const FIRM_PANEL_COUNT_OFFSET = 500;
+const FIRM_PARTICIPATING_INSTITUTIONS = 12;
 
 const TIER_DESCRIPTIONS = {
   derivation:
@@ -1405,7 +1406,7 @@ export default function FirmDashboard() {
                     {(() => {
                       const totalRegistrants = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
                       const displayedTotalRegistrants = getFirmPanelDisplayCount(totalRegistrants);
-                      const institutionsCount = (analyticsData.institutions || []).length;
+                      const institutionsCount = FIRM_PARTICIPATING_INSTITUTIONS;
                       const avgPerInstitution = institutionsCount ? (displayedTotalRegistrants / institutionsCount).toFixed(1) : '0.0';
 
                       return [
