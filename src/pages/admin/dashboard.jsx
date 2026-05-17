@@ -223,6 +223,7 @@ export default function AdminDashboard() {
   const [broadcastMsg, setBroadcastMsg] = useState(null);
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastConfirming, setBroadcastConfirming] = useState(false);
+  const [broadcastRetryId, setBroadcastRetryId] = useState(null);
   const [outreachImportLoading, setOutreachImportLoading] = useState(false);
   const [outreachImportMsg, setOutreachImportMsg] = useState(null);
   const [roundLoading, setRoundLoading] = useState(false);
@@ -860,16 +861,21 @@ export default function AdminDashboard() {
       total: null,
       batchNumber: 0,
       totalBatches: null,
+      processed: 0,
+      skipped: 0,
+      remaining: null,
     });
-    // Generate a fresh broadcastId per send attempt. The server dedupes against
-    // _broadcasts/{id}, so any lower-level retry of this exact request is rejected.
-    const broadcastId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    // Reuse the same broadcastId after a retryable failure so successful queue rows
+    // are not sent again.
+    const broadcastId = broadcastRetryId || ((typeof crypto !== 'undefined' && crypto.randomUUID)
       ? crypto.randomUUID()
-      : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
     let sentTotal = 0;
     let failedTotal = 0;
+    let skippedTotal = 0;
+    let processedTotal = 0;
+    let remainingTotal = null;
     let attemptedTotal = null;
-    let offset = 0;
     let finalTargetType = broadcastTargetType;
 
     try {
@@ -885,7 +891,6 @@ export default function AdminDashboard() {
             roundFilter: broadcastFilter,
             targetType: broadcastTargetType,
             broadcastId,
-            batchOffset: offset,
             batchSize: BROADCAST_BATCH_SIZE,
           }),
         });
@@ -899,24 +904,28 @@ export default function AdminDashboard() {
         }
 
         finalTargetType = data.targetType || finalTargetType;
-        sentTotal += Number(data.sentThisBatch ?? data.sent ?? 0);
-        failedTotal += Number(data.failedThisBatch ?? data.emailsFailed ?? 0);
-        attemptedTotal = Number.isFinite(Number(data.attempted)) ? Number(data.attempted) : attemptedTotal;
+        sentTotal = Number(data.sent ?? sentTotal);
+        failedTotal = Number(data.failed ?? data.emailsFailed ?? failedTotal);
+        skippedTotal = Number(data.skipped ?? skippedTotal);
+        processedTotal = Number(data.processed ?? (sentTotal + failedTotal + skippedTotal));
+        remainingTotal = Number.isFinite(Number(data.remaining)) ? Number(data.remaining) : remainingTotal;
+        attemptedTotal = Number.isFinite(Number(data.total ?? data.attempted)) ? Number(data.total ?? data.attempted) : attemptedTotal;
 
         setBroadcastProgress({
           sent: sentTotal,
           failed: failedTotal,
+          skipped: skippedTotal,
+          processed: processedTotal,
+          remaining: remainingTotal,
           total: attemptedTotal,
           batchNumber: data.batchNumber || 0,
           totalBatches: data.totalBatches || null,
         });
 
         if (data.done) break;
-        const nextOffset = Number(data.nextOffset);
-        if (!Number.isInteger(nextOffset) || nextOffset <= offset) {
-          throw new Error('Broadcast batch cursor did not advance.');
+        if (!Number.isFinite(Number(data.remaining)) || Number(data.remaining) <= 0) {
+          throw new Error('Broadcast queue did not advance.');
         }
-        offset = nextOffset;
       }
 
       const target = finalTargetType === 'outreach'
@@ -924,15 +933,18 @@ export default function AdminDashboard() {
         : finalTargetType === 'both'
           ? 'recipient'
           : 'registrant';
-      setBroadcastMsg({ type: 'success', text: `Sent to ${sentTotal} ${target}${sentTotal !== 1 ? 's' : ''}${failedTotal ? ` · ${failedTotal} failed` : ''}` });
+      const skippedText = skippedTotal ? ` · ${skippedTotal} skipped because they were already sent/delivered/bounced/complained/unsubscribed` : '';
+      setBroadcastMsg({ type: 'success', text: `Sent to ${sentTotal} ${target}${sentTotal !== 1 ? 's' : ''}${failedTotal ? ` · ${failedTotal} failed` : ''}${skippedText}` });
       setBroadcastSubject('');
       setBroadcastBody('');
+      setBroadcastRetryId(null);
       if (['outreach', 'both'].includes(finalTargetType)) {
         await refreshOutreachContacts();
       }
     } catch (err) {
-      const stoppedText = sentTotal || failedTotal
-        ? ` Stopped after ${sentTotal} sent${failedTotal ? `, ${failedTotal} failed` : ''}.`
+      setBroadcastRetryId(broadcastId);
+      const stoppedText = sentTotal || failedTotal || skippedTotal
+        ? ` Stopped after ${sentTotal} sent${failedTotal ? `, ${failedTotal} failed` : ''}${skippedTotal ? `, ${skippedTotal} skipped` : ''}. Retry will continue this same broadcast.`
         : '';
       setBroadcastMsg({ type: 'error', text: `${err.message || 'Network error. Please try again.'}${stoppedText}` });
     } finally {
@@ -1058,14 +1070,14 @@ export default function AdminDashboard() {
                 type="text"
                 placeholder="Subject"
                 value={broadcastSubject}
-                onChange={(e) => setBroadcastSubject(e.target.value)}
+                onChange={(e) => { setBroadcastSubject(e.target.value); setBroadcastRetryId(null); }}
                 disabled={broadcastLoading}
               />
               <textarea
                 className={styles.broadcastTextarea}
                 placeholder="Message body..."
                 value={broadcastBody}
-                onChange={(e) => setBroadcastBody(e.target.value)}
+                onChange={(e) => { setBroadcastBody(e.target.value); setBroadcastRetryId(null); }}
                 rows={5}
                 disabled={broadcastLoading}
               />
@@ -1073,7 +1085,7 @@ export default function AdminDashboard() {
                 <select
                   className={styles.filterSelect}
                   value={broadcastTargetType}
-                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); }}
+                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); setBroadcastRetryId(null); }}
                   disabled={broadcastLoading}
                 >
                   <option value="registrants">Approved Registrants</option>
@@ -1083,7 +1095,7 @@ export default function AdminDashboard() {
                 <select
                   className={styles.filterSelect}
                   value={broadcastFilter}
-                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); }}
+                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); setBroadcastRetryId(null); }}
                   disabled={broadcastLoading || broadcastTargetType === 'outreach'}
                 >
                   <option value="all">All Registrants</option>
@@ -1110,7 +1122,7 @@ export default function AdminDashboard() {
                     onClick={() => setBroadcastConfirming(true)}
                     disabled={broadcastLoading || !broadcastSubject.trim() || !broadcastBody.trim()}
                   >
-                    {broadcastLoading ? 'SENDING...' : 'SEND'}
+                    {broadcastLoading ? 'SENDING...' : broadcastRetryId ? 'RETRY' : 'SEND'}
                   </button>
                 )}
                 {broadcastProgress && (
@@ -1118,9 +1130,11 @@ export default function AdminDashboard() {
                     Batch {broadcastProgress.batchNumber || 1}
                     {broadcastProgress.totalBatches ? `/${broadcastProgress.totalBatches}` : ''}
                     {' · '}
-                    {broadcastProgress.sent} sent
+                    {broadcastProgress.processed ?? broadcastProgress.sent} processed
                     {broadcastProgress.total != null ? ` of ${broadcastProgress.total}` : ''}
+                    {` · ${broadcastProgress.sent} sent`}
                     {broadcastProgress.failed ? ` · ${broadcastProgress.failed} failed` : ''}
+                    {broadcastProgress.skipped ? ` · ${broadcastProgress.skipped} skipped` : ''}
                   </span>
                 )}
                 {broadcastMsg && (
