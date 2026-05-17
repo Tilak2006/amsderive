@@ -401,7 +401,12 @@ export default function FirmDashboard() {
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
     try {
-      const res = await fetch('/api/public/inst-stats');
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-institution-stats', { method: 'POST', headers, body: JSON.stringify({}) });
+      if (!res.ok) {
+        setAnalyticsData(null);
+        return;
+      }
       const data = await res.json();
       setAnalyticsData(data);
     } catch {
@@ -409,7 +414,7 @@ export default function FirmDashboard() {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   const fetchOverviewStats = useCallback(async () => {
     try {
