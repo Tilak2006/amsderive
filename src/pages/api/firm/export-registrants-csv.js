@@ -3,7 +3,7 @@
  *
  * Returns approved registrants as a CSV download.
  * Gated by access.csvExport flag — firms without it get 403.
- * Columns included respect the same resumeDownload / linkedinAccess flags.
+ * Columns included respect the same emailAccess / linkedinAccess flags.
  */
 
 import { admin, db } from '../../../lib/firebaseAdmin';
@@ -58,7 +58,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'CSV export is not enabled for your account.' });
   }
 
-  const { resumeDownload, linkedinAccess } = firmData.access || {};
+  const { emailAccess, linkedinAccess } = firmData.access || {};
 
   try {
     const snapshot = await db
@@ -71,13 +71,15 @@ export default async function handler(req, res) {
       .map((doc) => ({ id: doc.id, ...doc.data() }))
       .sort((a, b) => (b.submittedAt?.toMillis?.() ?? 0) - (a.submittedAt?.toMillis?.() ?? 0));
 
-    const headers = ['Name', 'Email', 'Institution', 'Branch', 'Graduation Year', 'CF Handle', 'GitHub', 'Round', 'Submitted'];
+    const headers = ['Name'];
+    if (emailAccess) headers.push('Email');
+    headers.push('Institution', 'Branch', 'Graduation Year', 'CF Handle', 'GitHub', 'Round', 'Submitted');
     if (linkedinAccess) headers.push('LinkedIn');
 
     const rows = docs.map((d) => {
-      const row = [
-        d.fullName,
-        d.email || '',
+      const row = [d.fullName];
+      if (emailAccess) row.push(d.email || '');
+      row.push(
         d.university,
         d.branch || '',
         d.graduationYear ? String(d.graduationYear) : '',
@@ -85,7 +87,7 @@ export default async function handler(req, res) {
         d.gitHub || '',
         d.round || '',
         d.submittedAt?.toDate?.()?.toISOString?.()?.slice(0, 10) ?? '',
-      ];
+      );
       if (linkedinAccess) row.push(d.linkedIn || '');
       return row.map(escapeCsv).join(',');
     });

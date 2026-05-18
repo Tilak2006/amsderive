@@ -1,8 +1,8 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
-import { resend } from '../../../lib/resend';
 import { statusUpdateEmail } from '../../../emails/templates';
 import logger, { genReqId, maskEmail } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
+import { sendSingleEmailWithRetry } from '../../../lib/emailSender';
 
 const VALID_STATUSES = ['approved', 'rejected'];
 
@@ -54,18 +54,17 @@ export default async function handler(req, res) {
       if (!emailTemplate || !emailTemplate.from || !emailTemplate.subject || !emailTemplate.html) {
         throw new Error('email template missing required fields');
       }
-      const sendPromise = resend.emails.send({
+      const sendResult = await sendSingleEmailWithRetry({
         from: emailTemplate.from,
         to: data.email,
         subject: emailTemplate.subject,
         html: emailTemplate.html,
+      }, {
+        idempotencyKey: `registrant-status/${docId}/${status}`,
       });
-      const sendResult = await Promise.race([
-        sendPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('email send timed out')), 8000)),
-      ]);
+      if (sendResult.failed > 0) throw sendResult.err || new Error('Email send failed');
       emailSent = true;
-      resendEmailId = sendResult?.data?.id || null;
+      resendEmailId = sendResult?.result?.data?.id || null;
       logger.info('admin', 'status_update_email_sent', {
         reqId,
         entityId: docId,

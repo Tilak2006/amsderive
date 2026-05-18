@@ -1,13 +1,13 @@
 /**
  * Subadmin authentication helper.
  *
- * Verifies the Bearer token AND checks that a `subadmins/{uid}` Firestore
+ * Verifies the Bearer token, checks revocation, AND checks that a `subadmins/{uid}` Firestore
  * document exists. Add a team member by creating that document (any data,
  * even an empty object) and remove access by deleting it — no custom claims
  * or SDK scripts needed.
  *
- * Results are cached in-process for 5 minutes to avoid a Firestore read on
- * every API call. Revocation takes effect within one cache TTL.
+ * Firestore membership results are cached in-process for 5 minutes to avoid
+ * a Firestore read on every API call. Token revocation is checked every time.
  *
  * @param {import('http').IncomingMessage} req
  * @param {import('firebase-admin/auth').Auth} adminAuth
@@ -29,7 +29,7 @@ export async function requireSubadmin(req, adminAuth, db) {
 
   let decoded;
   try {
-    decoded = await adminAuth.verifyIdToken(authHeader.split('Bearer ')[1]);
+    decoded = await adminAuth.verifyIdToken(authHeader.split('Bearer ')[1], true);
   } catch {
     throw { status: 401, error: 'Unauthorized' };
   }

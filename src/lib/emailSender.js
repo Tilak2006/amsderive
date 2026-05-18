@@ -1,0 +1,68 @@
+import { resend } from './resend';
+
+export const RESEND_BATCH_LIMIT = 100;
+export const RESEND_DEFAULT_RPS = 5;
+export const RESEND_SAFE_RPS = 4;
+export const EMAIL_SEND_TIMEOUT_MS = 15000;
+export const EMAIL_RETRY_ATTEMPTS = 3;
+
+export function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function withTimeout(promise, ms, message) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms)),
+  ]);
+}
+
+export async function sendEmailBatchWithRetry(chunk, options = {}, attempt = 1) {
+  const timeoutMs = options.timeoutMs || EMAIL_SEND_TIMEOUT_MS;
+  const attempts = options.attempts || EMAIL_RETRY_ATTEMPTS;
+
+  try {
+    await withTimeout(
+      resend.batch.send(
+        chunk,
+        options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+      ),
+      timeoutMs,
+      'resend batch send timed out'
+    );
+    return { sent: chunk.length, failed: 0 };
+  } catch (err) {
+    if (attempt < attempts) {
+      await delay(attempt * 1000);
+      return sendEmailBatchWithRetry(chunk, options, attempt + 1);
+    }
+    return { sent: 0, failed: chunk.length, err };
+  }
+}
+
+export async function sendSingleEmailWithRetry(message, options = {}, attempt = 1) {
+  const timeoutMs = options.timeoutMs || EMAIL_SEND_TIMEOUT_MS;
+  const attempts = options.attempts || EMAIL_RETRY_ATTEMPTS;
+
+  try {
+    const result = await withTimeout(
+      resend.emails.send(
+        message,
+        options.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : undefined
+      ),
+      timeoutMs,
+      'email send timed out'
+    );
+    return { sent: 1, failed: 0, result };
+  } catch (err) {
+    if (attempt < attempts) {
+      await delay(attempt * 1000);
+      return sendSingleEmailWithRetry(message, options, attempt + 1);
+    }
+    return { sent: 0, failed: 1, err };
+  }
+}
+
+export function resendSafeDelayMs(rps = RESEND_SAFE_RPS) {
+  return Math.ceil(1000 / Math.max(1, rps));
+}

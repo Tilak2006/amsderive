@@ -66,6 +66,8 @@ function exportCSV(data) {
 
 const CF_COPIED_STORAGE_KEY = 'amsderive.admin.copiedCodeforcesHandles.v1';
 const BROADCAST_BATCH_SIZE = 100;
+const BROADCAST_ATTACHMENT_MAX_BYTES = 3 * 1024 * 1024;
+const BROADCAST_ATTACHMENT_BATCH_SIZE = 4;
 
 function normalizeCfHandle(handle) {
   return String(handle || '').trim().toLowerCase();
@@ -106,6 +108,10 @@ async function copyTextToClipboard(text) {
   } finally {
     document.body.removeChild(textarea);
   }
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Attach a pre-parsed numeric timestamp to each registrant for fast sorting
@@ -224,6 +230,10 @@ export default function AdminDashboard() {
   const [broadcastProgress, setBroadcastProgress] = useState(null);
   const [broadcastConfirming, setBroadcastConfirming] = useState(false);
   const [broadcastRetryId, setBroadcastRetryId] = useState(null);
+  const [broadcastDraftId, setBroadcastDraftId] = useState(null);
+  const [broadcastAttachment, setBroadcastAttachment] = useState(null);
+  const [broadcastAttachmentLoading, setBroadcastAttachmentLoading] = useState(false);
+  const [broadcastAttachmentMsg, setBroadcastAttachmentMsg] = useState(null);
   const [outreachImportLoading, setOutreachImportLoading] = useState(false);
   const [outreachImportMsg, setOutreachImportMsg] = useState(null);
   const [roundLoading, setRoundLoading] = useState(false);
@@ -231,6 +241,8 @@ export default function AdminDashboard() {
   const [approveAllConfirm, setApproveAllConfirm] = useState(false);
   const [approveAllLoading, setApproveAllLoading] = useState(false);
   const [approveAllMsg, setApproveAllMsg] = useState(null);
+  const [approveAllProgress, setApproveAllProgress] = useState(null);
+  const [approveAllRetryId, setApproveAllRetryId] = useState(null);
   const [copiedCfHandles, setCopiedCfHandles] = useState([]);
   const [cfCopyLoading, setCfCopyLoading] = useState(false);
   const [cfCopyMsg, setCfCopyMsg] = useState(null);
@@ -240,6 +252,7 @@ export default function AdminDashboard() {
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
   const outreachFileInputRef = useRef(null);
+  const broadcastAttachmentInputRef = useRef(null);
   const lastUrlQueryRef = useRef('');
 
   // Returns a cached Firebase ID token. Firebase SDK already caches internally,
@@ -256,6 +269,11 @@ export default function AdminDashboard() {
   async function authHeaders() {
     const token = await getToken();
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  }
+
+  async function authOnlyHeaders() {
+    const token = await getToken();
+    return { Authorization: `Bearer ${token}` };
   }
 
   const registrantFilters = useMemo(() => ({
@@ -699,37 +717,60 @@ export default function AdminDashboard() {
     setApproveAllConfirm(false);
     setApproveAllLoading(true);
     setApproveAllMsg(null);
+    setApproveAllProgress({ approved: 0, total: null, processed: 0, failed: 0 });
+    const runId = approveAllRetryId || newBroadcastId();
+    let latest = { approved: 0, emailsSent: 0, emailsFailed: 0, skipped: 0, total: null, processed: 0 };
     try {
       const hdrs = await authHeaders();
-      const res = await fetch('/api/admin/approve-all', {
-        method: 'POST',
-        headers: hdrs,
-        body: JSON.stringify({}),
-      });
-      const data = await res.json();
-      if (data.success) {
-        // Refetch is safest — we don't know which specific rows got approved
-        // when some batches failed. For simplicity, optimistically update only
-        // if everything succeeded; otherwise leave local state, admin can refresh.
-        if (!data.emailsFailed && !data.skipped) {
-          setRegistrants((prev) =>
-            prev.map((reg) => reg.status === 'pending' || !reg.status ? { ...reg, status: 'approved' } : reg)
-          );
-        }
-        const parts = [`Approved ${data.approved}`, `${data.emailsSent} emails sent`];
-        if (data.emailsFailed) parts.push(`${data.emailsFailed} failed`);
-        if (data.skipped) parts.push(`${data.skipped} NOT approved (email failed) — reload to see`);
-        setApproveAllMsg({
-          type: data.emailsFailed || data.skipped ? 'error' : 'success',
-          text: parts.join(' · '),
+      while (true) {
+        const res = await fetch('/api/admin/approve-all', {
+          method: 'POST',
+          headers: hdrs,
+          body: JSON.stringify({ runId, batchSize: BROADCAST_BATCH_SIZE }),
         });
-      } else {
-        setApproveAllMsg({ type: 'error', text: data.error || 'Bulk approval failed.' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Bulk approval failed.');
+        }
+
+        latest = data;
+        setApproveAllProgress({
+          approved: data.approved || 0,
+          total: Number.isFinite(Number(data.total)) ? Number(data.total) : null,
+          processed: data.processed || data.approved || 0,
+          failed: data.emailsFailed || 0,
+        });
+
+        if (data.done) break;
+        if (data.noClaim) {
+          await wait(Number(data.retryAfterMs) || 1000);
+          continue;
+        }
+        if (!Number.isFinite(Number(data.remaining)) || Number(data.remaining) <= 0) {
+          throw new Error('Approval queue did not advance.');
+        }
+        await wait(500);
       }
-    } catch {
-      setApproveAllMsg({ type: 'error', text: 'Network error. Please try again.' });
+
+      if (!latest.emailsFailed && !latest.skipped) {
+        setRegistrants((prev) =>
+          prev.map((reg) => reg.status === 'pending' || !reg.status ? { ...reg, status: 'approved' } : reg)
+        );
+      }
+      const parts = [`Approved ${latest.approved || 0}`, `${latest.emailsSent || 0} emails sent`];
+      if (latest.emailsFailed) parts.push(`${latest.emailsFailed} failed`);
+      if (latest.skipped) parts.push(`${latest.skipped} NOT approved`);
+      setApproveAllMsg({
+        type: latest.emailsFailed || latest.skipped ? 'error' : 'success',
+        text: parts.join(' · '),
+      });
+      setApproveAllRetryId(null);
+    } catch (err) {
+      setApproveAllRetryId(runId);
+      setApproveAllMsg({ type: 'error', text: `${err.message || 'Network error. Please try again.'} Approved ${latest.approved || 0} so far; click approve again to continue the same approval run.` });
     } finally {
       setApproveAllLoading(false);
+      setApproveAllProgress(null);
     }
   }
 
@@ -850,6 +891,60 @@ export default function AdminDashboard() {
     }
   }
 
+  function newBroadcastId() {
+    return (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  function formatBytes(bytes) {
+    if (!Number.isFinite(Number(bytes))) return '';
+    if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  async function handleBroadcastAttachmentUpload(file) {
+    if (!file || broadcastAttachmentLoading || broadcastLoading || broadcastRetryId) return;
+    setBroadcastAttachmentMsg(null);
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setBroadcastAttachmentMsg({ type: 'error', text: 'Only PDF attachments are accepted.' });
+      return;
+    }
+    if (file.size > BROADCAST_ATTACHMENT_MAX_BYTES) {
+      setBroadcastAttachmentMsg({ type: 'error', text: 'PDF must be 3 MB or smaller.' });
+      return;
+    }
+
+    const id = broadcastDraftId || newBroadcastId();
+    setBroadcastDraftId(id);
+    setBroadcastAttachmentLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('broadcastId', id);
+      formData.append('file', file);
+      const hdrs = await authOnlyHeaders();
+      const res = await fetch('/api/admin/upload-broadcast-attachment', {
+        method: 'POST',
+        headers: hdrs,
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Attachment upload failed.');
+      }
+      setBroadcastAttachment({ ...data.attachment, broadcastId: id });
+      setBroadcastAttachmentMsg({ type: 'success', text: `Attached ${data.attachment.fileName}` });
+    } catch (err) {
+      setBroadcastAttachment(null);
+      setBroadcastAttachmentMsg({ type: 'error', text: err.message || 'Attachment upload failed.' });
+    } finally {
+      setBroadcastAttachmentLoading(false);
+      if (broadcastAttachmentInputRef.current) broadcastAttachmentInputRef.current.value = '';
+    }
+  }
+
   async function handleBroadcast() {
     if (!broadcastSubject.trim() || !broadcastBody.trim() || broadcastLoading) return;
     setBroadcastConfirming(false);
@@ -864,12 +959,12 @@ export default function AdminDashboard() {
       processed: 0,
       skipped: 0,
       remaining: null,
+      mode: broadcastAttachment ? 'Attachment' : 'Batch',
     });
     // Reuse the same broadcastId after a retryable failure so successful queue rows
     // are not sent again.
-    const broadcastId = broadcastRetryId || ((typeof crypto !== 'undefined' && crypto.randomUUID)
-      ? crypto.randomUUID()
-      : `b_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+    const broadcastId = broadcastRetryId || broadcastAttachment?.broadcastId || broadcastDraftId || newBroadcastId();
+    if (!broadcastDraftId) setBroadcastDraftId(broadcastId);
     let sentTotal = 0;
     let failedTotal = 0;
     let skippedTotal = 0;
@@ -891,7 +986,13 @@ export default function AdminDashboard() {
             roundFilter: broadcastFilter,
             targetType: broadcastTargetType,
             broadcastId,
-            batchSize: BROADCAST_BATCH_SIZE,
+            batchSize: broadcastAttachment ? BROADCAST_ATTACHMENT_BATCH_SIZE : BROADCAST_BATCH_SIZE,
+            attachment: broadcastAttachment ? {
+              storagePath: broadcastAttachment.storagePath,
+              fileName: broadcastAttachment.fileName,
+              size: broadcastAttachment.size,
+              contentType: broadcastAttachment.contentType,
+            } : null,
           }),
         });
 
@@ -920,12 +1021,18 @@ export default function AdminDashboard() {
           total: attemptedTotal,
           batchNumber: data.batchNumber || 0,
           totalBatches: data.totalBatches || null,
+          mode: data.mode === 'queued_attachment' ? 'Attachment' : 'Batch',
         });
 
         if (data.done) break;
+        if (data.noClaim) {
+          await wait(Number(data.retryAfterMs) || 1000);
+          continue;
+        }
         if (!Number.isFinite(Number(data.remaining)) || Number(data.remaining) <= 0) {
           throw new Error('Broadcast queue did not advance.');
         }
+        await wait(500);
       }
 
       const target = finalTargetType === 'outreach'
@@ -938,6 +1045,9 @@ export default function AdminDashboard() {
       setBroadcastSubject('');
       setBroadcastBody('');
       setBroadcastRetryId(null);
+      setBroadcastDraftId(null);
+      setBroadcastAttachment(null);
+      setBroadcastAttachmentMsg(null);
       if (['outreach', 'both'].includes(finalTargetType)) {
         await refreshOutreachContacts();
       }
@@ -993,6 +1103,10 @@ export default function AdminDashboard() {
     : broadcastTargetType === 'both'
       ? 'approved registrants and external outreach contacts'
       : 'approved registrants';
+  const broadcastRoundLabel = broadcastFilter === 'all' ? 'all rounds' : broadcastFilter.toUpperCase();
+  const broadcastAudienceLabel = broadcastTargetType === 'outreach'
+    ? broadcastTargetLabel
+    : `${broadcastTargetLabel} · ${broadcastRoundLabel}`;
 
   return (
     <>
@@ -1065,28 +1179,65 @@ export default function AdminDashboard() {
                   </span>
                 )}
               </div>
+              <div className={styles.broadcastImportRow}>
+                <input
+                  ref={broadcastAttachmentInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className={styles.hiddenFileInput}
+                  onChange={(e) => handleBroadcastAttachmentUpload(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  className={styles.attachmentBtn}
+                  onClick={() => broadcastAttachmentInputRef.current?.click()}
+                  disabled={broadcastAttachmentLoading || broadcastLoading || !!broadcastRetryId}
+                  title={broadcastRetryId ? 'Finish or abandon the current retry before changing attachments.' : 'Attach a PDF to this broadcast'}
+                >
+                  {broadcastAttachmentLoading ? 'UPLOADING PDF...' : broadcastAttachment ? 'REPLACE PDF' : 'ATTACH PDF'}
+                </button>
+                {broadcastAttachment && (
+                  <span className={styles.attachmentPill}>
+                    {broadcastAttachment.fileName} · {formatBytes(broadcastAttachment.size)}
+                    <button
+                      type="button"
+                      className={styles.attachmentRemoveBtn}
+                      onClick={() => { setBroadcastAttachment(null); setBroadcastAttachmentMsg(null); }}
+                      disabled={broadcastLoading || !!broadcastRetryId}
+                      title="Remove attachment"
+                    >
+                      X
+                    </button>
+                  </span>
+                )}
+                {broadcastAttachmentMsg && (
+                  <span className={broadcastAttachmentMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {broadcastAttachmentMsg.text}
+                  </span>
+                )}
+              </div>
               <input
                 className={styles.broadcastInput}
                 type="text"
                 placeholder="Subject"
                 value={broadcastSubject}
-                onChange={(e) => { setBroadcastSubject(e.target.value); setBroadcastRetryId(null); }}
-                disabled={broadcastLoading}
+                onChange={(e) => setBroadcastSubject(e.target.value)}
+                disabled={broadcastLoading || !!broadcastRetryId}
               />
               <textarea
                 className={styles.broadcastTextarea}
                 placeholder="Message body..."
                 value={broadcastBody}
-                onChange={(e) => { setBroadcastBody(e.target.value); setBroadcastRetryId(null); }}
+                onChange={(e) => setBroadcastBody(e.target.value)}
                 rows={5}
-                disabled={broadcastLoading}
+                disabled={broadcastLoading || !!broadcastRetryId}
               />
               <div className={styles.broadcastFooter}>
                 <select
                   className={styles.filterSelect}
                   value={broadcastTargetType}
-                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); setBroadcastRetryId(null); }}
-                  disabled={broadcastLoading}
+                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); }}
+                  disabled={broadcastLoading || !!broadcastRetryId}
                 >
                   <option value="registrants">Approved Registrants</option>
                   <option value="outreach">External Outreach Contacts</option>
@@ -1095,8 +1246,8 @@ export default function AdminDashboard() {
                 <select
                   className={styles.filterSelect}
                   value={broadcastFilter}
-                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); setBroadcastRetryId(null); }}
-                  disabled={broadcastLoading || broadcastTargetType === 'outreach'}
+                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); }}
+                  disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === 'outreach'}
                 >
                   <option value="all">All Registrants</option>
                   <option value="prior">PRIOR</option>
@@ -1107,7 +1258,7 @@ export default function AdminDashboard() {
                   <div className={styles.broadcastConfirm}>
                     <span className={styles.broadcastConfirmText}>
                       Send &ldquo;{broadcastSubject}&rdquo; to{' '}
-                      <strong>{broadcastTargetLabel}</strong>?
+                      <strong>{broadcastAudienceLabel}</strong>?
                     </span>
                     <button className={styles.confirmBtn} onClick={handleBroadcast} disabled={broadcastLoading}>
                       CONFIRM
@@ -1127,7 +1278,7 @@ export default function AdminDashboard() {
                 )}
                 {broadcastProgress && (
                   <span className={styles.broadcastProgress}>
-                    Batch {broadcastProgress.batchNumber || 1}
+                    {broadcastProgress.mode || 'Batch'} {broadcastProgress.batchNumber || 1}
                     {broadcastProgress.totalBatches ? `/${broadcastProgress.totalBatches}` : ''}
                     {' · '}
                     {broadcastProgress.processed ?? broadcastProgress.sent} processed
@@ -1388,6 +1539,14 @@ export default function AdminDashboard() {
             {approveAllMsg && (
               <span className={approveAllMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
                 {approveAllMsg.text}
+              </span>
+            )}
+            {approveAllProgress && (
+              <span className={styles.broadcastProgress}>
+                Approval {approveAllProgress.processed}
+                {approveAllProgress.total != null ? ` of ${approveAllProgress.total}` : ''}
+                {` · ${approveAllProgress.approved} approved`}
+                {approveAllProgress.failed ? ` · ${approveAllProgress.failed} failed` : ''}
               </span>
             )}
             {cfCopyMsg && (

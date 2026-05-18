@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 
 /**
- * Edge Middleware — Admin & Firm Auth Pre-Check
+ * Edge Middleware — Admin, Subadmin & Firm Auth Pre-Check
  *
- * The __session and __firmSession cookies are now Firebase session cookies
+ * The __session, __subadminSession, and __firmSession cookies are Firebase session cookies
  * minted server-side (HttpOnly). The edge runtime cannot run the Admin SDK,
  * so this remains a soft structural guard (cookie presence check).
  *
  * The authoritative check is performed by every API route via requireAdmin()
- * (admin.auth().verifyIdToken) and by each page's first API call which
+ * / requireSubadmin() and by each page's first API call which
  * validates the session cookie server-side via admin.auth().verifySessionCookie().
  *
  * Because cookies are now HttpOnly, they cannot be set or read by client JS,
@@ -40,10 +40,19 @@ export function proxy(request) {
     }
   }
 
+  // Guard /subadmin/* — redirect to login if no subadmin session cookie present
+  if (pathname.startsWith('/subadmin/')) {
+    if (pathname === '/subadmin/login') return NextResponse.next();
+    const subadminSession = request.cookies.get('__subadminSession');
+    if (!subadminSession?.value) {
+      return NextResponse.redirect(new URL('/subadmin/login', request.url));
+    }
+  }
+
   return NextResponse.next();
 }
 
-// Run on /admin/* and /firm/* paths
+// Run on protected account paths
 export const config = {
-  matcher: ['/admin/:path*', '/firm/:path*'],
+  matcher: ['/admin/:path*', '/firm/:path*', '/subadmin/:path*'],
 };

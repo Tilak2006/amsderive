@@ -1,7 +1,7 @@
 /**
  * Shared admin authentication helper.
  *
- * Verifies the Bearer token AND checks that the decoded token carries the
+ * Verifies the Bearer token, checks revocation, AND checks that the decoded token carries the
  * `admin: true` custom claim.  Every /api/admin/* route must call this
  * instead of calling admin.auth().verifyIdToken() directly.
  *
@@ -20,7 +20,7 @@ export async function requireAdmin(req, adminAuth) {
 
   let decoded;
   try {
-    decoded = await adminAuth.verifyIdToken(authHeader.split('Bearer ')[1]);
+    decoded = await adminAuth.verifyIdToken(authHeader.split('Bearer ')[1], true);
   } catch {
     throw { status: 401, error: 'Unauthorized' };
   }

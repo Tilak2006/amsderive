@@ -1,5 +1,17 @@
 {
   "functions": {
+    "src/pages/api/admin/send-broadcast.js": {
+      "regions": ["bom1"],
+      "maxDuration": 300
+    },
+    "src/pages/api/admin/approve-all.js": {
+      "regions": ["bom1"],
+      "maxDuration": 120
+    },
+    "src/pages/api/admin/upload-broadcast-attachment.js": {
+      "regions": ["bom1"],
+      "maxDuration": 60
+    },
     "src/pages/api/**/*.js": {
       "regions": ["bom1"],
       "maxDuration": 30

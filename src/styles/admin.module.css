@@ -1278,6 +1278,71 @@
   cursor: not-allowed;
 }
 
+.attachmentBtn {
+  height: 36px;
+  padding: 0 16px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #D4AF37;
+  background: rgba(212, 175, 55, 0.04);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+
+@media (hover: hover) {
+  .attachmentBtn:hover:not(:disabled) {
+    background: rgba(212, 175, 55, 0.09);
+    border-color: #D4AF37;
+  }
+}
+
+.attachmentBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.attachmentPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  max-width: 100%;
+  padding: 0 10px;
+  background: #0a0a0a;
+  border: 1px solid #2a2a2a;
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: #c8c4bc;
+  overflow-wrap: anywhere;
+}
+
+.attachmentRemoveBtn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: #ef4444;
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+}
+
+.attachmentRemoveBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .broadcastInput {
   width: 100%;
   height: 40px;
