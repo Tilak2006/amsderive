@@ -259,8 +259,8 @@ export default function Register() {
             <div className={styles.registerHeader}>
               <h2 className={styles.registerFormTitle}>Participant Information</h2>
               <p className={styles.registerFormSubtitle}>Complete all fields to register</p>
-              <div className={styles.registrationTrustCue} aria-label="1000 plus people already registered">
-                <span className={styles.registrationTrustCount}>1000+</span>
+              <div className={styles.registrationTrustCue} aria-label="2500 plus people already registered">
+                <span className={styles.registrationTrustCount}>2500+</span>
                 <span className={styles.registrationTrustText}>people already registered</span>
               </div>
             </div>
