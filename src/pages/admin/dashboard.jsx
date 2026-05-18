@@ -129,6 +129,31 @@ function attachOutreachTs(contacts) {
   }));
 }
 
+function istDateKey(ms) {
+  if (!Number.isFinite(ms)) return '';
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  return new Date(ms + istOffset).toISOString().slice(0, 10);
+}
+
+function decrementStatsForDeletedRegistrant(stats, registrant) {
+  const next = { ...stats };
+  const dec = (key) => {
+    next[key] = Math.max(0, Number(next[key] || 0) - 1);
+  };
+
+  dec('total');
+  if (registrant?.dataConsent === true) dec('consentGiven');
+  if (registrant?.status === 'approved') dec('approved');
+  if (registrant?.deliveryStatus === 'bounced') dec('bounced');
+
+  const submittedMs = Number.isFinite(registrant?._ts)
+    ? registrant._ts
+    : new Date(registrant?.submittedAt || '').getTime();
+  if (istDateKey(submittedMs) === istDateKey(Date.now())) dec('today');
+
+  return next;
+}
+
 function isSentLike(status) {
   return ['sent', 'delivered'].includes(String(status || '').toLowerCase());
 }
@@ -220,6 +245,10 @@ export default function AdminDashboard() {
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
   const [statusLoading, setStatusLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
+  const [deleteConfirming, setDeleteConfirming] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteMsg, setDeleteMsg] = useState(null);
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastSubject, setBroadcastSubject] = useState('');
   const [broadcastBody, setBroadcastBody] = useState('');
@@ -335,11 +364,19 @@ export default function AdminDashboard() {
   // ── Escape to close panel ────────────────────────────────────────────────
   useEffect(() => {
     function handleKeyDown(e) {
-      if (e.key === 'Escape') setSelectedRegistrant(null);
+      if (e.key === 'Escape') {
+        setSelectedRegistrant(null);
+        setDeleteMsg(null);
+      }
     }
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    setDeleteConfirming(false);
+    setDeleteConfirmText('');
+  }, [selectedRegistrant?.id]);
 
   // ── URL-persisted registrant filters ────────────────────────────────────
   useEffect(() => {
@@ -511,6 +548,7 @@ export default function AdminDashboard() {
     async function loadRegistrants() {
       setLoadingData(true);
       setSelectedRegistrant(null);
+      setDeleteMsg(null);
       try {
         const hdrs = await authHeaders();
         const res = await fetch('/api/admin/get-registrants', {
@@ -709,6 +747,39 @@ export default function AdminDashboard() {
       setStatusMsg({ type: 'error', text: 'Network error. Please try again.' });
     } finally {
       setStatusLoading(false);
+    }
+  }
+
+  async function handleDeleteRegistrant() {
+    if (!selectedRegistrant || deleteLoading || deleteConfirmText !== 'Yes delete') return;
+
+    const deletedRegistrant = selectedRegistrant;
+    setDeleteLoading(true);
+    setDeleteMsg(null);
+
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/delete-registrant', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ docId: deletedRegistrant.id, confirmText: deleteConfirmText }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete participant.');
+      }
+
+      setRegistrants((prev) => prev.filter((reg) => reg.id !== deletedRegistrant.id));
+      setStats((prev) => decrementStatsForDeletedRegistrant(prev, deletedRegistrant));
+      setSelectedRegistrant(null);
+      setDeleteConfirming(false);
+      setDeleteConfirmText('');
+      setDeleteMsg({ type: 'success', text: 'Participant deleted.' });
+    } catch (err) {
+      setDeleteMsg({ type: 'error', text: err.message || 'Network error. Please try again.' });
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -1309,7 +1380,7 @@ export default function AdminDashboard() {
             <button
               type="button"
               className={`${styles.tab} ${activeList === 'outreach' ? styles.tabActive : ''}`}
-              onClick={() => { setActiveList('outreach'); setSelectedRegistrant(null); }}
+              onClick={() => { setActiveList('outreach'); setSelectedRegistrant(null); setDeleteMsg(null); }}
             >
               OUTREACH
             </button>
@@ -1554,6 +1625,11 @@ export default function AdminDashboard() {
                 {cfCopyMsg.text}
               </span>
             )}
+            {deleteMsg && !selectedRegistrant && (
+              <span className={deleteMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                {deleteMsg.text}
+              </span>
+            )}
           </div>
           )}
 
@@ -1582,7 +1658,7 @@ export default function AdminDashboard() {
                       <tr
                         key={reg.id}
                         className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''} ${reg.status === 'approved' ? styles.trApproved : ''}`}
-                        onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); }}
+                        onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); setDeleteMsg(null); }}
                       >
                         <td className={styles.td}>{i + 1}</td>
                         <td className={styles.td}>{reg.fullName}</td>
@@ -1698,14 +1774,14 @@ export default function AdminDashboard() {
         <>
           <div
             className={styles.panelBackdrop}
-            onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); }}
+            onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); setDeleteMsg(null); }}
           />
           <aside className={styles.sidePanel}>
             <div className={styles.panelHeader}>
               <span className={styles.panelName}>{r.fullName}</span>
               <button
                 className={styles.panelClose}
-                onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); }}
+                onClick={() => { setSelectedRegistrant(null); setStatusMsg(null); setRoundMsg(null); setDeleteMsg(null); }}
               >
                 CLOSE ✕
               </button>
@@ -1792,7 +1868,7 @@ export default function AdminDashboard() {
                 <select
                   className={styles.roundSelect}
                   value={r.round || 'prior'}
-                  disabled={roundLoading}
+                  disabled={roundLoading || deleteLoading}
                   onChange={(e) => handleRoundUpdate(r.id, e.target.value)}
                 >
                   <option value="prior">PRIOR</option>
@@ -1842,10 +1918,10 @@ export default function AdminDashboard() {
             <div className={styles.panelActions}>
               {r.status === 'pending' ? (
                 <div className={styles.panelStatusActions}>
-                  <button className={styles.approveBtn} disabled={statusLoading} onClick={() => handleStatusUpdate('approved')}>
+                  <button className={styles.approveBtn} disabled={statusLoading || deleteLoading} onClick={() => handleStatusUpdate('approved')}>
                     {statusLoading ? '...' : 'APPROVE'}
                   </button>
-                  <button className={styles.rejectBtn} disabled={statusLoading} onClick={() => handleStatusUpdate('rejected')}>
+                  <button className={styles.rejectBtn} disabled={statusLoading || deleteLoading} onClick={() => handleStatusUpdate('rejected')}>
                     {statusLoading ? '...' : 'REJECT'}
                   </button>
                 </div>
@@ -1865,18 +1941,67 @@ export default function AdminDashboard() {
               <div className={styles.panelFileActions}>
                 <button
                   className={styles.panelActionBtn}
-                  disabled={!r.resumeUrl}
+                  disabled={!r.resumeUrl || deleteLoading}
                   onClick={() => r.resumeUrl && handleViewFile(r.resumeUrl)}
                 >
                   VIEW RESUME
                 </button>
                 <button
                   className={styles.panelActionBtn}
-                  disabled={!r.transcriptUrl}
+                  disabled={!r.transcriptUrl || deleteLoading}
                   onClick={() => r.transcriptUrl && handleViewFile(r.transcriptUrl)}
                 >
                   VIEW TRANSCRIPT
                 </button>
+              </div>
+              <div className={styles.deleteZone}>
+                {!deleteConfirming ? (
+                  <button
+                    className={styles.deleteParticipantBtn}
+                    disabled={deleteLoading || statusLoading || roundLoading}
+                    onClick={() => { setDeleteConfirming(true); setDeleteConfirmText(''); setDeleteMsg(null); }}
+                  >
+                    DELETE PARTICIPANT
+                  </button>
+                ) : (
+                  <div className={styles.deleteConfirmBox}>
+                    <p className={styles.deleteConfirmText}>
+                      Delete {r.fullName} · {r.email}
+                    </p>
+                    <label className={styles.deleteConfirmLabel} htmlFor="delete-confirm-text">
+                      Type Yes delete
+                    </label>
+                    <input
+                      id="delete-confirm-text"
+                      className={styles.deleteConfirmInput}
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      disabled={deleteLoading}
+                      autoComplete="off"
+                    />
+                    <div className={styles.deleteConfirmActions}>
+                      <button
+                        className={styles.deleteConfirmBtn}
+                        disabled={deleteLoading || deleteConfirmText !== 'Yes delete'}
+                        onClick={handleDeleteRegistrant}
+                      >
+                        {deleteLoading ? 'DELETING...' : 'CONFIRM DELETE'}
+                      </button>
+                      <button
+                        className={styles.cancelBtn}
+                        disabled={deleteLoading}
+                        onClick={() => { setDeleteConfirming(false); setDeleteConfirmText(''); setDeleteMsg(null); }}
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {deleteMsg && selectedRegistrant && (
+                  <p className={deleteMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {deleteMsg.text}
+                  </p>
+                )}
               </div>
             </div>
           </aside>
