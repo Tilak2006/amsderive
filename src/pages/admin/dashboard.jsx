@@ -252,7 +252,7 @@ export default function AdminDashboard() {
   const [broadcastOpen, setBroadcastOpen] = useState(false);
   const [broadcastSubject, setBroadcastSubject] = useState('');
   const [broadcastBody, setBroadcastBody] = useState('');
-  const [broadcastFilter, setBroadcastFilter] = useState('all');
+  const [broadcastFilter, setBroadcastFilter] = useState('prior');
   const [broadcastTargetType, setBroadcastTargetType] = useState('registrants');
   const [broadcastLoading, setBroadcastLoading] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState(null);

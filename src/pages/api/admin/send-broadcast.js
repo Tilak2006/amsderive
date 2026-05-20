@@ -17,7 +17,9 @@ const BATCH_DELAY_MS = 500;
 const STALE_SENDING_MS = 10 * 60 * 1000;
 const PROCESSING_LEASE_MS = 6 * 60 * 1000;
 const FIRESTORE_WRITE_CHUNK = 450;
-const OUTREACH_SKIP_STATUSES = new Set(['sent', 'delivered', 'bounced', 'complained']);
+const OUTREACH_SKIP_STATUSES = new Set(['sent', 'delivered', 'delayed', 'bounced', 'complained']);
+const REGISTRANT_SUPPRESS_STATUSES = new Set(['bounced', 'complained']);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function shortHash(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 32);
@@ -99,8 +101,16 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+function isValidEmail(email) {
+  return EMAIL_REGEX.test(normalizeEmail(email));
+}
+
 function isAlreadyContacted(status, unsubscribed) {
   return unsubscribed === true || OUTREACH_SKIP_STATUSES.has(String(status || '').toLowerCase());
+}
+
+function isSuppressedRegistrant(status) {
+  return REGISTRANT_SUPPRESS_STATUSES.has(String(status || '').toLowerCase());
 }
 
 function isDuplicateCreate(err) {
@@ -171,7 +181,7 @@ async function buildRecipientSnapshot(resolvedTargetType, filter) {
         unsubscribed: d.data().unsubscribed === true,
         targetKind: 'outreach',
       }))
-      .filter((r) => r.email)
+      .filter((r) => isValidEmail(r.email))
       .forEach((r) => {
         const key = normalizeEmail(r.email);
         if (isAlreadyContacted(r.deliveryStatus, r.unsubscribed)) {
@@ -187,7 +197,7 @@ async function buildRecipientSnapshot(resolvedTargetType, filter) {
   if (resolvedTargetType === 'registrants' || resolvedTargetType === 'both') {
     let q = db.collection('registrants')
       .where('status', '==', 'approved')
-      .select('email', 'fullName', 'university', 'round');
+      .select('email', 'fullName', 'university', 'round', 'deliveryStatus');
     if (filter !== 'all' && filter !== 'prior') {
       q = q.where('round', '==', filter);
     }
@@ -200,9 +210,11 @@ async function buildRecipientSnapshot(resolvedTargetType, filter) {
         firstName: firstNameFrom(d.data().fullName),
         institution: d.data().university,
         round: d.data().round || 'prior',
+        deliveryStatus: d.data().deliveryStatus || null,
         targetKind: 'registrant',
       }))
-      .filter((r) => r.email)
+      .filter((r) => isValidEmail(r.email))
+      .filter((r) => !isSuppressedRegistrant(r.deliveryStatus))
       .filter((r) => filter === 'all' || r.round === filter)
       .forEach((r) => {
         const key = normalizeEmail(r.email);
@@ -411,7 +423,7 @@ async function releaseProcessingLease(lockRef, leaseId) {
   }
 }
 
-async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText, filter, resolvedTargetType, attachment, decoded, reqId, handlerStart }) {
+async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText, bodyText, filter, resolvedTargetType, attachment, decoded, reqId, handlerStart }) {
   const { recipients, registrantAttempted, outreachAttempted, outreachSuppressed } =
     await buildRecipientSnapshot(resolvedTargetType, filter);
   const mode = attachment ? 'queued_attachment' : 'queued_batch';
@@ -421,6 +433,7 @@ async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText
       status: recipients.length === 0 ? 'complete' : 'initializing',
       mode,
       subject: subjectText,
+      bodyHash: shortHash(bodyText),
       filter,
       targetType: resolvedTargetType,
       attachment: attachment || null,
@@ -488,13 +501,14 @@ async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText
 
 async function completeBroadcastIfDone({ lockRef, queueRef, decoded, reqId, broadcastId, subjectText, filter, resolvedTargetType, lockData, handlerStart }) {
   const stats = await queueStats(queueRef);
-  const done = stats.queued === 0 && stats.failed === 0 && stats.sending === 0;
+  const queueIncomplete = Number(lockData?.total || 0) > stats.total;
+  const done = !queueIncomplete && stats.queued === 0 && stats.failed === 0 && stats.sending === 0;
   const outreachTotal = lockData?.outreachAttempted || 0;
   const registrantTotal = lockData?.registrantAttempted || 0;
   const expectedTotal = Math.max(Number(lockData?.total || 0), stats.total);
 
   await lockRef.update({
-    status: done ? 'complete' : 'in_progress',
+    status: queueIncomplete ? 'paused' : done ? 'complete' : 'in_progress',
     total: expectedTotal,
     sent: stats.sent,
     emailsFailed: stats.failed,
@@ -503,6 +517,7 @@ async function completeBroadcastIfDone({ lockRef, queueRef, decoded, reqId, broa
     outreachFailed: stats.outreachFailed,
     outreachSkipped: stats.outreachSkipped,
     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    ...(queueIncomplete ? { error: `Broadcast queue incomplete: ${stats.total}/${expectedTotal} recipients queued.` } : {}),
     ...(done ? { completedAt: admin.firestore.FieldValue.serverTimestamp() } : {}),
   });
 
@@ -560,14 +575,15 @@ export default async function handler(req, res) {
 
   const reqId = genReqId();
   const handlerStart = Date.now();
-  const { subject, body, roundFilter, broadcastId, targetType, batchSize, attachment: rawAttachment } = req.body;
+  const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
+  const { subject, body, roundFilter, broadcastId, targetType, batchSize, attachment: rawAttachment } = requestBody;
 
   if (!subject?.trim() || !body?.trim()) {
     return res.status(400).json({ error: 'Subject and body are required.' });
   }
 
-  if (!broadcastId || typeof broadcastId !== 'string' || broadcastId.length < 8 || broadcastId.length > 64) {
-    return res.status(400).json({ error: 'broadcastId required (8-64 chars).' });
+  if (!broadcastId || typeof broadcastId !== 'string' || !/^[a-zA-Z0-9_-]{8,64}$/.test(broadcastId)) {
+    return res.status(400).json({ error: 'broadcastId required (8-64 URL-safe chars).' });
   }
 
   const validFilters = ['all', 'prior', 'posterior', 'convergence'];
@@ -605,6 +621,7 @@ export default async function handler(req, res) {
       queueRef,
       broadcastId,
       subjectText,
+      bodyText,
       filter,
       resolvedTargetType,
       attachment,
@@ -629,6 +646,9 @@ export default async function handler(req, res) {
     if (lockData.subject !== subjectText || lockData.targetType !== resolvedTargetType || lockData.filter !== filter) {
       return res.status(409).json({ error: 'This broadcast ID belongs to a different message or target.' });
     }
+    if (lockData.bodyHash && lockData.bodyHash !== shortHash(bodyText)) {
+      return res.status(409).json({ error: 'This broadcast ID belongs to a different message body.' });
+    }
     if (!attachmentsEqual(lockData.attachment || null, attachment)) {
       return res.status(409).json({ error: 'This broadcast ID belongs to a different attachment.' });
     }
@@ -643,6 +663,16 @@ export default async function handler(req, res) {
     }
 
     const preStats = await queueStats(queueRef);
+    if (Number(lockData.total || 0) > 0 && preStats.total > 0 && preStats.total < Number(lockData.total || 0)) {
+      await lockRef.update({
+        status: 'paused',
+        error: `Broadcast queue incomplete: ${preStats.total}/${Number(lockData.total || 0)} recipients queued.`,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }).catch(() => {});
+      return res.status(409).json({
+        error: 'Broadcast queue is incomplete. Start a new broadcast after checking Firestore, or rebuild the queue before continuing.',
+      });
+    }
     if (preStats.total === 0 && Number(lockData.total || 0) > 0 && lockData.status !== 'complete') {
       return res.status(409).json({ error: 'This broadcast queue is still being prepared. Try again in a moment.' });
     }
