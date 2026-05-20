@@ -7,7 +7,7 @@ import RegistrationCard from '../components/ui/RegistrationCard';
 import RegistrationForm from '../components/form/RegistrationForm';
 import styles from './register.module.css';
 import PerformanceLogger from '../utils/performanceLogger';
-import { TIMEOUT_MS, MAX_REGISTRATIONS } from '../lib/constants';
+import { TIMEOUT_MS, MAX_REGISTRATIONS, REGISTRATION_CLOSES } from '../lib/constants';
 
 function withTimeout(promise, ms = TIMEOUT_MS) {
   return Promise.race([
@@ -53,6 +53,11 @@ export default function Register() {
   useEffect(() => {
     const CACHE_KEY = 'reg_count_cache';
     const CACHE_TTL = 60 * 1000;
+    const dateClosed = Date.now() >= REGISTRATION_CLOSES.getTime();
+
+    if (dateClosed) {
+      setRegistrationClosed(true);
+    }
 
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
@@ -60,7 +65,7 @@ export default function Register() {
         const { data, ts } = JSON.parse(cached);
         if (Date.now() - ts < CACHE_TTL) {
           setCountData(data);
-          if (data.full) setRegistrationClosed(true);
+          if (dateClosed || data.full) setRegistrationClosed(true);
           return; // Skip fetch entirely if we have fresh cached data
         }
       }
@@ -74,7 +79,7 @@ export default function Register() {
         .then((data) => {
           if (data) {
             setCountData(data);
-            if (data.full) setRegistrationClosed(true);
+            if (dateClosed || data.full) setRegistrationClosed(true);
             try {
               sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() }));
             } catch { /* quota exceeded or unavailable */ }
@@ -250,7 +255,7 @@ export default function Register() {
         {countData?.warning && !countData?.full && (
           <div className={styles.warningBanner}>
             <span className={styles.warningIcon}>⚡</span>
-            <span>Only <strong>{MAX_REGISTRATIONS - countData.count} spots remaining</strong>. Registration closes at {MAX_REGISTRATIONS.toLocaleString()} participants.</span>
+            <span>Only <strong>{MAX_REGISTRATIONS - countData.count} spots remaining</strong>. Registration closes on 22 May 2026 or at {MAX_REGISTRATIONS.toLocaleString()} participants.</span>
           </div>
         )}
 

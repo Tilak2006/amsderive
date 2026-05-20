@@ -1,5 +1,5 @@
 import { db } from './firebaseConfig';
-import { MAX_REGISTRATIONS } from '../lib/constants';
+import { MAX_REGISTRATIONS, REGISTRATION_CLOSES } from '../lib/constants';
 import {
   collection,
   addDoc,
@@ -21,6 +21,10 @@ import {
 
 export async function checkRegistrationCap() {
   try {
+    if (Date.now() >= REGISTRATION_CLOSES.getTime()) {
+      return { allowed: false, error: 'Registration has closed.' };
+    }
+
     const snapshot = await getCountFromServer(collection(db, 'registrants'));
     const count = snapshot.data().count;
     if (count >= MAX_REGISTRATIONS) {

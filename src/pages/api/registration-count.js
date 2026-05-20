@@ -20,8 +20,8 @@ export default async function handler(req, res) {
   if (cachedCount !== null && now - cacheTime < CACHE_TTL) {
     return res.status(200).json({
       count: cachedCount,
-      warning: cachedCount >= 800,
-      full: cachedCount >= 1000,
+      warning: cachedCount >= MAX_REGISTRATIONS * 0.9,
+      full: cachedCount >= MAX_REGISTRATIONS,
     });
   }
 

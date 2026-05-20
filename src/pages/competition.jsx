@@ -34,7 +34,7 @@ const ROUNDS = [
 const TIMELINE = [
   { date: '25 Mar 2026', event: 'Pre-Registration Opens' },
   { date: '20 Apr 2026', event: 'Registration Opens' },
-  { date: '15 May 2026', event: 'Registration Closes' },
+  { date: '22 May 2026', event: 'Registration Closes' },
   { date: '23 May 2026', event: 'PRIOR | Round 1 (Codeforces, ICPC Style)' },
   { date: '21 Jun 2026', event: 'POSTERIOR | Round 2 (Hard Online Round)' },
   { date: '1 Jul 2026', event: 'Finalists Announced' },

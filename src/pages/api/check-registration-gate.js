@@ -10,10 +10,10 @@
  *
  * Response:
  * - 200 OK: registration is open
- * - 403 Forbidden: registration not open yet
+ * - 403 Forbidden: registration not open yet or already closed
  */
 
-import { REGISTRATION_OPENS } from '../../lib/constants';
+import { REGISTRATION_OPENS, REGISTRATION_CLOSES } from '../../lib/constants';
 import logger, { genReqId } from '../../utils/logger';
 
 export default function handler(req, res) {
@@ -23,8 +23,9 @@ export default function handler(req, res) {
 
   try {
     const now = Date.now();
-    const registrationTime = REGISTRATION_OPENS.getTime();
-    const isRegistrationOpen = now >= registrationTime;
+    const opensAt = REGISTRATION_OPENS.getTime();
+    const closesAt = REGISTRATION_CLOSES.getTime();
+    const isRegistrationOpen = now >= opensAt && now < closesAt;
 
     if (isRegistrationOpen) {
       return res.status(200).json({
@@ -34,7 +35,7 @@ export default function handler(req, res) {
     }
 
     return res.status(403).json({
-      error: 'Registration has not opened yet.',
+      error: now < opensAt ? 'Registration has not opened yet.' : 'Registration has closed.',
       allowed: false,
     });
 

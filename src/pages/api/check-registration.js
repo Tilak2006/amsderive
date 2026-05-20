@@ -1,7 +1,7 @@
 import { admin, db } from '../../lib/firebaseAdmin';
 import crypto from 'crypto';
 import logger, { genReqId } from '../../utils/logger';
-import { MAX_REGISTRATIONS } from '../../lib/constants';
+import { MAX_REGISTRATIONS, REGISTRATION_CLOSES } from '../../lib/constants';
 
 const RATE_LIMIT_MAX = 10;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -12,6 +12,10 @@ export default async function handler(req, res) {
   }
 
   const reqId = genReqId();
+
+  if (Date.now() >= REGISTRATION_CLOSES.getTime()) {
+    return res.status(200).json({ allowed: false, error: 'Registration has closed.' });
+  }
 
   // Rate limit — 10 checks/hour per IP. UA is spoofable and was removed to close a bypass.
   // clientId (from localStorage) is only used as an extra key to separate honest devices on shared NAT;

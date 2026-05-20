@@ -20,7 +20,7 @@ AMS Derive 2026 is a three-round quantitative evaluation circuit:
 - **POSTERIOR** — Round 2, June 21, 2026. Individual.
 - **CONVERGENCE** — Round 3, July 11, 2026. Teams of 3. Offline finals at IIT Bombay.
 
-Registration opens April 20, 2026 at 00:00 IST and is capped at 10,000 participants. Topics include quantitative trading strategies, stochastic processes and SDEs, probability theory, Bayesian reasoning, market microstructure, and algorithmic problem-solving.
+Registration opens April 20, 2026 at 00:00 IST, closes May 22, 2026, and is capped at 10,000 participants. Topics include quantitative trading strategies, stochastic processes and SDEs, probability theory, Bayesian reasoning, market microstructure, and algorithmic problem-solving.
 
 ## Partners
 

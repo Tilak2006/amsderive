@@ -1,7 +1,7 @@
 import { admin, db } from '../../lib/firebaseAdmin';
 import crypto from 'crypto';
 import logger, { genReqId, maskEmail } from '../../utils/logger';
-import { REGISTRATION_OPENS, MAX_REGISTRATIONS } from '../../lib/constants';
+import { REGISTRATION_OPENS, REGISTRATION_CLOSES, MAX_REGISTRATIONS } from '../../lib/constants';
 
 
 function instSlug(university) {
@@ -15,6 +15,10 @@ export default async function handler(req, res) {
 
   if (Date.now() < REGISTRATION_OPENS.getTime()) {
     return res.status(403).json({ success: false, error: 'Registration has not opened yet.' });
+  }
+
+  if (Date.now() >= REGISTRATION_CLOSES.getTime()) {
+    return res.status(403).json({ success: false, error: 'Registration has closed.' });
   }
 
   const reqId = genReqId();
