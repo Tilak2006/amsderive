@@ -31,6 +31,8 @@ const GOLD = '#D4AF37';
 const LABEL_COLOR = '#6b6560';
 const FIRM_PANEL_COUNT_OFFSET = 500;
 const FIRM_COMMUNITY_PARTNERS_LABEL = '15+';
+const TALENT_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
+const TALENT_REFRESH_STORAGE_KEY = 'ams_derive_talent_refresh_available_at';
 
 const TIER_DESCRIPTIONS = {
   derivation:
@@ -198,6 +200,8 @@ export default function FirmDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterUniversity, setFilterUniversity] = useState('all');
   const [selectedFinalist, setSelectedFinalist] = useState(null);
+  const [talentRefreshAvailableAt, setTalentRefreshAvailableAt] = useState(0);
+  const [talentRefreshTick, setTalentRefreshTick] = useState(Date.now());
 
   // Analytics state
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -288,6 +292,21 @@ export default function FirmDashboard() {
     };
   }, [router]);
 
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(TALENT_REFRESH_STORAGE_KEY) || 0);
+      if (Number.isFinite(saved)) setTalentRefreshAvailableAt(saved);
+    } catch {
+      setTalentRefreshAvailableAt(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (talentRefreshAvailableAt <= Date.now()) return undefined;
+    const interval = setInterval(() => setTalentRefreshTick(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [talentRefreshAvailableAt]);
+
   // Lazy-load tab data (once per tab per session)
   useEffect(() => {
     if (!user || !firmProfile) return;
@@ -366,6 +385,22 @@ export default function FirmDashboard() {
       setFinalistsLoading(false);
     }
   }, [user]);
+
+  async function handleTalentRefresh() {
+    const now = Date.now();
+    if (finalistsLoading || talentRefreshAvailableAt > now) return;
+
+    const nextAvailableAt = now + TALENT_REFRESH_COOLDOWN_MS;
+    setTalentRefreshAvailableAt(nextAvailableAt);
+    setTalentRefreshTick(now);
+    try {
+      localStorage.setItem(TALENT_REFRESH_STORAGE_KEY, String(nextAvailableAt));
+    } catch {
+      // Cooldown still applies for this session if persistent storage is unavailable.
+    }
+
+    await fetchFinalists();
+  }
 
   const fetchLeaderboard = useCallback(async () => {
     setLeaderboardLoading(true);
@@ -524,6 +559,13 @@ export default function FirmDashboard() {
     if (tier === 'convergence') return `${styles.tierBadge} ${styles.tierConvergence}`;
     return `${styles.tierBadge} ${styles.tierDerivation}`;
   }
+
+  const talentRefreshOnCooldown = talentRefreshAvailableAt > talentRefreshTick;
+  const talentRefreshLabel = finalistsLoading
+    ? 'REFRESHING...'
+    : talentRefreshOnCooldown
+      ? `REFRESH IN ${Math.ceil((talentRefreshAvailableAt - talentRefreshTick) / 1000)}S`
+      : 'REFRESH';
 
   if (checking) {
     return (
@@ -814,6 +856,14 @@ export default function FirmDashboard() {
                     </a>
                     .
                   </p>
+                  <button
+                    type="button"
+                    className={styles.refreshBtn}
+                    onClick={handleTalentRefresh}
+                    disabled={finalistsLoading || talentRefreshOnCooldown}
+                  >
+                    {talentRefreshLabel}
+                  </button>
                 </div>
               ) : (
                 <>
@@ -841,6 +891,14 @@ export default function FirmDashboard() {
                     <span className={styles.resultCount}>
                       {filteredFinalists.length}{finalistsCount !== null && finalistsCount !== filteredFinalists.length ? `/${finalistsCount}` : ''} candidate{filteredFinalists.length !== 1 ? 's' : ''}
                     </span>
+                    <button
+                      type="button"
+                      className={styles.refreshBtn}
+                      onClick={handleTalentRefresh}
+                      disabled={finalistsLoading || talentRefreshOnCooldown}
+                    >
+                      {talentRefreshLabel}
+                    </button>
                   </div>
 
                   {filteredFinalists.length === 0 ? (
@@ -1404,15 +1462,14 @@ export default function FirmDashboard() {
                 <>
                   <div className={styles.analyticsStatsGrid}>
                     {(() => {
-                      const totalRegistrants = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
-                      const displayedTotalRegistrants = getFirmPanelDisplayCount(totalRegistrants);
+                      const talentPoolSize = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
                       const institutionsCount = (analyticsData.institutions || []).length;
-                      const avgPerInstitution = institutionsCount ? (displayedTotalRegistrants / institutionsCount).toFixed(1) : '0.0';
+                      const avgPerInstitution = institutionsCount ? (talentPoolSize / institutionsCount).toFixed(1) : '0.0';
 
                       return [
-                        { label: 'Total Registrants', value: displayedTotalRegistrants },
+                        { label: 'Talent Pool Size', value: talentPoolSize },
                         { label: 'Community Partners', value: FIRM_COMMUNITY_PARTNERS_LABEL },
-                        { label: 'Avg Registrants / Institution', value: avgPerInstitution },
+                        { label: 'Avg Talent / Institution', value: avgPerInstitution },
                       ].map((s) => (
                         <div key={s.label} className={`${styles.statCard} ${styles.analyticsStatCard}`}>
                           <span className={styles.statLabel}>{s.label}</span>
@@ -1422,9 +1479,9 @@ export default function FirmDashboard() {
                     })()}
                   </div>
 
-                  {chartData.length > 0 && (
+                  {chartData.length > 0 ? (
                     <div className={styles.chartCard}>
-                      <p className={styles.chartTitle}>Registrations by Institution (Top 15)</p>
+                      <p className={styles.chartTitle}>Talent Pool by Institution (Top 15)</p>
                       <RechartsComponents>
                         {({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid }) => (
                           <div className={styles.chartWrap}>
@@ -1471,6 +1528,13 @@ export default function FirmDashboard() {
                           </div>
                         )}
                       </RechartsComponents>
+                    </div>
+                  ) : (
+                    <div className={styles.accessDenied}>
+                      <p className={styles.accessDeniedTitle}>Talent pool analytics will appear here</p>
+                      <p className={styles.accessDeniedText}>
+                        Institution distribution will populate once candidates advance past PRIOR into the Talent Pool.
+                      </p>
                     </div>
                   )}
                 </>

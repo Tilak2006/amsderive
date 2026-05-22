@@ -1,8 +1,8 @@
 /**
  * POST /api/firm/get-institution-stats
  *
- * Returns institution analytics for the firm dashboard using only registrants
- * that are visible to firms: approved and data-consented.
+ * Returns institution analytics for the firm dashboard using only talent pool
+ * candidates: approved, data-consented, and advanced past PRIOR.
  */
 
 import { admin, db } from '../../../lib/firebaseAdmin';
@@ -47,15 +47,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const snapshot = await db
-      .collection('registrants')
-      .where('status', '==', 'approved')
-      .where('dataConsent', '==', true)
-      .select('university')
-      .get();
+    const [posteriorSnap, convergenceSnap] = await Promise.all([
+      db.collection('registrants')
+        .where('round', '==', 'posterior')
+        .where('status', '==', 'approved')
+        .where('dataConsent', '==', true)
+        .select('university')
+        .get(),
+      db.collection('registrants')
+        .where('round', '==', 'convergence')
+        .where('status', '==', 'approved')
+        .where('dataConsent', '==', true)
+        .select('university')
+        .get(),
+    ]);
 
     const counts = new Map();
-    snapshot.docs.forEach((doc) => {
+    const docs = [...posteriorSnap.docs, ...convergenceSnap.docs];
+
+    docs.forEach((doc) => {
       const name = normalizeInstitution(doc.data().university);
       if (!name) return;
       const key = name.toLowerCase();
@@ -72,7 +82,7 @@ export default async function handler(req, res) {
     logger.info('firms', 'institution_stats_fetched', {
       reqId,
       actorId: uid,
-      detail: { institutions: institutions.length, registrants: snapshot.size },
+      detail: { institutions: institutions.length, talentPool: docs.length },
       status: 'ok',
     });
 
