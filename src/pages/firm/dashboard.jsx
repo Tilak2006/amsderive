@@ -40,17 +40,17 @@ const TIER_DESCRIPTIONS = {
   convergence:
     'Convergence Partner — All Derivation benefits, plus finalist profile access, an evaluation panel seat at IIT Bombay finals, in-person attendance, and first access to finalist talent.',
   apex:
-    'Apex Partner | Full access to elite quant and CP talent, early finalist resumes ahead of all other partners, custom filtering, naming rights, and bespoke configuration across all contest communications.',
+    'Priority access to contest-qualified quant and programming talent across PRIOR, POSTERIOR, and CONVERGENCE.',
 };
 
 const ACCESS_MATRIX = [
   { key: 'registrantProfiles', label: 'Registrant Profiles', status: 'active', unlockLabel: null },
   { key: 'analytics', label: 'Performance Analytics', status: 'active', unlockLabel: null },
-  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'active', unlockLabel: null },
+  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'upcoming', unlockLabel: 'Scheduled May 24' },
   { key: 'namingRights', label: 'Naming Rights', status: 'active', unlockLabel: null },
-  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Unlocks May 23' },
-  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Unlocks May 24' },
-  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Unlocks Jul 1' },
+  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Scheduled May 23' },
+  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Scheduled May 24' },
+  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Scheduled Jul 1' },
 ];
 
 function formatDate(isoString) {
@@ -639,9 +639,17 @@ export default function FirmDashboard() {
                       <img src="/Jane_Street.svg" alt="Jane Street" className={styles.coBrandLogo} />
                     </div>
                   )}
+                  <p className={styles.welcomeEyebrow}>AMS Derive 2026 Partner Portal</p>
                   <h1 className={styles.welcomeTitle}>
-                    Welcome,{' '}
-                    <span className={styles.welcomeGold}>{firmProfile?.firmName}</span>
+                    {firmProfile?.firmName === 'Jane Street' ? (
+                      <>
+                        Jane Street <span className={styles.welcomeGold}>Talent Overview</span>
+                      </>
+                    ) : (
+                      <>
+                        Welcome, <span className={styles.welcomeGold}>{firmProfile?.firmName}</span>
+                      </>
+                    )}
                   </h1>
                   <p className={styles.tierDescription}>
                     {TIER_DESCRIPTIONS[firmProfile?.tier] || ''}
@@ -653,32 +661,32 @@ export default function FirmDashboard() {
               {/* Metrics row */}
               {overviewStats && (
                 <>
-                  <p className={styles.sectionLabel} style={{ marginBottom: 16 }}>Overview Metrics</p>
+                  <p className={styles.sectionLabel} style={{ marginBottom: 16 }}>Talent Snapshot</p>
                   <div className={styles.metricsRow}>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
                         {formatFirmPanelDisplayCount(overviewStats.total)}
                       </span>
-                      <span className={styles.metricLabel}>Talent Pool Size</span>
+                      <span className={styles.metricLabel}>Shared Profiles</span>
                     </div>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
                         {formatFirmPanelDisplayCount(overviewStats.newThisWeek)}
                       </span>
-                      <span className={styles.metricLabel}>New This Week</span>
+                      <span className={styles.metricLabel}>New Profiles This Week</span>
                     </div>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
                         {formatFirmPanelDisplayCount(overviewStats.sparkline?.slice(-4).reduce((sum, count) => sum + count, 0) || 0)}
                       </span>
-                      <span className={styles.metricLabel}>Recent Activity (4W)</span>
+                      <span className={styles.metricLabel}>4-Week Profile Activity</span>
                     </div>
                   </div>
                 </>
               )}
 
               {/* Action Center */}
-              <p className={styles.sectionLabel} style={{ marginBottom: 16, marginTop: overviewStats ? 32 : 0 }}>Action Center</p>
+              <p className={styles.sectionLabel} style={{ marginBottom: 16, marginTop: overviewStats ? 32 : 0 }}>Talent Workflow</p>
               <div className={styles.quickActionGrid}>
                 <button
                   className={styles.quickActionCard}
@@ -690,7 +698,7 @@ export default function FirmDashboard() {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Newest Candidates</span>
+                  <span className={styles.quickActionTitle}>Latest Shared Profiles</span>
                   {firmProfile?.tier === 'derivation' ? (
                     <span className={styles.quickActionDesc}>Convergence & Apex only</span>
                   ) : overviewStats?.recentNames?.length ? (
@@ -714,7 +722,7 @@ export default function FirmDashboard() {
                       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Community Engagement</span>
+                  <span className={styles.quickActionTitle}>Institution Mix</span>
                   {overviewStats?.sparkline ? (
                     <span className={styles.sparklineWrap} aria-hidden="true">
                       {(() => {
@@ -773,22 +781,22 @@ export default function FirmDashboard() {
               </button>
 
               {/* Contest Timeline */}
-              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 32 }}>Contest Timeline</p>
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 32 }}>Contest Schedule</p>
               <FirmTimeline />
 
               {/* Access Matrix */}
-              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 0 }}>Your Access</p>
+              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 0 }}>Access & Unlocks</p>
               <div className={styles.accessMatrix}>
                 {ACCESS_MATRIX.map((item) => {
                   const granted = firmProfile?.access?.[item.key];
-                  const isActive = item.status === 'active' && granted;
+                  const isActive = Boolean(granted);
                   return (
                     <div key={item.key} className={styles.accessMatrixRow}>
                       <span className={styles.accessMatrixLabel}>{item.label}</span>
                       {isActive ? (
                         <span className={styles.accessBadgeActive}>
                           <span className={styles.accessBadgeDot} />
-                          Active
+                          Enabled
                         </span>
                       ) : (
                         <span className={styles.accessBadgeLocked}>
