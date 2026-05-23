@@ -255,7 +255,7 @@ export default function Register() {
         {countData?.warning && !countData?.full && (
           <div className={styles.warningBanner}>
             <span className={styles.warningIcon}>⚡</span>
-            <span>Only <strong>{MAX_REGISTRATIONS - countData.count} spots remaining</strong>. Registration closes on 22 May 2026 or at {MAX_REGISTRATIONS.toLocaleString()} participants.</span>
+            <span>Only <strong>{MAX_REGISTRATIONS - countData.count} spots remaining</strong>. Registration closes on 23 May 2026 at 2:00 PM IST or at {MAX_REGISTRATIONS.toLocaleString()} participants.</span>
           </div>
         )}
 

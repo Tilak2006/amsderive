@@ -224,7 +224,7 @@ export default function LandingPage() {
                   "name": "When does registration for AMS Derive 2026 open?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Registration opens on April 20, 2026 at 00:00 IST, closes on May 22, 2026, and is capped at 10,000 participants, allocated on a first-come, first-served basis."
+                    "text": "Registration opens on April 20, 2026 at 00:00 IST, closes on May 23, 2026 at 2:00 PM IST, and is capped at 10,000 participants, allocated on a first-come, first-served basis."
                   }
                 },
                 {

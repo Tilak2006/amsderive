@@ -27,7 +27,7 @@ const FAQS = [
     items: [
       {
         q: 'When does registration open?',
-        a: 'Registration opens on April 20, 2026 at 00:00 IST and closes on May 22, 2026.',
+        a: 'Registration opens on April 20, 2026 at 00:00 IST and closes on May 23, 2026 at 2:00 PM IST.',
       },
       {
         q: 'How many spots are available?',

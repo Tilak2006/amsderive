@@ -45,7 +45,7 @@ export default function RulesPage() {
                 Rounds 1 (PRIOR) and 2 (POSTERIOR) are strictly individual. Round 3 (CONVERGENCE) is team-based — teams are formed on-site on the day of the finals. Participants do not choose their own teams.
               </li>
               <li className={styles.rulesListItem}>
-                Registration closes on 22 May 2026 or when 10,000 spots are filled, whichever comes first.
+                Registration closes on 23 May 2026 at 2:00 PM IST or when 10,000 spots are filled, whichever comes first.
               </li>
             </ul>
           </div>

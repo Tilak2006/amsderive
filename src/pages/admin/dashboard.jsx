@@ -204,6 +204,433 @@ function buildRegistrantRequestBody(filters, lastDocId = null, includeOptions = 
   };
 }
 
+function loadImageClean(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = new URL(src, window.location.href);
+    if (url.origin !== window.location.origin) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Could not load certificate asset: ${src}`));
+    img.src = url.href;
+  });
+}
+
+function drawContain(ctx, img, x, y, w, h) {
+  const ratio = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+  const dw = img.naturalWidth * ratio;
+  const dh = img.naturalHeight * ratio;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+}
+
+function measureTracked(ctx, text, tracking) {
+  return Array.from(text).reduce((width, ch, i) => width + ctx.measureText(ch).width + (i ? tracking : 0), 0);
+}
+
+function drawTracked(ctx, text, x, y, tracking) {
+  let cursor = x - measureTracked(ctx, text, tracking) / 2;
+  Array.from(text).forEach((ch, i) => {
+    if (i) cursor += tracking;
+    ctx.fillText(ch, cursor, y);
+    cursor += ctx.measureText(ch).width;
+  });
+}
+
+function drawRule(ctx, x, y, w, color) {
+  const g = ctx.createLinearGradient(x, y, x + w, y);
+  g.addColorStop(0, 'rgba(212,175,55,0)');
+  g.addColorStop(0.3, color);
+  g.addColorStop(0.7, color);
+  g.addColorStop(1, 'rgba(212,175,55,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(x, y, w, 1);
+}
+
+async function renderCertificateToCanvas({ sourceCanvas, name, rank }) {
+  if (document.fonts?.ready) await document.fonts.ready;
+  const W = 1120, H = 792, scale = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = W * scale;
+  canvas.height = H * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = '#050505';
+  ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.scale(1.8, 1);
+  const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 260);
+  glow.addColorStop(0, 'rgba(212,160,23,.11)');
+  glow.addColorStop(0.68, 'rgba(212,160,23,0)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(-500, -300, 1000, 600);
+  ctx.restore();
+  if (sourceCanvas) ctx.drawImage(sourceCanvas, 0, 0, W, H);
+
+  ctx.strokeStyle = 'rgba(212,175,55,.2)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(20.5, 20.5, W - 41, H - 41);
+  ctx.strokeStyle = 'rgba(212,175,55,.07)';
+  ctx.strokeRect(28.5, 28.5, W - 57, H - 57);
+  ctx.strokeStyle = 'rgba(212,175,55,.55)';
+  ctx.lineWidth = 1.5;
+  [[30, 30, 1, 1], [W - 52, 30, -1, 1], [30, H - 52, 1, -1], [W - 52, H - 52, -1, -1]].forEach(([x, y, sx, sy]) => {
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 22 * sx, y); ctx.moveTo(x, y); ctx.lineTo(x, y + 22 * sy); ctx.stroke();
+  });
+
+  const [amsIcon, amsText, jane, qrt] = await Promise.all([
+    loadImageClean('/android-chrome-192x192.png'),
+    loadImageClean('/AMS_DERIVE_TEXT.svg'),
+    loadImageClean('/Jane_Street.svg'),
+    loadImageClean('/QRT.png'),
+  ]);
+  ctx.drawImage(amsIcon, 52, 44, 22, 22);
+  drawContain(ctx, amsText, W - 152, 48, 100, 14);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = 'rgba(212,175,55,.45)';
+  ctx.font = '9px monospace';
+  drawTracked(ctx, 'CERTIFICATE OF ACHIEVEMENT · AMS DERIVE 2026', W / 2, 84, 5);
+  ctx.fillStyle = 'rgba(240,237,230,.3)';
+  ctx.font = '9px monospace';
+  drawTracked(ctx, 'THE ALGEBRAIC & MATHEMATICAL SCIENCES SOCIETY PRESENTS', W / 2, 111, 4);
+  ctx.fillStyle = '#fff';
+  ctx.font = '700 42px serif';
+  drawTracked(ctx, 'CERTIFICATE', W / 2, 164, 5);
+  drawTracked(ctx, 'OF EXCELLENCE', W / 2, 207, 5);
+  ctx.fillStyle = 'rgba(212,175,55,.55)';
+  ctx.font = 'italic 15px serif';
+  drawTracked(ctx, 'in Mathematical Sciences & Quantitative Reasoning', W / 2, 238, 1.6);
+  drawRule(ctx, W / 2 - 100, 272, 200, 'rgba(212,175,55,1)');
+  ctx.fillStyle = 'rgba(212,175,55,.4)';
+  ctx.font = '9px monospace';
+  drawTracked(ctx, 'AWARDED TO', W / 2, 306, 5);
+  ctx.fillStyle = '#f0ede6';
+  ctx.font = '700 32px serif';
+  ctx.fillText(name || 'Participant', W / 2, 354);
+  ctx.font = '9px monospace';
+  ctx.fillStyle = 'rgba(212,175,55,.38)';
+  drawTracked(ctx, 'ACHIEVEMENT', W / 2 - 72, 386, 3);
+  ctx.font = '600 13px monospace';
+  ctx.fillStyle = '#D4AF37';
+  drawTracked(ctx, rank || '—', W / 2 + 62, 386, 2);
+  drawRule(ctx, W / 2 - 150, 420, 300, 'rgba(212,175,55,.28)');
+
+  ctx.font = '7px monospace';
+  ctx.fillStyle = 'rgba(212,175,55,.4)';
+  drawTracked(ctx, 'APEX PARTNER', W / 2, 510, 2.4);
+  drawContain(ctx, jane, W / 2 - 105, 528, 210, 34);
+  drawTracked(ctx, 'CONVERGENCE PARTNER', W / 2, 586, 2.4);
+  drawContain(ctx, qrt, W / 2 - 56, 600, 112, 66);
+
+  ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(240,237,230,.5)';
+  ctx.font = '700 12px serif';
+  ctx.fillText('AMS Core Team', 86, 695);
+  ctx.fillStyle = 'rgba(212,175,55,.28)';
+  ctx.fillRect(86, 707, 130, 1);
+  ctx.fillStyle = 'rgba(212,175,55,.38)';
+  ctx.font = '8px monospace';
+  ctx.fillText('ORGANIZING COMMITTEE', 86, 724);
+  return canvas;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Certificate Panel — rendered inside the CERTIFICATE tab of the admin dashboard.
+   Self-contained: no external deps.
+───────────────────────────────────────────────────────────────────────────── */
+function CertificatePanel() {
+  const [name, setName] = React.useState('Arjun Sharma');
+  const [rank, setRank] = React.useState('Rank 7 · Top 3%');
+  const [downloading, setDownloading] = React.useState(false);
+  const canvasRef = React.useRef(null);
+  const certRef = React.useRef(null);
+  const previewHostRef = React.useRef(null);
+  const [previewScale, setPreviewScale] = React.useState(0.72);
+
+  // Draw math background on canvas
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const W = 1120, H = 792;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, W, H);
+    const gold = 'rgba(212,175,55,';
+
+    // Fine grid
+    ctx.strokeStyle = gold + '0.06)'; ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += 48) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 48) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Diagonal lines
+    ctx.strokeStyle = gold + '0.04)'; ctx.lineWidth = 0.8;
+    for (let i = -10; i < 20; i++) { const x = W * 0.6 + i * 60; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + 240, H); ctx.stroke(); }
+
+    // AMS Derive wireframe mesh — homepage-inspired mathematical terrain
+    function meshPoint(x, t) {
+      const scale = 24 + t * 34;
+      const wave = Math.sin(x * 0.9 + t * 5.2) * (5 + t * 8)
+        + Math.sin(x * 1.8 - t * 3.4) * (2 + t * 4);
+      return {
+        x: W / 2 + x * scale,
+        y: H * 0.58 + t * 170 + wave,
+      };
+    }
+    ctx.save();
+    ctx.lineWidth = 0.85;
+    ctx.shadowColor = 'rgba(212,175,55,0.18)';
+    ctx.shadowBlur = 8;
+    const meshCols = 18;
+    const meshRows = 18;
+    for (let r = 0; r <= meshRows; r++) {
+      const t = r / meshRows;
+      ctx.strokeStyle = gold + (0.08 + t * 0.28) + ')';
+      ctx.beginPath();
+      for (let c = 0; c <= meshCols; c++) {
+        const x = -8 + (16 * c / meshCols);
+        const p = meshPoint(x, t);
+        c === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+    }
+    for (let c = 0; c <= meshCols; c++) {
+      const x = -8 + (16 * c / meshCols);
+      ctx.beginPath();
+      for (let r = 0; r <= meshRows; r++) {
+        const t = r / meshRows;
+        const p = meshPoint(x, t);
+        r === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+      }
+      ctx.strokeStyle = gold + '0.14)';
+      ctx.stroke();
+    }
+    for (let c = 2; c < meshCols; c += 4) {
+      for (let r = 4; r < meshRows; r += 4) {
+        const p = meshPoint(-8 + (16 * c / meshCols), r / meshRows);
+        ctx.fillStyle = gold + '0.20)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 1.15, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    // Math symbols
+    const symbols = ['∫','∑','∂','∇','∞','√','π','Δ','λ','ε','δ','φ','σ','μ','θ','ℝ','ℤ','ℕ','∀','∃','∈','⊂','⊕','≤','≥','≠','≡','∝','∮','⟨','⟩','α','β','γ','ω','Ω','Λ','Γ','Ψ'];
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    function rng(seed) { let s = seed % 2147483647; return () => { s = s * 16807 % 2147483647; return (s - 1) / 2147483646; }; }
+    const rand = rng(42);
+    for (let i = 0; i < 55; i++) {
+      ctx.fillStyle = gold + (0.04 + rand() * 0.09) + ')';
+      ctx.font = (9 + rand() * 12) + 'px monospace';
+      ctx.fillText(symbols[Math.floor(rand() * symbols.length)], rand() * W, rand() * H);
+    }
+
+    // Edge equations
+    const eqs = ["f'(x) = lim_{h→0} [f(x+h)-f(x)]/h", "e^(iπ) + 1 = 0", "∫₋∞^∞ e^(-x²) dx = √π", "det(A) = Σ sgn(σ) ∏ aᵢσ(ᵢ)", "P(A|B) = P(B|A)·P(A)/P(B)", "∇²φ = 0", "V - E + F = 2"];
+    const eqPos = [[80,H-100],[W-180,48],[48,H/2-60],[W-220,H-100],[80,60],[W-180,H/2],[W/2-180,H-100]];
+    ctx.font = '9px monospace'; ctx.textAlign = 'center';
+    eqPos.forEach(([ex, ey], i) => { if (i >= eqs.length) return; ctx.fillStyle = gold + '0.12)'; ctx.fillText(eqs[i], ex, ey); });
+
+    // Axes + sine wave
+    const ox = 100, oy = H - 110, len = 60;
+    ctx.strokeStyle = gold + '0.16)'; ctx.lineWidth = 0.8;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + len, oy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, oy - len); ctx.stroke();
+    ctx.beginPath(); ctx.strokeStyle = gold + '0.11)';
+    for (let px = ox; px <= ox + len; px++) { const py2 = oy - 13 * Math.sin((px - ox) / len * Math.PI * 2); px === ox ? ctx.moveTo(px, py2) : ctx.lineTo(px, py2); }
+    ctx.stroke();
+
+    // Matrix
+    ctx.fillStyle = gold + '0.13)'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+    ['[a  b  c]', '[d  e  f]', '[g  h  i]'].forEach((row, ri) => ctx.fillText(row, W - 112, 88 + ri * 14));
+  }, []);
+
+  React.useEffect(() => {
+    const node = previewHostRef.current;
+    if (!node) return;
+
+    const updateScale = () => {
+      const availableWidth = node.clientWidth || 1120;
+      const nextScale = Math.min(1, Math.max(0.34, (availableWidth - 2) / 1120));
+      setPreviewScale(Number(nextScale.toFixed(4)));
+    };
+
+    updateScale();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(updateScale);
+      observer.observe(node);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
+  async function handleDownload() {
+    if (downloading || !certRef.current) return;
+    setDownloading(true);
+    try {
+      const canvas = await renderCertificateToCanvas({
+        sourceCanvas: canvasRef.current,
+        name: name || 'Participant',
+        rank: rank || '—',
+      });
+      const link = document.createElement('a');
+      link.download = `AMS_Derive_2026_Certificate_${name.replace(/\s+/g, '_')}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e) {
+      const message = e?.message || String(e) || 'Unknown error while generating the certificate.';
+      alert('Download failed: ' + message);
+      console.error(e);
+    }
+    setDownloading(false);
+  }
+
+  const certStyles = {
+    panel: { width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+    controls: { display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end', width: '100%', maxWidth: 1120, marginBottom: 28 },
+    previewHost: { width: '100%', maxWidth: 1120, margin: '0 auto', overflow: 'visible' },
+    previewShell: { position: 'relative', margin: '0 auto' },
+    previewScaler: { width: 1120, height: 792, transformOrigin: 'top left' },
+    wrap: { border: '1px solid rgba(212,175,55,.2)', borderRadius: 2, overflow: 'hidden', boxShadow: '0 0 60px rgba(212,175,55,.07)', display: 'inline-block' },
+    cert: { width: 1120, height: 792, background: '#050505', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
+    orb: { position: 'absolute', width: 900, height: 500, background: 'radial-gradient(ellipse at 50% 52%,rgba(212,160,23,.11) 0%,transparent 68%)', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', pointerEvents: 'none' },
+    frame: { position: 'absolute', inset: 20, border: '1px solid rgba(212,175,55,.2)', borderRadius: 1, pointerEvents: 'none' },
+    frameInner: { position: 'absolute', inset: 28, border: '1px solid rgba(212,175,55,.07)', borderRadius: 1, pointerEvents: 'none' },
+    corner: (t, l, b, r) => ({ position: 'absolute', width: 22, height: 22, top: t, left: l, bottom: b, right: r, borderColor: 'rgba(212,175,55,.55)', borderStyle: 'solid', borderWidth: t != null ? '1.5px 0 0 1.5px' : (b != null && l != null ? '0 0 1.5px 1.5px' : (b != null ? '0 1.5px 1.5px 0' : '1.5px 1.5px 0 0')) }),
+    logoIcon: { position: 'absolute', top: 44, left: 52, width: 22, height: 22, zIndex: 3, pointerEvents: 'none' },
+    logoText: { position: 'absolute', top: 48, right: 52, height: 14, width: 'auto', zIndex: 3, pointerEvents: 'none' },
+    content: { position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: 0, textAlign: 'center', width: '100%', height: '100%', boxSizing: 'border-box', padding: '76px 90px 48px' },
+    eyebrow: { fontFamily: 'monospace', fontSize: '.56rem', letterSpacing: '.3em', color: 'rgba(212,175,55,.45)', textTransform: 'uppercase', marginBottom: 14 },
+    presents: { fontFamily: 'monospace', fontSize: '.58rem', letterSpacing: '.2em', color: 'rgba(240,237,230,.3)', textTransform: 'uppercase', marginBottom: 14 },
+    title: { fontFamily: 'serif', fontSize: '2.5rem', fontWeight: 700, color: '#fff', letterSpacing: '.12em', textTransform: 'uppercase', lineHeight: 1.05, marginBottom: 8, textShadow: '0 0 30px rgba(212,175,55,.18)' },
+    subtitle: { fontFamily: 'serif', fontSize: '.95rem', color: 'rgba(212,175,55,.55)', letterSpacing: '.1em', marginBottom: 28, fontStyle: 'italic' },
+    rule: { width: 200, height: 1, background: 'linear-gradient(90deg,transparent,#D4AF37 30%,#D4AF37 70%,transparent)', marginBottom: 22 },
+    to: { fontFamily: 'monospace', fontSize: '.58rem', letterSpacing: '.25em', color: 'rgba(212,175,55,.4)', textTransform: 'uppercase', marginBottom: 10 },
+    nameEl: { fontFamily: 'serif', fontSize: '2rem', fontWeight: 700, color: '#f0ede6', letterSpacing: '.04em', lineHeight: 1.05, maxWidth: 760, overflowWrap: 'anywhere', marginBottom: 8 },
+    rankRow: { display: 'flex', alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 18px', maxWidth: 760, marginBottom: 22 },
+    rankLabel: { fontFamily: 'monospace', fontSize: '.56rem', letterSpacing: '.2em', color: 'rgba(212,175,55,.38)', textTransform: 'uppercase' },
+    rankVal: { fontFamily: 'monospace', fontSize: '.82rem', fontWeight: 600, letterSpacing: '.14em', color: '#D4AF37', lineHeight: 1.35, maxWidth: 520, overflowWrap: 'anywhere', textAlign: 'center' },
+    rule2: { width: 300, height: 1, background: 'linear-gradient(90deg,transparent,rgba(212,175,55,.28) 20%,rgba(212,175,55,.28) 80%,transparent)', marginBottom: 22 },
+    footer: { position: 'absolute', left: 86, bottom: 64, zIndex: 3 },
+    sigBlock: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 5 },
+    sigLine: { width: 130, height: 1, background: 'rgba(212,175,55,.28)' },
+    sigLabel: { fontFamily: 'monospace', fontSize: '.50rem', letterSpacing: '.18em', textTransform: 'uppercase', color: 'rgba(212,175,55,.38)' },
+    sigName: { fontFamily: 'serif', fontSize: '.72rem', fontWeight: 700, color: 'rgba(240,237,230,.5)', letterSpacing: '.05em' },
+    partnersInline: { position: 'absolute', left: '50%', bottom: 172, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, width: 300 },
+    partnerCol: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 9, width: '100%' },
+    partnerLabelRow: { display: 'flex', alignItems: 'center', gap: 10, width: 260 },
+    partnerRule: { flex: 1, height: 1, background: 'linear-gradient(90deg,transparent,rgba(212,175,55,.25))' },
+    partnerRuleR: { flex: 1, height: 1, background: 'linear-gradient(270deg,transparent,rgba(212,175,55,.25))' },
+    partnerTier: { fontFamily: 'monospace', fontSize: '.44rem', letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(212,175,55,.4)', whiteSpace: 'nowrap' },
+    partnerLogoJs: { height: 34, width: 'auto', maxWidth: 210, objectFit: 'contain', filter: 'brightness(0) invert(1)', opacity: .92 },
+    partnerLogoQrt: { height: 66, width: 'auto', maxWidth: 112, objectFit: 'contain', opacity: .86 },
+  };
+
+  return (
+    <div style={certStyles.panel}>
+      {/* Controls */}
+      <div style={certStyles.controls}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 200 }}>
+          <label style={{ fontFamily: 'monospace', fontSize: '.6rem', letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(212,175,55,.6)' }}>Participant Name</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="e.g. Arjun Sharma"
+            style={{ background: '#0e0e0e', border: '1px solid rgba(212,175,55,.25)', color: '#f0ede6', fontFamily: 'monospace', fontSize: '.9rem', padding: '10px 14px', borderRadius: 2, outline: 'none' }}
+          />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1, minWidth: 200 }}>
+          <label style={{ fontFamily: 'monospace', fontSize: '.6rem', letterSpacing: '.2em', textTransform: 'uppercase', color: 'rgba(212,175,55,.6)' }}>Rank / Position</label>
+          <input
+            value={rank}
+            onChange={(e) => setRank(e.target.value)}
+            placeholder="e.g. Rank 7 · Top 3%"
+            style={{ background: '#0e0e0e', border: '1px solid rgba(212,175,55,.25)', color: '#f0ede6', fontFamily: 'monospace', fontSize: '.9rem', padding: '10px 14px', borderRadius: 2, outline: 'none' }}
+          />
+        </div>
+        <button
+          onClick={handleDownload}
+          disabled={downloading}
+          style={{ fontFamily: 'monospace', fontSize: '.72rem', fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', background: '#D4AF37', color: '#0a0a0a', border: 'none', padding: '12px 28px', borderRadius: 2, cursor: downloading ? 'not-allowed' : 'pointer', opacity: downloading ? .7 : 1 }}
+        >
+          {downloading ? 'Generating…' : '↓ Download PNG'}
+        </button>
+      </div>
+
+      {/* Certificate preview — scaled to fit admin panel */}
+      <div ref={previewHostRef} style={certStyles.previewHost}>
+        <div style={{ ...certStyles.previewShell, width: 1120 * previewScale, height: 792 * previewScale }}>
+          <div style={{ ...certStyles.previewScaler, transform: `scale(${previewScale})` }}>
+          <div style={certStyles.wrap}>
+            <div ref={certRef} style={certStyles.cert}>
+              {/* Orb */}
+              <div style={certStyles.orb} />
+              {/* Math canvas */}
+              <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, opacity: .17, pointerEvents: 'none' }} />
+              {/* Frames */}
+              <div style={certStyles.frame} />
+              <div style={certStyles.frameInner} />
+              {/* Corners */}
+              <div style={{ position: 'absolute', top: 30, left: 30, width: 22, height: 22, borderTop: '1.5px solid rgba(212,175,55,.55)', borderLeft: '1.5px solid rgba(212,175,55,.55)' }} />
+              <div style={{ position: 'absolute', top: 30, right: 30, width: 22, height: 22, borderTop: '1.5px solid rgba(212,175,55,.55)', borderRight: '1.5px solid rgba(212,175,55,.55)' }} />
+              <div style={{ position: 'absolute', bottom: 30, left: 30, width: 22, height: 22, borderBottom: '1.5px solid rgba(212,175,55,.55)', borderLeft: '1.5px solid rgba(212,175,55,.55)' }} />
+              <div style={{ position: 'absolute', bottom: 30, right: 30, width: 22, height: 22, borderBottom: '1.5px solid rgba(212,175,55,.55)', borderRight: '1.5px solid rgba(212,175,55,.55)' }} />
+              {/* Logos */}
+              <img src="/android-chrome-192x192.png" alt="AMS" style={certStyles.logoIcon} />
+              <img src="/AMS_DERIVE_TEXT.svg" alt="AMS Derive" style={certStyles.logoText} />
+              {/* Content */}
+              <div style={certStyles.content}>
+                <div style={certStyles.eyebrow}>Certificate of Achievement · AMS Derive 2026</div>
+                <div style={certStyles.presents}>The Algebraic &amp; Mathematical Sciences Society presents</div>
+                <div style={certStyles.title}>Certificate<br />of Excellence</div>
+                <div style={certStyles.subtitle}>in Mathematical Sciences &amp; Quantitative Reasoning</div>
+                <div style={certStyles.rule} />
+                <div style={certStyles.to}>Awarded to</div>
+                <div style={certStyles.nameEl}>{name || 'Participant'}</div>
+                <div style={certStyles.rankRow}>
+                  <div style={certStyles.rankLabel}>Achievement</div>
+                  <div style={certStyles.rankVal}>{rank || '—'}</div>
+                </div>
+                <div style={certStyles.rule2} />
+                {/* Partners — centered stacked sponsor treatment */}
+                <div style={certStyles.partnersInline}>
+                  <div style={certStyles.partnerCol}>
+                    <div style={certStyles.partnerLabelRow}>
+                      <div style={certStyles.partnerRule} />
+                      <div style={certStyles.partnerTier}>Apex Partner</div>
+                      <div style={certStyles.partnerRuleR} />
+                    </div>
+                    <img src="/Jane_Street.svg" alt="Jane Street" style={certStyles.partnerLogoJs} />
+                  </div>
+                  <div style={certStyles.partnerCol}>
+                    <div style={certStyles.partnerLabelRow}>
+                      <div style={certStyles.partnerRule} />
+                      <div style={certStyles.partnerTier}>Convergence Partner</div>
+                      <div style={certStyles.partnerRuleR} />
+                    </div>
+                    <img src="/QRT.png" alt="QRT" style={certStyles.partnerLogoQrt} />
+                  </div>
+                </div>
+                <div style={certStyles.footer}>
+                  <div style={certStyles.sigBlock}>
+                    <div style={certStyles.sigName}>AMS Core Team</div>
+                    <div style={certStyles.sigLine} />
+                    <div style={certStyles.sigLabel}>Organizing Committee</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -1195,28 +1622,32 @@ export default function AdminDashboard() {
           </span>
           <div className={styles.topBarRight}>
             <span className={styles.topBarEmail}>{user?.email}</span>
-            <button
-              className={styles.broadcastBtn}
-              onClick={() => { setBroadcastOpen((o) => !o); setBroadcastMsg(null); setBroadcastConfirming(false); }}
-            >
-              {broadcastOpen ? 'CLOSE' : 'BROADCAST'}
-            </button>
-            <button
-              className={styles.exportBtn}
-              onClick={async () => {
-                const hdrs = await authHeaders();
-                const res = await fetch('/api/admin/export-registrants', {
-                  method: 'POST',
-                  headers: hdrs,
-                  body: JSON.stringify(buildRegistrantRequestBody(registrantFilters)),
-                });
-                const data = await res.json();
-                if (data.registrants) exportCSV(data.registrants);
-              }}
-              title="Export the current filtered registrant view to CSV"
-            >
-              EXPORT CSV
-            </button>
+            {activeList !== 'certificates' && (
+              <>
+                <button
+                  className={styles.broadcastBtn}
+                  onClick={() => { setBroadcastOpen((o) => !o); setBroadcastMsg(null); setBroadcastConfirming(false); }}
+                >
+                  {broadcastOpen ? 'CLOSE' : 'BROADCAST'}
+                </button>
+                <button
+                  className={styles.exportBtn}
+                  onClick={async () => {
+                    const hdrs = await authHeaders();
+                    const res = await fetch('/api/admin/export-registrants', {
+                      method: 'POST',
+                      headers: hdrs,
+                      body: JSON.stringify(buildRegistrantRequestBody(registrantFilters)),
+                    });
+                    const data = await res.json();
+                    if (data.registrants) exportCSV(data.registrants);
+                  }}
+                  title="Export the current filtered registrant view to CSV"
+                >
+                  EXPORT CSV
+                </button>
+              </>
+            )}
             <button className={styles.logoutBtn} onClick={handleLogout}>
               LOGOUT
             </button>
@@ -1225,7 +1656,7 @@ export default function AdminDashboard() {
 
         <main className={styles.dashMain}>
           {/* Broadcast panel */}
-          {broadcastOpen && (
+          {activeList !== 'certificates' && broadcastOpen && (
             <div className={styles.broadcastPanel}>
               <p className={styles.broadcastTitle}>BROADCAST EMAIL</p>
               <div className={styles.broadcastImportRow}>
@@ -1384,12 +1815,20 @@ export default function AdminDashboard() {
             >
               OUTREACH
             </button>
+            <button
+              type="button"
+              className={`${styles.tab} ${activeList === 'certificates' ? styles.tabActive : ''}`}
+              onClick={() => { setActiveList('certificates'); setSelectedRegistrant(null); setDeleteMsg(null); setBroadcastOpen(false); }}
+            >
+              CERTIFICATE
+            </button>
             <Link href="/admin/analytics" className={styles.tab}>ANALYTICS</Link>
             <Link href="/admin/firms" className={styles.tab}>FIRMS</Link>
             <Link href="/admin/ambassadors" className={styles.tab}>AMBASSADORS</Link>
           </div>
 
-          {/* Stats */}
+          {/* Stats — hidden on certificate tab */}
+          {activeList !== 'certificates' && (
           <div className={styles.statsGrid}>
             {[
               { label: 'Total Registrants', value: stats.total },
@@ -1404,9 +1843,13 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+          )}
 
-          {/* Filters */}
-          <div className={styles.filterBar}>
+          {/* Certificate tab panel */}
+          {activeList === 'certificates' && <CertificatePanel />}
+
+          {/* Filters — hidden on certificate tab */}
+          {activeList !== 'certificates' && <div className={styles.filterBar}>
             <input
               className={styles.searchInput}
               type="text"
@@ -1573,7 +2016,7 @@ export default function AdminDashboard() {
                 ? `Showing ${filteredOutreach.length} of ${outreachContacts.length}`
                 : `Showing ${filtered.length}${hasMore ? '+' : ''} result${filtered.length === 1 ? '' : 's'}`}
             </span>
-          </div>
+          </div>}
 
           {/* Bulk actions */}
           {activeList === 'registrants' && (
@@ -1634,122 +2077,128 @@ export default function AdminDashboard() {
           )}
 
           {/* Table */}
-          {activeList === 'registrants' && loadingData ? (
-            <div className={styles.tableLoading}>Loading registrants...</div>
-          ) : activeList === 'outreach' && loadingOutreach ? (
-            <div className={styles.tableLoading}>Loading outreach contacts...</div>
-          ) : activeList === 'registrants' ? (
-            <div className={styles.tableWrap}>
-              <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      {['#', 'Full Name', 'Email', 'Status', 'Round', 'Delivery', 'Ref Code', 'University', 'Branch', 'Grad Year', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
-                        <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.length === 0 ? (
+          {activeList === 'registrants' && (
+            loadingData ? (
+              <div className={styles.tableLoading}>Loading registrants...</div>
+            ) : (
+              <div className={styles.tableWrap}>
+                <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
+                  <table className={styles.table}>
+                    <thead>
                       <tr>
-                        <td colSpan={14} className={styles.emptyRow}>No registrants found.</td>
+                        {['#', 'Full Name', 'Email', 'Status', 'Round', 'Delivery', 'Ref Code', 'University', 'Branch', 'Grad Year', 'CF Handle', 'Phone Number', 'Consent', 'Submitted At'].map((h) => (
+                          <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                        ))}
                       </tr>
-                    ) : filtered.map((reg, i) => (
-                      <tr
-                        key={reg.id}
-                        className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''} ${reg.status === 'approved' ? styles.trApproved : ''}`}
-                        onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); setDeleteMsg(null); }}
-                      >
-                        <td className={styles.td}>{i + 1}</td>
-                        <td className={styles.td}>{reg.fullName}</td>
-                        <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
-                        <td className={styles.td}>
-                          <span className={statusBadgeClass(reg.status)}>
-                            {(reg.status || 'pending').toUpperCase()}
-                          </span>
-                        </td>
-                        <td className={styles.td}>
-                          <span className={styles.badgeAmber}>
-                            {(reg.round || 'prior').toUpperCase()}
-                          </span>
-                        </td>
-                        <td className={styles.td}>
-                          <span className={deliveryBadgeClass(reg.deliveryStatus)}>
-                            {registrantDeliveryLabel(reg.deliveryStatus)}
-                          </span>
-                        </td>
-                        <td className={`${styles.td} ${styles.mono}`}>{reg.refCode || '—'}</td>
-                        <td className={styles.td}>{reg.university}</td>
-                        <td className={styles.td}>{reg.branch || '—'}</td>
-                        <td className={`${styles.td} ${styles.mono}`}>{reg.graduationYear || '—'}</td>
-                        <td className={`${styles.td} ${styles.mono}`}>
-                          <a
-                            href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.cfLink}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {reg.codeforcesHandle}
-                          </a>
-                        </td>
-                        <td className={`${styles.td} ${styles.mono}`}>{reg.phoneNumber ? `+91 ${reg.phoneNumber}` : '—'}</td>
-                        <td className={styles.td}>
-                          <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
-                            {reg.dataConsent ? 'YES' : 'NO'}
-                          </span>
-                        </td>
-                        <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(reg.submittedAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <div className={styles.tableWrap}>
-              <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
-                <table className={styles.table}>
-                  <thead>
-                    <tr>
-                      {['#', 'Full Name', 'Email', 'Institution', 'Delivery', 'Source', 'Imported At', 'Last Update'].map((h) => (
-                        <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredOutreach.length === 0 ? (
-                      <tr>
-                        <td colSpan={8} className={styles.emptyRow}>No outreach contacts found.</td>
-                      </tr>
-                    ) : filteredOutreach.map((contact, i) => {
-                      const status = String(contact.deliveryStatus || '').toLowerCase();
-                      const sent = isSentLike(status);
-                      const failed = status === 'bounced' || status === 'complained';
-                      return (
+                    </thead>
+                    <tbody>
+                      {filtered.length === 0 ? (
+                        <tr>
+                          <td colSpan={14} className={styles.emptyRow}>No registrants found.</td>
+                        </tr>
+                      ) : filtered.map((reg, i) => (
                         <tr
-                          key={contact.id}
-                          className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${sent ? styles.trApproved : ''}`}
+                          key={reg.id}
+                          className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${selectedRegistrant?.id === reg.id ? styles.trSelected : ''} ${reg.status === 'approved' ? styles.trApproved : ''}`}
+                          onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === reg.id ? null : reg); setStatusMsg(null); setRoundMsg(null); setDeleteMsg(null); }}
                         >
                           <td className={styles.td}>{i + 1}</td>
-                          <td className={styles.td}>{contact.fullName}</td>
-                          <td className={`${styles.td} ${styles.mono}`}>{contact.email}</td>
-                          <td className={styles.td}>{contact.institution || '—'}</td>
+                          <td className={styles.td}>{reg.fullName}</td>
+                          <td className={`${styles.td} ${styles.mono}`}>{reg.email}</td>
                           <td className={styles.td}>
-                            <span className={contact.unsubscribed || failed ? styles.badgeRed : sent ? styles.badgeGreen : status === 'delayed' ? styles.badgeYellow : styles.badgeGrey}>
-                              {deliveryLabel(contact.deliveryStatus, contact.unsubscribed)}
+                            <span className={statusBadgeClass(reg.status)}>
+                              {(reg.status || 'pending').toUpperCase()}
                             </span>
                           </td>
-                          <td className={`${styles.td} ${styles.mono}`}>{contact.source || '—'}</td>
-                          <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.createdAt)}</td>
-                          <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.deliveryStatusAt || contact.lastBroadcastAt)}</td>
+                          <td className={styles.td}>
+                            <span className={styles.badgeAmber}>
+                              {(reg.round || 'prior').toUpperCase()}
+                            </span>
+                          </td>
+                          <td className={styles.td}>
+                            <span className={deliveryBadgeClass(reg.deliveryStatus)}>
+                              {registrantDeliveryLabel(reg.deliveryStatus)}
+                            </span>
+                          </td>
+                          <td className={`${styles.td} ${styles.mono}`}>{reg.refCode || '—'}</td>
+                          <td className={styles.td}>{reg.university}</td>
+                          <td className={styles.td}>{reg.branch || '—'}</td>
+                          <td className={`${styles.td} ${styles.mono}`}>{reg.graduationYear || '—'}</td>
+                          <td className={`${styles.td} ${styles.mono}`}>
+                            <a
+                              href={`https://codeforces.com/profile/${reg.codeforcesHandle}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.cfLink}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {reg.codeforcesHandle}
+                            </a>
+                          </td>
+                          <td className={`${styles.td} ${styles.mono}`}>{reg.phoneNumber ? `+91 ${reg.phoneNumber}` : '—'}</td>
+                          <td className={styles.td}>
+                            <span className={reg.dataConsent ? styles.badgeGreen : styles.badgeRed}>
+                              {reg.dataConsent ? 'YES' : 'NO'}
+                            </span>
+                          </td>
+                          <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(reg.submittedAt)}</td>
                         </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )
+          )}
+
+          {activeList === 'outreach' && (
+            loadingOutreach ? (
+              <div className={styles.tableLoading}>Loading outreach contacts...</div>
+            ) : (
+              <div className={styles.tableWrap}>
+                <div style={{ maxHeight: '65vh', overflowY: 'auto', overflowX: 'auto', width: '100%' }}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        {['#', 'Full Name', 'Email', 'Institution', 'Delivery', 'Source', 'Imported At', 'Last Update'].map((h) => (
+                          <th key={h} className={styles.th} style={{ position: 'sticky', top: 0, zIndex: 10 }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredOutreach.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className={styles.emptyRow}>No outreach contacts found.</td>
+                        </tr>
+                      ) : filteredOutreach.map((contact, i) => {
+                        const status = String(contact.deliveryStatus || '').toLowerCase();
+                        const sent = isSentLike(status);
+                        const failed = status === 'bounced' || status === 'complained';
+                        return (
+                          <tr
+                            key={contact.id}
+                            className={`${styles.tr} ${i % 2 === 1 ? styles.trAlt : ''} ${sent ? styles.trApproved : ''}`}
+                          >
+                            <td className={styles.td}>{i + 1}</td>
+                            <td className={styles.td}>{contact.fullName}</td>
+                            <td className={`${styles.td} ${styles.mono}`}>{contact.email}</td>
+                            <td className={styles.td}>{contact.institution || '—'}</td>
+                            <td className={styles.td}>
+                              <span className={contact.unsubscribed || failed ? styles.badgeRed : sent ? styles.badgeGreen : status === 'delayed' ? styles.badgeYellow : styles.badgeGrey}>
+                                {deliveryLabel(contact.deliveryStatus, contact.unsubscribed)}
+                              </span>
+                            </td>
+                            <td className={`${styles.td} ${styles.mono}`}>{contact.source || '—'}</td>
+                            <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.createdAt)}</td>
+                            <td className={`${styles.td} ${styles.mono} ${styles.dateCell}`}>{formatDate(contact.deliveryStatusAt || contact.lastBroadcastAt)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )
           )}
 
           {activeList === 'registrants' && hasMore && (
