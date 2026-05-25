@@ -151,6 +151,127 @@ const recommendedResources = [
   'YouTube channels around probability, game theory, and mathematical thinking',
 ];
 
+// ── Round 2 · Posterior ──
+
+const posteriorTopics = [
+  {
+    name: 'Probability & Expected Value',
+    topics: [
+      'conditional probability',
+      'expected value & variance',
+      'linearity of expectation',
+      'probability distributions',
+      'modular arithmetic for probabilities',
+      'random processes & stopping conditions',
+    ],
+    examples: [
+      'probability of ruin',
+      'expected stopping time',
+      'success probability of a strategy',
+      'Markov-style state transitions',
+    ],
+  },
+  {
+    name: 'Dynamic Programming under Uncertainty',
+    topics: [
+      'DP over states',
+      'optimal stopping',
+      'threshold-based decisions',
+      'maximizing expected reward',
+      'minimizing expected loss',
+      'position/state transitions with costs',
+    ],
+    examples: [
+      'choosing when to stop',
+      'deciding whether to act or wait',
+      'trading/position DP with transaction costs',
+      'optimizing decisions over a sequence of signals',
+    ],
+  },
+  {
+    name: 'Bayesian Inference & Signal Reliability',
+    topics: [
+      "Bayes' theorem",
+      'posterior updates',
+      'likelihoods & log probabilities',
+      'hidden states / regimes',
+      'model selection from observed data',
+    ],
+    examples: [
+      'identifying which signal is reliable',
+      'updating belief after observations',
+      'detecting hidden regimes',
+      'choosing the best predictor from noisy history',
+    ],
+  },
+  {
+    name: 'Simulation-Inspired Problems',
+    topics: [
+      'exact probability DP',
+      'recurrence relations',
+      'expected value equations',
+      'state transition models',
+    ],
+    examples: [
+      'queue fill probability',
+      'random walks',
+      'absorbing states',
+      'repeated trials with changing state',
+    ],
+  },
+  {
+    name: 'Market Microstructure & Execution',
+    topics: [
+      'limit & market orders',
+      'order book matching',
+      'best bid / best ask & spread',
+      'queue priority',
+      'partial fills & cancellations',
+    ],
+    examples: [
+      'maintaining an order book',
+      'simulating trades',
+      'calculating executed volume',
+      'estimating whether an order gets filled',
+    ],
+  },
+  {
+    name: 'Risk, Cost & Overfitting',
+    topics: [
+      'transaction costs & slippage-like penalties',
+      'risk-adjusted reward',
+      'variance penalty',
+      'overfitting intuition',
+      'choosing among noisy strategies',
+    ],
+    examples: [
+      'strategy survives before cost but fails after',
+      'selecting signals without overfitting',
+      'maximizing reward under risk/cost constraints',
+    ],
+  },
+];
+
+const posteriorSkills = [
+  'arrays, maps, priority queues, sets',
+  'sorting and binary search',
+  'dynamic programming',
+  'graph / state transitions',
+  'modular arithmetic',
+  'floating-point precision',
+  'simulation-to-DP conversion',
+  'efficient implementation under constraints',
+];
+
+const posteriorNotRequired = [
+  'finance theory',
+  'options pricing',
+  'stock market knowledge',
+  'prior trading experience',
+  'machine learning libraries',
+  'advanced economics',
+];
+
 const SyllabusSection = () => {
   return (
     <section id="syllabus" className={styles.syllabusPage}>
@@ -161,9 +282,9 @@ const SyllabusSection = () => {
           <summary className={styles.prepGuideSummary}>
             <span className={styles.prepGuideSummaryCopy}>
               <span className={styles.prepGuideEyebrow}>Round 1 · PRIOR</span>
-              <span className={styles.prepGuideTitle}>AMS Derive Round 1 | Preparation Guide</span>
+              <span className={styles.prepGuideTitle}>AMS Derive Prior | Syllabus &amp; Scope</span>
               <span className={styles.prepGuidePreview}>
-                What to build before the first online round.
+                Preparation guide for the first online round.
               </span>
             </span>
             <span className={styles.prepGuideToggle} aria-hidden="true" />
@@ -236,6 +357,76 @@ const SyllabusSection = () => {
                 financial context or prerequisite knowledge will be described in the question for people
                 who do not already know it.
               </p>
+            </div>
+          </div>
+        </details>
+
+        {/* ── Round 2 · Posterior Syllabus ── */}
+        <details className={`${styles.prepGuide} ${styles.prepGuidePosterior}`}>
+          <summary className={styles.prepGuideSummary}>
+            <span className={styles.prepGuideSummaryCopy}>
+              <span className={`${styles.prepGuideEyebrow} ${styles.posteriorEyebrow}`}>Round 2 · POSTERIOR</span>
+              <span className={styles.prepGuideTitle}>AMS Derive Posterior | Syllabus &amp; Scope</span>
+              <span className={styles.prepGuidePreview}>
+                A programming contest built around quantitative reasoning, probability, inference, and market microstructure.
+              </span>
+            </span>
+            <span className={styles.prepGuideToggle} aria-hidden="true" />
+          </summary>
+
+          <div className={styles.prepGuideBody}>
+            <div className={styles.prepGuideIntro}>
+              <p className={styles.prepLead}>
+                The Posterior round will be a programming contest with problems designed around quantitative reasoning,
+                probability, inference, and market microstructure.
+              </p>
+              <p className={styles.prepEmphasis}>
+                No prior finance knowledge required — only quantitative thinking through code.
+              </p>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Topics &amp; Problem Areas</h2>
+              <div className={styles.prepTopicGrid}>
+                {posteriorTopics.map((group) => (
+                  <article key={group.name} className={`${styles.prepTopicCard} ${styles.posteriorCard}`}>
+                    <h3>{group.name}</h3>
+                    <ul>
+                      {group.topics.map((topic) => (
+                        <li key={topic}>{topic}</li>
+                      ))}
+                    </ul>
+                    {group.examples && (
+                      <>
+                        <p className={styles.posteriorExampleLabel}>Example areas</p>
+                        <ul>
+                          {group.examples.map((ex) => (
+                            <li key={ex} className={styles.posteriorExample}>{ex}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Required Programming Skills</h2>
+              <ul className={styles.resourceList}>
+                {posteriorSkills.map((skill) => (
+                  <li key={skill}>{skill}</li>
+                ))}
+              </ul>
+            </div>
+
+            <div className={styles.importantNote}>
+              <span className={`${styles.importantNoteLabel} ${styles.posteriorNoteLabel}`}>What Is Not Required</span>
+              <div className={styles.focusGrid} style={{ marginTop: '4px' }}>
+                {posteriorNotRequired.map((item) => (
+                  <span key={item} className={`${styles.focusPill} ${styles.posteriorPill}`}>{item}</span>
+                ))}
+              </div>
             </div>
           </div>
         </details>

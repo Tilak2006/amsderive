@@ -483,6 +483,66 @@
   filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.3));
 }
 
+/* ── Round 2 · Posterior overrides ── */
+
+.prepGuidePosterior {
+  margin-top: 16px;
+  background:
+    linear-gradient(180deg, rgba(180, 130, 60, 0.07), rgba(180, 130, 60, 0.018)),
+    #0e0e0e;
+  border-color: rgba(180, 130, 60, 0.18);
+}
+
+.prepGuidePosterior[open] {
+  border-color: rgba(180, 130, 60, 0.34);
+  box-shadow: 0 0 28px rgba(180, 130, 60, 0.08);
+}
+
+.posteriorEyebrow {
+  color: rgba(180, 130, 60, 0.7);
+}
+
+.posteriorCard {
+  border-color: rgba(180, 130, 60, 0.1);
+}
+
+.posteriorExampleLabel {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(180, 130, 60, 0.6);
+  margin: 14px 0 8px;
+}
+
+.posteriorExample {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: #6a6a6a;
+  line-height: 1.7;
+  padding-left: 18px;
+  position: relative;
+  list-style: none;
+}
+
+.posteriorExample::before {
+  content: '›';
+  color: rgba(180, 130, 60, 0.55);
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.posteriorNoteLabel {
+  background: rgba(180, 130, 60, 0.88);
+}
+
+.posteriorPill {
+  border-color: rgba(180, 130, 60, 0.16);
+  color: #b8b2a0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
   .syllabusPage {
