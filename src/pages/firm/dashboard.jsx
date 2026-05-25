@@ -46,11 +46,11 @@ const TIER_DESCRIPTIONS = {
 const ACCESS_MATRIX = [
   { key: 'registrantProfiles', label: 'Registrant Profiles', status: 'active', unlockLabel: null },
   { key: 'analytics', label: 'Performance Analytics', status: 'active', unlockLabel: null },
-  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'upcoming', unlockLabel: 'Scheduled May 24' },
+  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'upcoming', unlockLabel: 'Results undergoing verification' },
   { key: 'namingRights', label: 'Naming Rights', status: 'active', unlockLabel: null },
-  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Scheduled May 23' },
-  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Scheduled May 24' },
-  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Scheduled Jul 1' },
+  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Results undergoing verification' },
+  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Displayed soon' },
+  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Displayed soon' },
 ];
 
 function formatDate(isoString) {
@@ -756,7 +756,7 @@ export default function FirmDashboard() {
                   <span className={styles.quickActionDesc}>
                     {firmProfile?.tier === 'derivation'
                       ? 'Convergence & Apex only'
-                      : 'Real-time PRIOR standings · Live 23 May'}
+                      : 'Results undergoing verification · Available soon'}
                   </span>
                   <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
                 </button>
