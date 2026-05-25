@@ -94,6 +94,25 @@ export default function SubadminDashboard() {
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   }
 
+  async function handleViewResume(fileUrl) {
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/subadmin/get-signed-url', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ fileUrl }),
+      });
+      const data = await res.json();
+      if (data.signedUrl) {
+        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        alert('Could not open resume. Please try again.');
+      }
+    } catch {
+      alert('Could not open resume. Please try again.');
+    }
+  }
+
   const registrantFilters = useMemo(() => ({
     search,
     status: filterStatus,
@@ -660,7 +679,7 @@ export default function SubadminDashboard() {
                     <p className={styles.panelLabel}>Resume</p>
                     <button
                       className={styles.panelActionBtn}
-                      onClick={() => window.open(r.resumeUrl, '_blank', 'noopener,noreferrer')}
+                      onClick={() => handleViewResume(r.resumeUrl)}
                     >
                       VIEW RESUME
                     </button>
