@@ -135,6 +135,9 @@ export function serializeSubadminRegistrantDoc(doc) {
     status: data.status || 'pending',
     round: data.round || 'prior',
     refCode: data.refCode || null,
+    linkedIn: data.linkedIn || null,
+    resumeUrl: data.resumeUrl || null,
+    resumeFileName: data.resumeFileName || null,
   };
 }
 

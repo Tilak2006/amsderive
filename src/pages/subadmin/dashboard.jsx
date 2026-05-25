@@ -615,6 +615,21 @@ export default function SubadminDashboard() {
                 </a>
               </div>
 
+              {r.linkedIn && (
+                <div className={styles.panelSection}>
+                  <p className={styles.panelLabel}>LinkedIn</p>
+                  <a
+                    href={r.linkedIn.startsWith('http') ? r.linkedIn : `https://${r.linkedIn}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`${styles.panelValue} ${styles.cfLink}`}
+                    style={{ wordBreak: 'break-all' }}
+                  >
+                    {r.linkedIn}
+                  </a>
+                </div>
+              )}
+
               <div className={styles.panelDivider} />
 
               <div className={styles.panelSection}>
@@ -637,6 +652,21 @@ export default function SubadminDashboard() {
                 <p className={styles.panelLabel}>Submitted At</p>
                 <p className={`${styles.panelValue} ${styles.mono}`}>{formatDate(r.submittedAt)}</p>
               </div>
+
+              {r.resumeUrl && (
+                <>
+                  <div className={styles.panelDivider} />
+                  <div className={styles.panelSection}>
+                    <p className={styles.panelLabel}>Resume</p>
+                    <button
+                      className={styles.panelActionBtn}
+                      onClick={() => window.open(r.resumeUrl, '_blank', 'noopener,noreferrer')}
+                    >
+                      VIEW RESUME
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </aside>
         </>

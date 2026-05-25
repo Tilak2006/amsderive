@@ -19,7 +19,16 @@ const TIERS = [
   {
     id: 'convergence',
     label: 'Convergence Partner',
-    sponsors: [],
+    sponsors: [
+      {
+        name: 'Qube Research & Technologies',
+        logo: '/QRT.png',
+        url: 'https://www.qube-rt.com/',
+        cardWidth: 428,
+        width: 180,
+        height: 196,
+      },
+    ],
   },
   {
     id: 'derivation',
@@ -71,8 +80,11 @@ function SponsorCard({ sponsor, size, isApex }) {
     return () => clearInterval(intervalRef.current);
   }, [hovered, isApex]);
 
-  const imgW = size === 'lg' ? 300 : size === 'md' ? 210 : 160;
-  const imgH = size === 'lg' ? 80  : size === 'md' ? 56  : 44;
+  const imgW = sponsor.width || (size === 'lg' ? 300 : size === 'md' ? 210 : 160);
+  const imgH = sponsor.height || (size === 'lg' ? 80  : size === 'md' ? 56  : 44);
+  const cardStyle = sponsor.cardWidth
+    ? { width: sponsor.cardWidth, maxWidth: 'calc(100vw - 48px)' }
+    : undefined;
 
   return (
     <div
@@ -101,6 +113,7 @@ function SponsorCard({ sponsor, size, isApex }) {
         target="_blank"
         rel="noopener noreferrer"
         className={`${s.logoCard} ${s[`logoCard_${size}`]} ${hovered ? s.logoCardHovered : ''}`}
+        style={cardStyle}
         aria-label={`Visit ${sponsor.name}`}
       >
         <Image
