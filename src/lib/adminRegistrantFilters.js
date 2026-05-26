@@ -3,7 +3,7 @@ const SCAN_BATCH_SIZE = 200;
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 const VALID_STATUSES = new Set(['pending', 'approved', 'rejected']);
-const VALID_ROUNDS = new Set(['prior', 'posterior', 'convergence']);
+const VALID_ROUNDS = new Set(['prior', 'posterior_tentative', 'posterior_tentative_2', 'posterior', 'convergence']);
 const VALID_DELIVERY_STATUSES = new Set(['pending', 'delivered', 'bounced', 'complained', 'delayed']);
 const VALID_DATE_RANGES = new Set(['today', 'last24h', 'last7d', 'custom']);
 const VALID_TRANSCRIPT_FILTERS = new Set(['has', 'missing']);
@@ -220,13 +220,10 @@ function timestampFromMillis(ms) {
 }
 
 function getPushedEqualityFilter(filters) {
-  if (filters.sortOrder === 'name') return null;
-  if (filters.university) return { field: 'university', value: filters.university };
-  if (filters.graduationYear) return { field: 'graduationYear', value: filters.graduationYear };
-  if (filters.status === 'approved' || filters.status === 'rejected') return { field: 'status', value: filters.status };
-  if (filters.round === 'posterior' || filters.round === 'convergence') return { field: 'round', value: filters.round };
-  if (filters.consent === 'yes') return { field: 'dataConsent', value: true };
-  if (filters.branch) return { field: 'branch', value: filters.branch };
+  // Keep admin list filtering index-tolerant. The live Firestore project can
+  // lag behind firestore.indexes.json during event ops, so pushing equality
+  // filters alongside orderBy(submittedAt) can hard-fail the dashboard.
+  // matchesRegistrantFilters still applies every filter after each page scan.
   return null;
 }
 

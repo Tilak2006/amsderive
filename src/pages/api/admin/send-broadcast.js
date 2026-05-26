@@ -19,7 +19,7 @@ const PROCESSING_LEASE_MS = 6 * 60 * 1000;
 const FIRESTORE_WRITE_CHUNK = 450;
 const OUTREACH_SKIP_STATUSES = new Set(['sent', 'delivered', 'delayed', 'bounced', 'complained']);
 const REGISTRANT_SUPPRESS_STATUSES = new Set(['bounced', 'complained']);
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_REGEX = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/;
 
 function shortHash(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex').slice(0, 32);
@@ -332,6 +332,16 @@ async function recheckOutreachRecipients(claimedDocs) {
   const skipped = [];
 
   await Promise.all(claimedDocs.map(async ({ ref, data }) => {
+    if (!isValidEmail(data.email)) {
+      await ref.update({
+        status: 'skipped',
+        skippedReason: 'invalid_email',
+        completedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+      skipped.push({ ref, data });
+      return;
+    }
+
     if (data.targetKind !== 'outreach') {
       sendable.push({ ref, data });
       return;
@@ -586,13 +596,16 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'broadcastId required (8-64 URL-safe chars).' });
   }
 
-  const validFilters = ['all', 'prior', 'posterior', 'convergence'];
+  const validFilters = ['all', 'prior', 'posterior_tentative', 'posterior_tentative_2', 'posterior', 'convergence'];
   if (!validFilters.includes(roundFilter)) {
     return res.status(400).json({ error: 'Invalid roundFilter.' });
   }
   const filter = roundFilter;
   const validTargetTypes = ['registrants', 'outreach', 'both'];
   const resolvedTargetType = validTargetTypes.includes(targetType) ? targetType : 'registrants';
+  if (filter.startsWith('posterior_tentative') && resolvedTargetType !== 'registrants') {
+    return res.status(400).json({ error: 'POSTERIOR TENTATIVE broadcasts must target approved registrants only.' });
+  }
   let attachment = null;
   try {
     attachment = normalizeAttachment(rawAttachment);

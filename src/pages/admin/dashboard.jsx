@@ -44,7 +44,7 @@ function exportCSV(data) {
     r.dataConsent === true ? 'Yes' : 'No',
     `"${formatDate(r.submittedAt)}"`,
     r.status || 'pending',
-    r.round || 'prior',
+    roundLabel(r.round),
     `"${csvSafe(r.refCode).replace(/"/g, '""')}"`,
     r.deliveryStatus || 'pending',
     `"${formatDate(r.deliveryStatusAt)}"`,
@@ -68,6 +68,17 @@ const CF_COPIED_STORAGE_KEY = 'amsderive.admin.copiedCodeforcesHandles.v1';
 const BROADCAST_BATCH_SIZE = 100;
 const BROADCAST_ATTACHMENT_MAX_BYTES = 3 * 1024 * 1024;
 const BROADCAST_ATTACHMENT_BATCH_SIZE = 4;
+const ROUND_OPTIONS = [
+  { value: 'prior', label: 'PRIOR' },
+  { value: 'posterior_tentative', label: 'POSTERIOR TENTATIVE' },
+  { value: 'posterior_tentative_2', label: 'POSTERIOR TENTATIVE 2' },
+  { value: 'posterior', label: 'POSTERIOR' },
+  { value: 'convergence', label: 'CONVERGENCE' },
+];
+
+function roundLabel(round) {
+  return ROUND_OPTIONS.find((option) => option.value === (round || 'prior'))?.label || 'PRIOR';
+}
 
 function normalizeCfHandle(handle) {
   return String(handle || '').trim().toLowerCase();
@@ -915,6 +926,13 @@ export default function AdminDashboard() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
+  useEffect(() => {
+    if (broadcastFilter.startsWith('posterior_tentative') && broadcastTargetType !== 'registrants') {
+      setBroadcastTargetType('registrants');
+      setBroadcastConfirming(false);
+    }
+  }, [broadcastFilter, broadcastTargetType]);
+
   // ── Initial outreach + stats load ────────────────────────────────────────
   // Depends on uid (stable string), not user object (Firebase may give a new
   // reference on token refresh). Registrants load in a separate filter-aware effect.
@@ -1347,7 +1365,7 @@ export default function AdminDashboard() {
           if (filterRound !== 'all' && filterRound !== newRound) return null;
           return { ...prev, round: newRound };
         });
-        setRoundMsg({ type: 'success', text: `→ ${newRound.toUpperCase()}` });
+        setRoundMsg({ type: 'success', text: `→ ${roundLabel(newRound)}` });
       } else {
         setRoundMsg({ type: 'error', text: data.error || 'Failed to update round.' });
       }
@@ -1601,7 +1619,7 @@ export default function AdminDashboard() {
     : broadcastTargetType === 'both'
       ? 'approved registrants and external outreach contacts'
       : 'approved registrants';
-  const broadcastRoundLabel = broadcastFilter === 'all' ? 'all rounds' : broadcastFilter.toUpperCase();
+  const broadcastRoundLabel = broadcastFilter === 'all' ? 'all rounds' : roundLabel(broadcastFilter);
   const broadcastAudienceLabel = broadcastTargetType === 'outreach'
     ? broadcastTargetLabel
     : `${broadcastTargetLabel} · ${broadcastRoundLabel}`;
@@ -1742,19 +1760,24 @@ export default function AdminDashboard() {
                   disabled={broadcastLoading || !!broadcastRetryId}
                 >
                   <option value="registrants">Approved Registrants</option>
-                  <option value="outreach">External Outreach Contacts</option>
-                  <option value="both">Both</option>
+                  <option value="outreach" disabled={broadcastFilter.startsWith('posterior_tentative')}>External Outreach Contacts</option>
+                  <option value="both" disabled={broadcastFilter.startsWith('posterior_tentative')}>Both</option>
                 </select>
                 <select
                   className={styles.filterSelect}
                   value={broadcastFilter}
-                  onChange={(e) => { setBroadcastFilter(e.target.value); setBroadcastConfirming(false); }}
+                  onChange={(e) => {
+                    const nextFilter = e.target.value;
+                    setBroadcastFilter(nextFilter);
+                    if (nextFilter.startsWith('posterior_tentative')) setBroadcastTargetType('registrants');
+                    setBroadcastConfirming(false);
+                  }}
                   disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === 'outreach'}
                 >
-                  <option value="all">All Registrants</option>
-                  <option value="prior">PRIOR</option>
-                  <option value="posterior">POSTERIOR</option>
-                  <option value="convergence">CONVERGENCE</option>
+                  <option value="all">All Approved Rounds</option>
+                  {ROUND_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
                 {broadcastConfirming ? (
                   <div className={styles.broadcastConfirm}>
@@ -1875,9 +1898,9 @@ export default function AdminDashboard() {
                   onChange={(e) => setFilterRound(e.target.value)}
                 >
                   <option value="all">All Rounds</option>
-                  <option value="prior">PRIOR</option>
-                  <option value="posterior">POSTERIOR</option>
-                  <option value="convergence">CONVERGENCE</option>
+                  {ROUND_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
                 <select
                   className={styles.filterSelect}
@@ -2112,7 +2135,7 @@ export default function AdminDashboard() {
                           </td>
                           <td className={styles.td}>
                             <span className={styles.badgeAmber}>
-                              {(reg.round || 'prior').toUpperCase()}
+                              {roundLabel(reg.round)}
                             </span>
                           </td>
                           <td className={styles.td}>
@@ -2320,9 +2343,9 @@ export default function AdminDashboard() {
                   disabled={roundLoading || deleteLoading}
                   onChange={(e) => handleRoundUpdate(r.id, e.target.value)}
                 >
-                  <option value="prior">PRIOR</option>
-                  <option value="posterior">POSTERIOR</option>
-                  <option value="convergence">CONVERGENCE</option>
+                  {ROUND_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
                 </select>
                 {roundMsg && (
                   <p className={roundMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
