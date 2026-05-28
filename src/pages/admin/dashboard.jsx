@@ -710,6 +710,10 @@ export default function AdminDashboard() {
   const [approveAllMsg, setApproveAllMsg] = useState(null);
   const [approveAllProgress, setApproveAllProgress] = useState(null);
   const [approveAllRetryId, setApproveAllRetryId] = useState(null);
+  const [posteriorImportLoading, setPosteriorImportLoading] = useState(false);
+  const [posteriorImportMsg, setPosteriorImportMsg] = useState(null);
+  const [posteriorImportPreview, setPosteriorImportPreview] = useState(null);
+  const [registrantsReloadKey, setRegistrantsReloadKey] = useState(0);
   const [copiedCfHandles, setCopiedCfHandles] = useState([]);
   const [cfCopyLoading, setCfCopyLoading] = useState(false);
   const [cfCopyMsg, setCfCopyMsg] = useState(null);
@@ -719,6 +723,7 @@ export default function AdminDashboard() {
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
   const outreachFileInputRef = useRef(null);
+  const posteriorImportFileInputRef = useRef(null);
   const broadcastAttachmentInputRef = useRef(null);
   const lastUrlQueryRef = useRef('');
 
@@ -1020,7 +1025,7 @@ export default function AdminDashboard() {
 
     loadRegistrants();
     return () => controller.abort();
-  }, [user?.uid, filtersHydrated, registrantFilters]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.uid, filtersHydrated, registrantFilters, registrantsReloadKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Stats poll — every 5 min, skips when tab is hidden ──────────────────
   useEffect(() => {
@@ -1288,6 +1293,119 @@ export default function AdminDashboard() {
       setApproveAllLoading(false);
       setApproveAllProgress(null);
     }
+  }
+
+  function formatPosteriorImportSummary(summary = {}) {
+    const parts = [
+      `${summary.updated || 0} updated`,
+      `${summary.alreadyPosterior || 0} already POSTERIOR`,
+      `${summary.unmatched || 0} unmatched`,
+      `${summary.nonApproved || 0} non-approved`,
+    ];
+    if (summary.skippedAdvanced) parts.push(`${summary.skippedAdvanced} already CONVERGENCE`);
+    if (summary.failed) parts.push(`${summary.failed} failed`);
+    if (summary.duplicates) parts.push(`${summary.duplicates} duplicate`);
+    if (summary.invalidEmails) parts.push(`${summary.invalidEmails} invalid`);
+    return parts.join(' · ');
+  }
+
+
+  function formatPosteriorImportDetails(summary = {}) {
+    const sections = [];
+    const addEmails = (label, values) => {
+      if (!Array.isArray(values) || values.length === 0) return;
+      const formatted = values.slice(0, 12).map((value) => {
+        if (typeof value === 'string') return value;
+        const email = value.email || 'unknown';
+        const row = value.row ? `row ${value.row}: ` : '';
+        const status = value.status ? ` (${value.status}${value.round ? `, ${value.round}` : ''})` : '';
+        return `${row}${email}${status}`;
+      });
+      const suffix = values.length > formatted.length ? `, +${values.length - formatted.length} more` : '';
+      sections.push(`${label}: ${formatted.join(', ')}${suffix}`);
+    };
+
+    addEmails('Unmatched', summary.unmatchedEmails);
+    addEmails('Non-approved', summary.nonApprovedEmails);
+    addEmails('Already convergence', summary.skippedAdvancedEmails);
+    addEmails('Failed', summary.failedEmails);
+    addEmails('Duplicates', summary.duplicateEmails);
+    addEmails('Invalid', summary.invalidEmailRows);
+    return sections.join(' | ');
+  }
+
+  async function handlePosteriorCsvImport(file) {
+    if (!file || posteriorImportLoading) return;
+    setPosteriorImportLoading(true);
+    setPosteriorImportMsg(null);
+    setPosteriorImportPreview(null);
+
+    try {
+      const csvText = await file.text();
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/import-posterior-csv', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ csvText, dryRun: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        const details = data.invalidEmails || data.duplicates ? ` (${data.invalidEmails || 0} invalid · ${data.duplicates || 0} duplicate)` : '';
+        throw new Error(`${data.error || 'Posterior import failed.'}${details}`);
+      }
+
+      const summary = data.summary || data;
+      const hasWarnings = Boolean(summary.unmatched || summary.nonApproved || summary.skippedAdvanced || summary.failed || summary.duplicates || summary.invalidEmails);
+      setPosteriorImportPreview({ csvText, summary });
+      setPosteriorImportMsg({
+        type: hasWarnings ? 'error' : 'success',
+        text: `Preview · ${formatPosteriorImportSummary(summary)}`,
+        detail: formatPosteriorImportDetails(summary),
+      });
+    } catch (err) {
+      setPosteriorImportMsg({ type: 'error', text: err.message || 'Could not import POSTERIOR CSV.' });
+    } finally {
+      setPosteriorImportLoading(false);
+      if (posteriorImportFileInputRef.current) posteriorImportFileInputRef.current.value = '';
+    }
+  }
+
+  async function confirmPosteriorCsvImport() {
+    if (!posteriorImportPreview || posteriorImportLoading) return;
+    setPosteriorImportLoading(true);
+    setPosteriorImportMsg(null);
+
+    try {
+      const hdrs = await authHeaders();
+      const res = await fetch('/api/admin/import-posterior-csv', {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({ csvText: posteriorImportPreview.csvText, dryRun: false }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Posterior import failed.');
+      }
+
+      const summary = data.summary || data;
+      const hasWarnings = Boolean(summary.unmatched || summary.nonApproved || summary.skippedAdvanced || summary.failed || summary.duplicates || summary.invalidEmails);
+      setPosteriorImportPreview(null);
+      setPosteriorImportMsg({
+        type: hasWarnings ? 'error' : 'success',
+        text: formatPosteriorImportSummary(summary),
+        detail: formatPosteriorImportDetails(summary),
+      });
+      setRegistrantsReloadKey((key) => key + 1);
+    } catch (err) {
+      setPosteriorImportMsg({ type: 'error', text: err.message || 'Could not import POSTERIOR CSV.' });
+    } finally {
+      setPosteriorImportLoading(false);
+    }
+  }
+
+  function cancelPosteriorCsvImport() {
+    setPosteriorImportPreview(null);
+    setPosteriorImportMsg(null);
   }
 
   async function fetchAllRegistrantsForCopy() {
@@ -2052,6 +2170,43 @@ export default function AdminDashboard() {
             >
               {cfCopyLoading ? 'COPYING...' : 'COPY NEW CF HANDLES'}
             </button>
+            <input
+              ref={posteriorImportFileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className={styles.hiddenFileInput}
+              onChange={(e) => handlePosteriorCsvImport(e.target.files?.[0])}
+            />
+            <button
+              type="button"
+              className={styles.copyCfBtn}
+              onClick={() => posteriorImportFileInputRef.current?.click()}
+              disabled={posteriorImportLoading || loadingData}
+              title="Import fixed Round 2 emails and mark approved matches as POSTERIOR without sending email"
+            >
+              {posteriorImportLoading ? 'IMPORTING...' : 'IMPORT POSTERIOR CSV'}
+            </button>
+            {posteriorImportPreview && (
+              <div className={styles.bulkConfirm}>
+                <span className={styles.bulkConfirmText}>
+                  Move {posteriorImportPreview.summary?.updated || 0} approved registrant{posteriorImportPreview.summary?.updated === 1 ? '' : 's'} to POSTERIOR?
+                </span>
+                <button className={styles.confirmBtn} onClick={confirmPosteriorCsvImport} disabled={posteriorImportLoading || !posteriorImportPreview.summary?.updated}>
+                  CONFIRM
+                </button>
+                <button className={styles.cancelBtn} onClick={cancelPosteriorCsvImport} disabled={posteriorImportLoading}>
+                  CANCEL
+                </button>
+              </div>
+            )}
+            {posteriorImportMsg && (
+              <span
+                className={posteriorImportMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}
+                title={posteriorImportMsg.detail || undefined}
+              >
+                {posteriorImportMsg.text}
+              </span>
+            )}
             {approveAllConfirm ? (
               <div className={styles.bulkConfirm}>
                 <span className={styles.bulkConfirmText}>

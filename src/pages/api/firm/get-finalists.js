@@ -7,12 +7,14 @@
  *   - access.finalistProfiles must be true to get any data
  *   - access.resumeDownload controls whether resumeUrl is included
  *   - access.linkedinAccess controls whether linkedIn is included
+ *   - access.resumeDownload also controls whether transcriptUrl/transcriptFileName are included
  *
  * Never returns: email, phoneNumber, ipHash, codeforcesHandle.
  */
 
 import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
+import { createFirmCandidateToken } from '../../../lib/firmCandidateToken';
 
 
 export default async function handler(req, res) {
@@ -106,16 +108,21 @@ export default async function handler(req, res) {
     const finalists = snapshot.docs.map((doc) => {
       const d = doc.data();
       const entry = {
-        id: doc.id,
+        id: createFirmCandidateToken(doc.id),
         fullName: d.fullName,
         university: d.university,
         round: d.round,
       };
       if (resumeDownload && d.resumeUrl) {
         entry.resumeUrl = d.resumeUrl;
+        entry.resumeFileName = d.resumeFileName || null;
       }
       if (linkedinAccess && d.linkedIn) {
         entry.linkedIn = d.linkedIn;
+      }
+      if (resumeDownload && d.transcriptUrl) {
+        entry.transcriptUrl = d.transcriptUrl;
+        entry.transcriptFileName = d.transcriptFileName || null;
       }
       return entry;
     });

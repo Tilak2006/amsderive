@@ -86,6 +86,10 @@ function formatFirmPanelDisplayCount(value) {
   return getFirmPanelDisplayCount(value).toLocaleString();
 }
 
+function isAdvancedCandidate(candidate) {
+  return candidate?.round === 'posterior' || candidate?.round === 'convergence';
+}
+
 async function getAuthHeader(currentUser) {
   const token = await currentUser?.getIdToken();
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -223,6 +227,8 @@ export default function FirmDashboard() {
   const [registrantsFilterGradYear, setRegistrantsFilterGradYear] = useState('all');
   const [registrantsAccess, setRegistrantsAccess] = useState(null);
   const [selectedRegistrant, setSelectedRegistrant] = useState(null);
+  const [documentError, setDocumentError] = useState(null);
+  const [exportError, setExportError] = useState(null);
   const [showStarredOnly, setShowStarredOnly] = useState(false);
 
   // Starred candidates — persisted in localStorage
@@ -352,7 +358,14 @@ export default function FirmDashboard() {
         setRegistrantsAccessError(data.error || 'Failed to load registrant data.');
         return;
       }
-      setRegistrants((prev) => (after ? [...prev, ...data.registrants] : data.registrants));
+      const nextRegistrants = data.registrants || [];
+      setRegistrants((prev) => (after ? [...prev, ...nextRegistrants] : nextRegistrants));
+      if (!after) {
+        setSelectedRegistrant((selected) => {
+          if (!selected) return selected;
+          return nextRegistrants.find((candidate) => candidate.id === selected.id) || null;
+        });
+      }
       // Server only returns total count on first page to avoid a redundant aggregate per page.
       if (data.count != null) setRegistrantsTotal(data.count);
       setRegistrantsHasMore(data.hasMore);
@@ -376,7 +389,12 @@ export default function FirmDashboard() {
         return;
       }
       const data = await res.json();
-      setFinalists(data.finalists || []);
+      const nextFinalists = data.finalists || [];
+      setFinalists(nextFinalists);
+      setSelectedFinalist((selected) => {
+        if (!selected) return selected;
+        return nextFinalists.find((candidate) => candidate.id === selected.id) || null;
+      });
       setFinalistsAccess(data.access);
       setFinalistsCount(data.count);
     } catch {
@@ -456,7 +474,12 @@ export default function FirmDashboard() {
     try {
       const headers = await getAuthHeader(user);
       const res = await fetch('/api/firm/get-overview-stats', { method: 'POST', headers, body: JSON.stringify({}) });
-      if (!res.ok) return;
+      setExportError(null);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setExportError(data.error || 'CSV export is not enabled for this account.');
+        return;
+      }
       const data = await res.json();
       setOverviewStats(data);
     } catch {
@@ -520,16 +543,26 @@ export default function FirmDashboard() {
     if (finalist.linkedIn) window.open(finalist.linkedIn, '_blank', 'noopener,noreferrer');
   }
 
-  async function handleViewResume(finalist) {
-    if (!finalist.resumeUrl) return;
-    await handleViewFile(finalist.resumeUrl);
+  async function handleViewResume(candidate) {
+    if (!candidate.resumeUrl) return;
+    await handleViewFile(candidate, 'resume');
+  }
+
+  async function handleViewTranscript(candidate) {
+    if (!candidate.transcriptUrl) return;
+    await handleViewFile(candidate, 'transcript');
   }
 
   async function handleExportCsv() {
     try {
       const headers = await getAuthHeader(user);
+      setExportError(null);
       const res = await fetch('/api/firm/export-registrants-csv', { method: 'POST', headers, body: JSON.stringify({}) });
-      if (!res.ok) return;
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setExportError(data.error || 'CSV export is not enabled for this account.');
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -538,20 +571,34 @@ export default function FirmDashboard() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      // silent — export is non-critical
+      setExportError('Could not export CSV. Please try again.');
     }
   }
 
-  async function handleViewFile(fileUrl) {
-    if (!fileUrl) return;
-    const headers = await getAuthHeader(user);
-    const res = await fetch('/api/firm/get-signed-url', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ fileUrl }),
-    });
-    const data = await res.json();
-    if (data.signedUrl) window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+  async function handleViewFile(candidate, fileType) {
+    if (!candidate?.id || !fileType) return;
+    setDocumentError(null);
+    const tab = window.open('', '_blank');
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-signed-url', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ registrantId: candidate.id, fileType }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.signedUrl) {
+        throw new Error(data.error || 'Could not open document.');
+      }
+      if (tab) {
+        tab.location.href = data.signedUrl;
+      } else {
+        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      if (tab) tab.close();
+      setDocumentError(err.message || 'Could not open document.');
+    }
   }
 
   function getTierBadgeClass(tier) {
@@ -619,7 +666,7 @@ export default function FirmDashboard() {
               <button
                 key={key}
                 className={`${styles.tab} ${activeTab === key ? styles.tabActive : ''}`}
-                onClick={() => setActiveTab(key)}
+                onClick={() => { setActiveTab(key); setDocumentError(null); setExportError(null); }}
               >
                 {label}
               </button>
@@ -928,7 +975,7 @@ export default function FirmDashboard() {
                         <div
                           key={finalist.id}
                           className={styles.candidateCard}
-                          onClick={() => setSelectedFinalist(finalist)}
+                          onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
                         >
                           <p className={styles.candidateName}>{finalist.fullName}</p>
                           <p className={styles.candidateUniv}>{finalist.university}</p>
@@ -938,20 +985,55 @@ export default function FirmDashboard() {
                             </span>
                           )}
                           <div className={styles.candidateActions}>
-                            {finalistsAccess?.linkedinAccess && finalist.linkedIn ? (
-                              <button
-                                className={styles.docBtn}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleViewLinkedIn(finalist);
-                                }}
-                              >
-                                LINKEDIN
-                              </button>
-                            ) : (
-                              <span className={styles.docBtnLocked}>
-                                LINKEDIN — LOCKED
-                              </span>
+                            {isAdvancedCandidate(finalist) && (
+                              <>
+                                {finalistsAccess?.resumeDownload ? (
+                                  <>
+                                    {finalist.resumeUrl && (
+                                      <button
+                                        className={styles.docBtn}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewResume(finalist);
+                                        }}
+                                      >
+                                        RESUME
+                                      </button>
+                                    )}
+                                    {finalist.transcriptUrl && (
+                                      <button
+                                        className={styles.docBtn}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleViewTranscript(finalist);
+                                        }}
+                                      >
+                                        TRANSCRIPT
+                                      </button>
+                                    )}
+                                    {!finalist.resumeUrl && !finalist.transcriptUrl && (
+                                      <span className={styles.docBtnLocked}>DOCUMENTS — NOT PROVIDED</span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className={styles.docBtnLocked}>DOCUMENTS — LOCKED</span>
+                                )}
+                                {finalistsAccess?.linkedinAccess ? (
+                                  finalist.linkedIn && (
+                                    <button
+                                      className={styles.docBtn}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleViewLinkedIn(finalist);
+                                      }}
+                                    >
+                                      LINKEDIN
+                                    </button>
+                                  )
+                                ) : (
+                                  <span className={styles.docBtnLocked}>LINKEDIN — LOCKED</span>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -1074,9 +1156,9 @@ export default function FirmDashboard() {
                               if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
                               if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
                               return true;
-                            }).length)} / `
+                            }).length)} loaded / `
                           : ''}
-                        {formatFirmPanelDisplayCount(registrantsTotal)} registrants
+                        {formatFirmPanelDisplayCount(registrantsTotal)} total registrants
                       </span>
                     )}
                     <button
@@ -1089,6 +1171,9 @@ export default function FirmDashboard() {
                       </svg>
                       EXPORT CSV
                     </button>
+                    {exportError && (
+                      <span className={styles.feedbackError}>{exportError}</span>
+                    )}
                   </div>
 
                   <div className={styles.leaderboardTableWrap}>
@@ -1136,7 +1221,7 @@ export default function FirmDashboard() {
                               key={r.id}
                               className={`${styles.leaderboardTr} ${selectedRegistrant?.id === r.id ? styles.leaderboardTrSelected : ''} ${starred.has(r.id) ? styles.leaderboardTrStarred : ''}`}
                               style={{ cursor: 'pointer' }}
-                              onClick={() => setSelectedRegistrant(selectedRegistrant?.id === r.id ? null : r)}
+                              onClick={() => { setSelectedRegistrant(selectedRegistrant?.id === r.id ? null : r); setDocumentError(null); }}
                             >
                               <td className={styles.leaderboardTd}>
                                 <span className={styles.rankMuted}>{i + 1}</span>
@@ -1217,12 +1302,16 @@ export default function FirmDashboard() {
                       </button>
                       <button
                         className={styles.panelClose}
-                        onClick={() => setSelectedRegistrant(null)}
+                        onClick={() => { setSelectedRegistrant(null); setDocumentError(null); }}
                       >
                         ✕
                       </button>
                     </div>
                   </div>
+
+                  {documentError && (
+                    <div className={styles.documentError}>{documentError}</div>
+                  )}
 
                   <div className={styles.panelRow}>
                     <span className={styles.panelLabel}>Institution</span>
@@ -1286,6 +1375,34 @@ export default function FirmDashboard() {
                         View Profile
                       </a>
                     </div>
+                  )}
+
+                  {isAdvancedCandidate(selectedRegistrant) && (
+                    <>
+                      {registrantsAccess?.resumeDownload && selectedRegistrant.resumeUrl && (
+                        <div className={styles.panelRow}>
+                          <span className={styles.panelLabel}>Resume</span>
+                          <button
+                            className={styles.docBtn}
+                            onClick={() => handleViewResume(selectedRegistrant)}
+                          >
+                            View Resume
+                          </button>
+                        </div>
+                      )}
+
+                      {selectedRegistrant.transcriptUrl && (
+                        <div className={styles.panelRow}>
+                          <span className={styles.panelLabel}>Transcript</span>
+                          <button
+                            className={styles.docBtn}
+                            onClick={() => handleViewTranscript(selectedRegistrant)}
+                          >
+                            View Transcript
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {registrantsAccess?.emailAccess && selectedRegistrant.email && (
@@ -1564,19 +1681,22 @@ export default function FirmDashboard() {
         <>
           <div
             className={styles.panelBackdrop}
-            onClick={() => setSelectedFinalist(null)}
+            onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
           />
           <aside className={styles.sidePanel}>
             <div className={styles.panelHeader}>
               <span className={styles.panelName}>{selectedFinalist.fullName}</span>
               <button
                 className={styles.panelClose}
-                onClick={() => setSelectedFinalist(null)}
+                onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
               >
                 CLOSE ✕
               </button>
             </div>
             <div className={styles.panelBody}>
+              {documentError && (
+                <div className={styles.documentError}>{documentError}</div>
+              )}
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>University</p>
                 <p className={styles.panelValue}>{selectedFinalist.university || '—'}</p>
@@ -1605,25 +1725,40 @@ export default function FirmDashboard() {
                 <div className={styles.panelSection}>
                   <p className={styles.panelLabel}>LinkedIn</p>
                   <p className={styles.panelValue} style={{ color: '#3a3a3a' }}>
-                    Unlocked after Finals
+                    LinkedIn access locked
                   </p>
                 </div>
               )}
               <div className={styles.panelDivider} />
-              {finalistsAccess?.resumeDownload && selectedFinalist.round === 'convergence' && selectedFinalist.resumeUrl ? (
-                <button
-                  className={styles.docBtn}
-                  style={{ width: '100%' }}
-                  onClick={() => handleViewResume(selectedFinalist)}
-                >
-                  VIEW RESUME
-                </button>
-              ) : (
-                <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center' }}>
-                  {selectedFinalist.round === 'convergence'
-                    ? 'RESUME — NOT PROVIDED'
-                    : 'RESUME — AVAILABLE AFTER FINALS'}
-                </span>
+              {isAdvancedCandidate(selectedFinalist) && (
+                <>
+                  {finalistsAccess?.resumeDownload && selectedFinalist.resumeUrl ? (
+                    <button
+                      className={styles.docBtn}
+                      style={{ width: '100%' }}
+                      onClick={() => handleViewResume(selectedFinalist)}
+                    >
+                      VIEW RESUME
+                    </button>
+                  ) : (
+                    <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center' }}>
+                      RESUME — {finalistsAccess?.resumeDownload ? 'NOT PROVIDED' : 'LOCKED'}
+                    </span>
+                  )}
+                  {selectedFinalist.transcriptUrl ? (
+                    <button
+                      className={styles.docBtn}
+                      style={{ width: '100%', marginTop: 8 }}
+                      onClick={() => handleViewTranscript(selectedFinalist)}
+                    >
+                      VIEW TRANSCRIPT
+                    </button>
+                  ) : (
+                    <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>
+                      TRANSCRIPT — NOT PROVIDED
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </aside>

@@ -902,6 +902,7 @@
   padding: 18px 20px;
   cursor: pointer;
   transition: border-color 0.12s ease;
+  min-width: 0;
 }
 
 @media (hover: hover) {
@@ -949,9 +950,17 @@
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+  min-height: 30px;
 }
 
 .docBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  line-height: 1.2;
+  max-width: 100%;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
@@ -964,7 +973,8 @@
   padding: 5px 12px;
   cursor: pointer;
   transition: border-color 0.12s ease, background-color 0.12s ease;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 @media (hover: hover) {
@@ -975,6 +985,12 @@
 }
 
 .docBtnLocked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  line-height: 1.2;
+  max-width: 100%;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   font-weight: 600;
@@ -986,7 +1002,8 @@
   border-radius: 2px;
   padding: 5px 12px;
   cursor: not-allowed;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
   opacity: 0.6;
 }
 
@@ -1267,6 +1284,20 @@
 .toggleSwitch input:disabled + .toggleSlider {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+
+.documentError {
+  margin: 0 20px 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  border-radius: 2px;
+  background: rgba(239, 68, 68, 0.06);
+  color: #ef8a8a;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
 }
 
 /* ── Feedback messages ── */

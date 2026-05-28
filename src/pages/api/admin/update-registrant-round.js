@@ -34,12 +34,18 @@ export default async function handler(req, res) {
       return res.status(404).json({ error: 'Registrant not found.' });
     }
 
+    const data = snap.data();
+
     // Idempotency — same round already set, nothing to do
-    if (snap.data().round === round) {
+    if (data.round === round) {
       return res.status(200).json({ success: true, skipped: true });
     }
 
-    const prevRound = snap.data().round || null;
+    if ((round === 'posterior' || round === 'convergence') && (data.status !== 'approved' || data.dataConsent !== true)) {
+      return res.status(400).json({ error: 'Only approved registrants with data consent can be moved to POSTERIOR or CONVERGENCE.' });
+    }
+
+    const prevRound = data.round || null;
 
     await docRef.update({
       round,

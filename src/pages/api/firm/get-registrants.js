@@ -7,6 +7,7 @@
  *   - access.registrantProfiles !== true: 403 ACCESS_LOCKED
  *   - access.resumeDownload: controls whether resumeUrl is included (only after May 23, only posterior/convergence round)
  *   - access.linkedinAccess: controls whether linkedIn is included
+ *   - access.resumeDownload also controls whether transcriptUrl/transcriptFileName are included
  *
  *   - access.emailAccess: controls whether email is included
  *
@@ -17,6 +18,7 @@
 
 import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
+import { createFirmCandidateToken } from '../../../lib/firmCandidateToken';
 
 
 export default async function handler(req, res) {
@@ -77,10 +79,11 @@ export default async function handler(req, res) {
     });
   }
 
-  const { resumeDownload, linkedinAccess, emailAccess } = firmData.access || {};
+  const { resumeDownload, linkedinAccess, emailAccess, finalistProfiles } = firmData.access || {};
 
   const { after, limit: limitParam } = req.body;
-  const limit = Math.min(parseInt(limitParam, 10) || 50, 100);
+  const parsedLimit = parseInt(limitParam, 10);
+  const limit = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 50, 1), 100);
 
   try {
     // Server-side cursor pagination using composite index
@@ -116,7 +119,7 @@ export default async function handler(req, res) {
     const registrants = page.map((doc) => {
       const d = doc.data();
       const entry = {
-        id: doc.id,
+        id: createFirmCandidateToken(doc.id),
         fullName: d.fullName,
         university: d.university,
         branch: d.branch || null,
@@ -129,12 +132,16 @@ export default async function handler(req, res) {
       // Resume access: only after May 23, only for candidates who advanced past PRIOR
       const resumeUnlocked = Date.now() >= new Date('2026-05-23').getTime();
       const advancedRound = d.round === 'posterior' || d.round === 'convergence';
-      if (resumeDownload && resumeUnlocked && advancedRound) {
+      if (resumeDownload && finalistProfiles && resumeUnlocked && advancedRound) {
         entry.resumeUrl = d.resumeUrl || null;
         entry.resumeFileName = d.resumeFileName || null;
       }
       if (linkedinAccess) {
         entry.linkedIn = d.linkedIn || null;
+      }
+      if (resumeDownload && finalistProfiles && resumeUnlocked && advancedRound && d.transcriptUrl) {
+        entry.transcriptUrl = d.transcriptUrl;
+        entry.transcriptFileName = d.transcriptFileName || null;
       }
       if (emailAccess) {
         entry.email = d.email || null;
@@ -155,6 +162,7 @@ export default async function handler(req, res) {
       lastId: page.length > 0 ? page[page.length - 1].id : null,
       access: {
         resumeDownload: !!resumeDownload,
+        finalistProfiles: !!finalistProfiles,
         linkedinAccess: !!linkedinAccess,
         emailAccess: !!emailAccess,
       },
@@ -166,6 +174,6 @@ export default async function handler(req, res) {
       detail: { code: err.code ?? null },
       status: 'failed',
     }, err);
-    return res.status(500).json({ error: 'Internal server error', detail: err.message });
+    return res.status(500).json({ error: 'Internal server error' });
   }
 }
