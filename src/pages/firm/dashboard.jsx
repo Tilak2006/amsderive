@@ -257,6 +257,10 @@ export default function FirmDashboard() {
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState(null);
   const leaderboardIntervalRef = useRef(null);
+  const [selectedLeaderboardRegistrant, setSelectedLeaderboardRegistrant] = useState(null);
+  const [leaderboardSearchName, setLeaderboardSearchName] = useState('');
+  const [leaderboardFilterUniversity, setLeaderboardFilterUniversity] = useState('');
+  const [leaderboardFilterGradYear, setLeaderboardFilterGradYear] = useState('');
 
   // Auth check on mount
   useEffect(() => {
@@ -435,6 +439,7 @@ export default function FirmDashboard() {
         return;
       }
       setLeaderboardData(data);
+      if (data.access) setRegistrantsAccess(data.access);
       setLeaderboardError(null);
     } catch {
       setLeaderboardError({ type: 'fetch', message: 'Failed to load leaderboard' });
@@ -517,6 +522,37 @@ export default function FirmDashboard() {
     const set = new Set(registrants.map((r) => r.branch).filter(Boolean));
     return Array.from(set).sort();
   }, [registrants]);
+
+  const uniqueLeaderboardUniversities = useMemo(() => {
+    if (!leaderboardData?.standings) return [];
+    const set = new Set(leaderboardData.standings.map((s) => s.university).filter(Boolean));
+    return Array.from(set).sort();
+  }, [leaderboardData]);
+
+  const uniqueLeaderboardGradYears = useMemo(() => {
+    if (!leaderboardData?.standings) return [];
+    const set = new Set(leaderboardData.standings.map((s) => s.graduationYear).filter(Boolean));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [leaderboardData]);
+
+  const filteredLeaderboardStandings = useMemo(() => {
+    if (!leaderboardData?.standings) return [];
+    return leaderboardData.standings.filter((row) => {
+      if (leaderboardSearchName.trim()) {
+        const q = leaderboardSearchName.toLowerCase();
+        if (!row.name?.toLowerCase().includes(q)) return false;
+      }
+      if (leaderboardFilterUniversity.trim()) {
+        const q = leaderboardFilterUniversity.toLowerCase();
+        if (!row.university?.toLowerCase().includes(q)) return false;
+      }
+      if (leaderboardFilterGradYear.trim()) {
+        const q = leaderboardFilterGradYear.toLowerCase();
+        if (!String(row.graduationYear).toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+  }, [leaderboardData, leaderboardSearchName, leaderboardFilterUniversity, leaderboardFilterGradYear]);
 
   const chartData = useMemo(() => {
     if (!analyticsData?.institutions?.length) return [];
@@ -666,7 +702,15 @@ export default function FirmDashboard() {
               <button
                 key={key}
                 className={`${styles.tab} ${activeTab === key ? styles.tabActive : ''}`}
-                onClick={() => { setActiveTab(key); setDocumentError(null); setExportError(null); }}
+                onClick={() => {
+                  setActiveTab(key);
+                  setDocumentError(null);
+                  setExportError(null);
+                  setSelectedLeaderboardRegistrant(null);
+                  setLeaderboardSearchName('');
+                  setLeaderboardFilterUniversity('');
+                  setLeaderboardFilterGradYear('');
+                }}
               >
                 {label}
               </button>
@@ -1424,141 +1468,337 @@ export default function FirmDashboard() {
 
           {/* ── LEADERBOARD TAB ── */}
           {activeTab === 'leaderboard' && (
-            <div>
-              {/* Derivation tier — no leaderboard access */}
-              {firmProfile?.tier === 'derivation' ? (
-                <div className={styles.accessDenied}>
-                  <div className={styles.accessDeniedIcon}>🔒</div>
-                  <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
-                  <p className={styles.accessDeniedText}>
-                    Live Leaderboard access is available to Convergence and Apex partners. Contact{' '}
-                    <a href="mailto:partnership@amsociety.in" style={{ color: '#D4AF37' }}>
-                      partnership@amsociety.in
-                    </a>{' '}
-                    to upgrade your partnership.
-                  </p>
-                </div>
-              ) : new Date() < new Date('2026-05-23') ? (
-                <div className={styles.lockedCard}>
-                  <div className={styles.lockedCardIcon}>◎</div>
-                  <p className={styles.lockedCardTitle}>Live on 23 May 2026</p>
-                  <p className={styles.lockedCardText}>
-                    PRIOR begins on 23 May. Real-time Codeforces standings will appear here once the contest starts.
-                  </p>
-                </div>
-              ) : leaderboardError ? (
-                <div className={styles.lockedCard}>
-                  <div className={styles.lockedCardIcon}>⚠</div>
-                  <p className={styles.lockedCardTitle}>Codeforces Unavailable</p>
-                  <p className={styles.lockedCardText}>
-                    Codeforces is temporarily unreachable. Standings will load automatically when the service recovers.
-                  </p>
-                </div>
-              ) : leaderboardLoading && !leaderboardData ? (
-                <div className={styles.skeletonLeaderboardWrap} aria-label="Loading leaderboard">
-                  <div className={styles.skeletonLeaderboardHeader}>
-                    <SkeletonLine className={styles.skeletonLineSub} style={{ width: '220px' }} />
-                    <SkeletonLine className={styles.skeletonPill} />
+            <div className={selectedLeaderboardRegistrant ? styles.splitLayout : undefined}>
+              <div className={styles.registrantsMain}>
+                {/* Derivation tier — no leaderboard access */}
+                {firmProfile?.tier === 'derivation' ? (
+                  <div className={styles.accessDenied}>
+                    <div className={styles.accessDeniedIcon}>🔒</div>
+                    <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
+                    <p className={styles.accessDeniedText}>
+                      Live Leaderboard access is available to Convergence and Apex partners. Contact{' '}
+                      <a href="mailto:partnership@amsociety.in" style={{ color: '#D4AF37' }}>
+                        partnership@amsociety.in
+                      </a>{' '}
+                      to upgrade your partnership.
+                    </p>
                   </div>
-                  <div className={styles.skeletonTableBox}>
-                    <div className={styles.skeletonTableHead}>
-                      {Array.from({ length: 4 }).map((_, i) => (
-                        <SkeletonLine key={`lb-head-${i}`} className={styles.skeletonTableHeadCell} />
-                      ))}
+                ) : new Date() < new Date('2026-05-23') ? (
+                  <div className={styles.lockedCard}>
+                    <div className={styles.lockedCardIcon}>◎</div>
+                    <p className={styles.lockedCardTitle}>Live on 23 May 2026</p>
+                    <p className={styles.lockedCardText}>
+                      PRIOR begins on 23 May. Real-time standings will appear here once the contest starts.
+                    </p>
+                  </div>
+                ) : leaderboardError ? (
+                  <div className={styles.lockedCard}>
+                    <div className={styles.lockedCardIcon}>⚠</div>
+                    <p className={styles.lockedCardTitle}>Leaderboard Unavailable</p>
+                    <p className={styles.lockedCardText}>
+                      {leaderboardError.message || 'Failed to load leaderboard.'}
+                    </p>
+                  </div>
+                ) : leaderboardLoading && !leaderboardData ? (
+                  <div className={styles.skeletonLeaderboardWrap} aria-label="Loading leaderboard">
+                    <div className={styles.skeletonLeaderboardHeader}>
+                      <SkeletonLine className={styles.skeletonLineSub} style={{ width: '220px' }} />
+                      <SkeletonLine className={styles.skeletonPill} />
                     </div>
-                    <div className={styles.skeletonTableBody}>
-                      {Array.from({ length: 8 }).map((_, row) => (
-                        <div key={`lb-row-${row}`} className={styles.skeletonTableRow}>
-                          {Array.from({ length: 4 }).map((_, col) => (
-                            <SkeletonLine key={`lb-row-${row}-col-${col}`} className={styles.skeletonTableCell} />
-                          ))}
-                        </div>
-                      ))}
+                    <div className={styles.skeletonTableBox}>
+                      <div className={styles.skeletonTableHead}>
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <SkeletonLine key={`lb-head-${i}`} className={styles.skeletonTableHeadCell} />
+                        ))}
+                      </div>
+                      <div className={styles.skeletonTableBody}>
+                        {Array.from({ length: 8 }).map((_, row) => (
+                          <div key={`lb-row-${row}`} className={styles.skeletonTableRow}>
+                            {Array.from({ length: 4 }).map((_, col) => (
+                              <SkeletonLine key={`lb-row-${row}-col-${col}`} className={styles.skeletonTableCell} />
+                            ))}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <>
-                  {/* Header bar */}
-                  <div className={styles.leaderboardHeader}>
-                    <div className={styles.leaderboardMeta}>
-                      <span className={styles.liveIndicator} />
-                      <span className={styles.leaderboardTitle}>PRIOR — LIVE STANDINGS</span>
-                      {leaderboardData?.updatedAt && (
-                        <span className={styles.leaderboardUpdated}>
-                          Last updated:{' '}
-                          {new Date(leaderboardData.updatedAt).toLocaleTimeString('en-IN', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                          {leaderboardData.stale && (
-                            <span className={styles.staleTag}> (cached)</span>
-                          )}
-                        </span>
+                ) : (
+                  <>
+                    {/* Header bar */}
+                    <div className={styles.leaderboardHeader}>
+                      <div className={styles.leaderboardMeta}>
+                        <span className={styles.liveIndicator} />
+                        <span className={styles.leaderboardTitle}>PRIOR — STANDINGS</span>
+                        {leaderboardData?.updatedAt && (
+                          <span className={styles.leaderboardUpdated}>
+                            Last updated:{' '}
+                            {new Date(leaderboardData.updatedAt).toLocaleTimeString('en-IN', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        className={styles.refreshBtn}
+                        onClick={fetchLeaderboard}
+                        disabled={leaderboardLoading}
+                      >
+                        {leaderboardLoading ? '...' : 'REFRESH'}
+                      </button>
+                    </div>
+
+                    {/* Filter bar */}
+                    <div className={styles.talentFilterBar} style={{ marginBottom: '16px' }}>
+                      <input
+                        type="text"
+                        className={styles.searchInput}
+                        placeholder="Search candidate name..."
+                        value={leaderboardSearchName}
+                        onChange={(e) => setLeaderboardSearchName(e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        list="leaderboard-colleges"
+                        className={styles.searchInput}
+                        placeholder="Type/Select College..."
+                        value={leaderboardFilterUniversity}
+                        onChange={(e) => setLeaderboardFilterUniversity(e.target.value)}
+                      />
+                      <datalist id="leaderboard-colleges">
+                        {uniqueLeaderboardUniversities.map((u) => (
+                          <option key={u} value={u} />
+                        ))}
+                      </datalist>
+                      <input
+                        type="text"
+                        list="leaderboard-grad-years"
+                        className={styles.searchInput}
+                        placeholder="Type/Select Grad Year..."
+                        value={leaderboardFilterGradYear}
+                        onChange={(e) => setLeaderboardFilterGradYear(e.target.value)}
+                        style={{ maxWidth: '180px' }}
+                      />
+                      <datalist id="leaderboard-grad-years">
+                        {uniqueLeaderboardGradYears.map((yr) => (
+                          <option key={yr} value={String(yr)} />
+                        ))}
+                      </datalist>
+
+                      {(leaderboardSearchName || leaderboardFilterUniversity || leaderboardFilterGradYear) && (
+                        <button
+                          className={styles.refreshBtn}
+                          onClick={() => {
+                            setLeaderboardSearchName('');
+                            setLeaderboardFilterUniversity('');
+                            setLeaderboardFilterGradYear('');
+                          }}
+                          style={{ borderColor: 'rgba(212, 175, 55, 0.35)', color: '#D4AF37' }}
+                        >
+                          CLEAR FILTERS
+                        </button>
                       )}
+
+                      <span className={styles.resultCount}>
+                        {filteredLeaderboardStandings.length}/{leaderboardData.standings.length} rank{filteredLeaderboardStandings.length !== 1 ? 's' : ''}
+                      </span>
                     </div>
-                    <button
-                      className={styles.refreshBtn}
-                      onClick={fetchLeaderboard}
-                      disabled={leaderboardLoading}
-                    >
-                      {leaderboardLoading ? '...' : 'REFRESH'}
-                    </button>
+
+                    {/* Standings table */}
+                    {!leaderboardData || filteredLeaderboardStandings.length === 0 ? (
+                      <div className={styles.accessDenied}>
+                        <p className={styles.accessDeniedTitle}>
+                          {leaderboardData?.notStarted ? 'Contest has not started yet' : 'No matches found'}
+                        </p>
+                        <p className={styles.accessDeniedText}>
+                          {leaderboardData?.notStarted
+                            ? 'PRIOR begins on 23 May 2026. Live standings will appear here once the contest starts.'
+                            : 'No rows match your current search filters. Try adjusting your input.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className={styles.leaderboardTableWrap}>
+                        <table className={styles.leaderboardTable}>
+                          <thead>
+                            <tr className={styles.leaderboardThead}>
+                              <th className={styles.leaderboardTh}>Rank</th>
+                              <th className={styles.leaderboardTh}>Name</th>
+                              <th className={styles.leaderboardTh}>Institution</th>
+                              <th className={styles.leaderboardTh}>Grad Year</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredLeaderboardStandings.map((row, i) => {
+                              const hasProfile = Boolean(row.registrant);
+                              const isSelected = selectedLeaderboardRegistrant?.id === row.registrant?.id;
+                              return (
+                                <tr
+                                  key={`${row.name}-${row.rank}`}
+                                  className={`${styles.leaderboardTr} ${row.rank <= 3 ? styles.leaderboardTrTop : ''} ${isSelected ? styles.leaderboardTrSelected : ''}`}
+                                  style={hasProfile ? { cursor: 'pointer' } : undefined}
+                                  onClick={hasProfile ? () => {
+                                    setSelectedLeaderboardRegistrant(isSelected ? null : row.registrant);
+                                    setDocumentError(null);
+                                  } : undefined}
+                                >
+                                  <td className={styles.leaderboardTd}>
+                                    <span className={row.rank <= 3 ? styles.rankGold : styles.rankMuted}>
+                                      {row.rank}
+                                    </span>
+                                  </td>
+                                  <td className={styles.leaderboardTd} style={{ fontWeight: hasProfile ? 600 : 'normal' }}>
+                                    {row.name}
+                                    {hasProfile && (
+                                      <span style={{ color: '#D4AF37', fontSize: '0.62rem', marginLeft: '6px', fontFamily: 'var(--font-mono)' }}>
+                                        [VIEW PROFILE]
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className={styles.leaderboardTd}>{row.university}</td>
+                                  <td className={styles.leaderboardTd}>{row.graduationYear}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Detail panel — shown when a leaderboard row is selected */}
+              {selectedLeaderboardRegistrant && (
+                <aside className={styles.detailPanel}>
+                  <div className={styles.panelHeader}>
+                    <span className={styles.panelTitle}>{selectedLeaderboardRegistrant.fullName}</span>
+                    <div className={styles.panelHeaderActions}>
+                      <button
+                        className={`${styles.panelStarBtn} ${starred.has(selectedLeaderboardRegistrant.id) ? styles.panelStarBtnActive : ''}`}
+                        onClick={(e) => toggleStar(selectedLeaderboardRegistrant.id, e)}
+                        title={starred.has(selectedLeaderboardRegistrant.id) ? 'Unstar' : 'Star'}
+                      >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill={starred.has(selectedLeaderboardRegistrant.id) ? '#D4AF37' : 'none'} stroke={starred.has(selectedLeaderboardRegistrant.id) ? '#D4AF37' : '#6b6560'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      </button>
+                      <button
+                        className={styles.panelClose}
+                        onClick={() => { setSelectedLeaderboardRegistrant(null); setDocumentError(null); }}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Standings table */}
-                  {!leaderboardData || leaderboardData.standings.length === 0 ? (
-                    <div className={styles.accessDenied}>
-                      <p className={styles.accessDeniedTitle}>
-                        {leaderboardData?.notStarted ? 'Contest has not started yet' : 'No standings yet'}
-                      </p>
-                      <p className={styles.accessDeniedText}>
-                        {leaderboardData?.notStarted
-                          ? 'PRIOR begins on 23 May 2026. Live standings will appear here once the contest starts.'
-                          : 'No submissions recorded yet. Check back soon.'}
-                      </p>
-                    </div>
-                  ) : (
-                    <div className={styles.leaderboardTableWrap}>
-                      <table className={styles.leaderboardTable}>
-                        <thead>
-                          <tr className={styles.leaderboardThead}>
-                            <th className={styles.leaderboardTh}>Rank</th>
-                            <th className={styles.leaderboardTh}>Handle</th>
-                            <th className={styles.leaderboardTh}>Score</th>
-                            <th className={styles.leaderboardTh}>Penalty</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {leaderboardData.standings.map((row, i) => (
-                            <tr
-                              key={row.handle}
-                              className={`${styles.leaderboardTr} ${i < 3 ? styles.leaderboardTrTop : ''}`}
-                            >
-                              <td className={styles.leaderboardTd}>
-                                <span className={i < 3 ? styles.rankGold : styles.rankMuted}>
-                                  {row.rank}
-                                </span>
-                              </td>
-                              <td className={styles.leaderboardTd}>
-                                <a
-                                  href={`https://codeforces.com/profile/${row.handle}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={styles.handleLink}
-                                >
-                                  {row.handle}
-                                </a>
-                              </td>
-                              <td className={styles.leaderboardTd}>{row.points}</td>
-                              <td className={styles.leaderboardTd}>{row.penalty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                  {documentError && (
+                    <div className={styles.documentError}>{documentError}</div>
+                  )}
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Institution</span>
+                    <span className={styles.panelValue}>{selectedLeaderboardRegistrant.university || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Branch</span>
+                    <span className={styles.panelValue}>{selectedLeaderboardRegistrant.branch || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Graduation Year</span>
+                    <span className={styles.panelValue}>{selectedLeaderboardRegistrant.graduationYear || '—'}</span>
+                  </div>
+
+                  <div className={styles.panelRow}>
+                    <span className={styles.panelLabel}>Round</span>
+                    <span className={styles.panelValue} style={{ textTransform: 'uppercase', color: '#D4AF37' }}>
+                      {selectedLeaderboardRegistrant.round || '—'}
+                    </span>
+                  </div>
+
+                  {selectedLeaderboardRegistrant.codeforcesHandle && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>CF Handle</span>
+                      <a
+                        href={`https://codeforces.com/profile/${selectedLeaderboardRegistrant.codeforcesHandle}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        {selectedLeaderboardRegistrant.codeforcesHandle}
+                      </a>
                     </div>
                   )}
-                </>
+
+                  {selectedLeaderboardRegistrant.gitHub && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>GitHub</span>
+                      <a
+                        href={selectedLeaderboardRegistrant.gitHub}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        {selectedLeaderboardRegistrant.gitHub.replace(/^https?:\/\/(www\.)?github\.com\//, '')}
+                      </a>
+                    </div>
+                  )}
+
+                  {registrantsAccess?.linkedinAccess && selectedLeaderboardRegistrant.linkedIn && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>LinkedIn</span>
+                      <a
+                        href={selectedLeaderboardRegistrant.linkedIn}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={styles.handleLink}
+                      >
+                        View Profile
+                      </a>
+                    </div>
+                  )}
+
+                  {isAdvancedCandidate(selectedLeaderboardRegistrant) && (
+                    <>
+                      {registrantsAccess?.resumeDownload && selectedLeaderboardRegistrant.resumeUrl && (
+                        <div className={styles.panelRow}>
+                          <span className={styles.panelLabel}>Resume</span>
+                          <button
+                            className={styles.docBtn}
+                            onClick={() => handleViewResume(selectedLeaderboardRegistrant)}
+                          >
+                            View Resume
+                          </button>
+                        </div>
+                      )}
+
+                      {selectedLeaderboardRegistrant.transcriptUrl && (
+                        <div className={styles.panelRow}>
+                          <span className={styles.panelLabel}>Transcript</span>
+                          <button
+                            className={styles.docBtn}
+                            onClick={() => handleViewTranscript(selectedLeaderboardRegistrant)}
+                          >
+                            View Transcript
+                          </button>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {registrantsAccess?.emailAccess && selectedLeaderboardRegistrant.email && (
+                    <div className={styles.panelRow}>
+                      <span className={styles.panelLabel}>Email</span>
+                      <a
+                        href={`mailto:${selectedLeaderboardRegistrant.email}`}
+                        className={styles.handleLink}
+                      >
+                        {selectedLeaderboardRegistrant.email}
+                      </a>
+                    </div>
+                  )}
+                </aside>
               )}
             </div>
           )}

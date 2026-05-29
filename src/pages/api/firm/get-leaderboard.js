@@ -1,96 +1,36 @@
 /**
  * POST /api/firm/get-leaderboard
  *
- * Returns live Codeforces contest standings for authenticated firm partners.
+ * Returns standings from the uploaded AMS Derive'26 PRIOR Ranklist.csv,
+ * matching them against approved and consented registrant profiles for authenticated firm partners.
  * Access gating:
  *   - derivation tier: 403 (no leaderboard access)
  *   - firmData.access.leaderboard !== true: 403 locked
- *
- * Standings are fetched from Codeforces contest.standings and cached in-memory
- * for 30 seconds. On Codeforces error, returns stale cache if available.
- *
- * Requires env vars:
- *   CODEFORCES_API_KEY
- *   CODEFORCES_API_SECRET
- *   CODEFORCES_CONTEST_ID
  */
 
 import { admin, db } from '../../../lib/firebaseAdmin';
-import crypto from 'crypto';
 import logger, { genReqId } from '../../../utils/logger';
+import { createFirmCandidateToken } from '../../../lib/firmCandidateToken';
+import fs from 'fs';
+import path from 'path';
 
-
-// In-memory cache
-let cachedStandings = null;
-let cacheTime = 0;
-const CACHE_TTL = 30 * 1000; // 30 seconds
-
-async function fetchFromCodeforces() {
-  const apiKey = process.env.CODEFORCES_API_KEY;
-  const apiSecret = process.env.CODEFORCES_API_SECRET;
-  const contestId = process.env.CODEFORCES_CONTEST_ID;
-
-  if (!apiKey || !apiSecret || !contestId) {
-    throw new Error('Codeforces credentials not configured');
-  }
-
-  const rand = crypto.randomBytes(3).toString('hex'); // 6-char hex string
-  const time = Math.floor(Date.now() / 1000);
-
-  // Params must be sorted alphabetically for signature
-  const params = {
-    apiKey,
-    contestId,
-    showUnofficial: 'false',
-    time: String(time),
-  };
-
-  const sortedKeys = Object.keys(params).sort();
-  const paramString = sortedKeys.map((k) => `${k}=${params[k]}`).join('&');
-  const sigInput = `${rand}/contest.standings?${paramString}#${apiSecret}`;
-  const apiSig = rand + crypto.createHash('sha512').update(sigInput).digest('hex');
-
-  const url = `https://codeforces.com/api/contest.standings?${paramString}&apiSig=${apiSig}`;
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10000);
-
-  try {
-    const res = await fetch(url, { signal: controller.signal });
-
-    if (!res.ok) {
-      const err = new Error(`Codeforces HTTP ${res.status}`);
-      err.code = 'CF_HTTP_ERROR';
-      err.status = res.status;
-      throw err;
+function parseCsvLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
     }
-
-    const json = await res.json();
-
-    if (json.status !== 'OK') {
-      const comment = (json.comment || '').toLowerCase();
-      if (comment.includes('not started') || comment.includes('has not started') || comment.includes('before contest start')) {
-        const err = new Error('Contest has not started yet');
-        err.code = 'NOT_STARTED';
-        throw err;
-      }
-      throw new Error(`Codeforces API error: ${json.comment || `HTTP ${res.status}`}`);
-    }
-
-    return json.result;
-  } finally {
-    clearTimeout(timeout);
   }
-}
-
-function formatStandings(cfResult) {
-  const rows = cfResult.rows || [];
-  return rows.map((row) => ({
-    rank: row.rank,
-    handle: row.party?.members?.[0]?.handle || '—',
-    points: row.points,
-    penalty: row.penalty,
-  }));
+  result.push(current.trim());
+  return result;
 }
 
 export default async function handler(req, res) {
@@ -156,83 +96,111 @@ export default async function handler(req, res) {
     });
   }
 
-  // Serve from cache if fresh
-  const now = Date.now();
-  if (cachedStandings !== null && now - cacheTime < CACHE_TTL) {
-    logger.info('firms', 'leaderboard_served_cache', {
-      reqId,
-      actorId: uid,
-      detail: { fromCache: true, rowCount: cachedStandings.standings.length },
-      status: 'ok',
-    });
-    return res.status(200).json({
-      standings: cachedStandings.standings,
-      updatedAt: cachedStandings.updatedAt,
-      fromCache: true,
-    });
-  }
-
-  // Fetch from Codeforces
   try {
-    const cfResult = await fetchFromCodeforces();
-    const standings = formatStandings(cfResult);
-    const updatedAt = new Date().toISOString();
+    // Read and parse the CSV file
+    const csvPath = path.join(process.cwd(), "AMS Derive'26 PRIOR Ranklist.csv");
+    if (!fs.existsSync(csvPath)) {
+      throw new Error('PRIOR Ranklist CSV file not found on server.');
+    }
 
-    cachedStandings = { standings, updatedAt };
-    cacheTime = now;
+    const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
+    const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
 
-    logger.info('firms', 'leaderboard_fetched_cf', {
+    if (lines.length <= 1) {
+      throw new Error('CSV file is empty or missing headers.');
+    }
+
+    const standingsRaw = [];
+    for (let i = 1; i < lines.length; i++) {
+      const parts = parseCsvLine(lines[i]);
+      if (parts.length >= 4) {
+        standingsRaw.push({
+          rank: parseInt(parts[0], 10),
+          name: parts[1],
+          university: parts[2],
+          graduationYear: parseInt(parts[3], 10)
+        });
+      }
+    }
+
+    // Fetch all approved registrants who consented to share data
+    const registrantsSnap = await db.collection('registrants')
+      .where('status', '==', 'approved')
+      .where('dataConsent', '==', true)
+      .get();
+
+    // Build a map of lowercase name -> authorized registrant profile details
+    const registrantsMap = new Map();
+    const { resumeDownload, linkedinAccess, emailAccess, finalistProfiles } = firmData.access || {};
+    const resumeUnlocked = Date.now() >= new Date('2026-05-23').getTime();
+
+    registrantsSnap.forEach((doc) => {
+      const d = doc.data();
+      const nameKey = (d.fullName || '').trim().toLowerCase();
+      const advancedRound = d.round === 'posterior' || d.round === 'convergence';
+
+      const entry = {
+        id: createFirmCandidateToken(doc.id),
+        fullName: d.fullName,
+        university: d.university,
+        branch: d.branch || null,
+        graduationYear: d.graduationYear || null,
+        round: d.round || null,
+        codeforcesHandle: d.codeforcesHandle || null,
+        gitHub: d.gitHub || null,
+      };
+
+      if (resumeDownload && finalistProfiles && resumeUnlocked && advancedRound) {
+        entry.resumeUrl = d.resumeUrl || null;
+        entry.resumeFileName = d.resumeFileName || null;
+      }
+      if (linkedinAccess) {
+        entry.linkedIn = d.linkedIn || null;
+      }
+      if (resumeDownload && finalistProfiles && resumeUnlocked && advancedRound && d.transcriptUrl) {
+        entry.transcriptUrl = d.transcriptUrl;
+        entry.transcriptFileName = d.transcriptFileName || null;
+      }
+      if (emailAccess) {
+        entry.email = d.email || null;
+      }
+
+      registrantsMap.set(nameKey, entry);
+    });
+
+    // Map each standings row to its registrant details (if available)
+    const standings = standingsRaw.map(row => {
+      const nameKey = (row.name || '').trim().toLowerCase();
+      const registrant = registrantsMap.get(nameKey) || null;
+      return {
+        rank: row.rank,
+        name: row.name,
+        university: row.university,
+        graduationYear: row.graduationYear,
+        registrant
+      };
+    });
+
+    logger.info('firms', 'leaderboard_fetched_csv', {
       reqId,
       actorId: uid,
-      detail: { rowCount: standings.length },
+      detail: { rowCount: standings.length, matchedCount: standings.filter(s => s.registrant !== null).length },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
-    return res.status(200).json({ standings, updatedAt });
-  } catch (err) {
-    // Contest hasn't started yet — return empty standings, not an error
-    if (err.code === 'NOT_STARTED') {
-      logger.warn('firms', 'leaderboard_cf_not_started', { reqId, actorId: uid, status: 'degraded' });
-      return res.status(200).json({ standings: [], updatedAt: new Date().toISOString(), notStarted: true });
-    }
 
-    // Codeforces timed out or returned non-2xx — treat as transient
-    if (err.name === 'AbortError' || err.code === 20 || err.code === 'CF_HTTP_ERROR') {
-      if (cachedStandings !== null) {
-        logger.warn('firms', 'leaderboard_cf_timeout_stale', {
-          reqId,
-          actorId: uid,
-          detail: { stale: true },
-          status: 'degraded',
-        });
-        return res.status(200).json({
-          standings: cachedStandings.standings,
-          updatedAt: cachedStandings.updatedAt,
-          fromCache: true,
-          stale: true,
-        });
+    return res.status(200).json({
+      standings,
+      updatedAt: new Date().toISOString(),
+      access: {
+        resumeDownload: !!resumeDownload,
+        finalistProfiles: !!finalistProfiles,
+        linkedinAccess: !!linkedinAccess,
+        emailAccess: !!emailAccess,
       }
-      logger.warn('firms', 'leaderboard_cf_timeout_no_cache', { reqId, actorId: uid, status: 'degraded' });
-      return res.status(200).json({ standings: [], updatedAt: new Date().toISOString(), notStarted: false, timedOut: true });
-    }
-
-    // Graceful degrade: return stale cache if available
-    if (cachedStandings !== null) {
-      logger.warn('firms', 'leaderboard_served_cache', {
-        reqId,
-        actorId: uid,
-        detail: { stale: true, message: err.message },
-        status: 'degraded',
-      });
-      return res.status(200).json({
-        standings: cachedStandings.standings,
-        updatedAt: cachedStandings.updatedAt,
-        fromCache: true,
-        stale: true,
-      });
-    }
-
-    logger.error('firms', 'leaderboard_cf_error', { reqId, actorId: uid, status: 'failed' }, err);
-    return res.status(502).json({ error: 'Failed to fetch leaderboard' });
+    });
+  } catch (err) {
+    logger.error('firms', 'leaderboard_csv_error', { reqId, actorId: uid, status: 'failed' }, err);
+    return res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }
