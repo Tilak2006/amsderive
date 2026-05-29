@@ -1600,7 +1600,7 @@ export default function FirmDashboard() {
                       )}
 
                       <span className={styles.resultCount}>
-                        {filteredLeaderboardStandings.length}/{leaderboardData.standings.length} rank{filteredLeaderboardStandings.length !== 1 ? 's' : ''}
+                        {filteredLeaderboardStandings.length}/{leaderboardData?.standings?.length || 0} rank{filteredLeaderboardStandings.length !== 1 ? 's' : ''}
                       </span>
                     </div>
 
