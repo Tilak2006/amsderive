@@ -241,6 +241,20 @@
   text-transform: uppercase;
 }
 
+.posteriorVerified {
+  margin: 0;
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(74, 222, 128, 0.18);
+  background: rgba(74, 222, 128, 0.06);
+  color: #86efac;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
 .resultGrid {
   display: flex;
   flex-direction: column;

@@ -132,6 +132,11 @@ export default function CheckRegistration() {
                       <span className={styles.resultCheck}>✓</span>
                       <span className={styles.resultTitle}>Registration Found</span>
                     </div>
+                    {reg.round === 'posterior' && (
+                      <p className={styles.posteriorVerified}>
+                        You have been verified for POSTERIOR.
+                      </p>
+                    )}
                     <div className={styles.resultGrid}>
                       <div className={styles.resultRow}>
                         <span className={styles.resultLabel}>NAME</span>

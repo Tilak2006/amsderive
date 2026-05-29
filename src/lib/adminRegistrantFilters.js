@@ -3,7 +3,7 @@ const SCAN_BATCH_SIZE = 200;
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 
 const VALID_STATUSES = new Set(['pending', 'approved', 'rejected']);
-const VALID_ROUNDS = new Set(['prior', 'posterior_tentative', 'posterior_tentative_2', 'posterior', 'convergence']);
+const VALID_ROUNDS = new Set(['prior', 'posterior', 'convergence']);
 const VALID_DELIVERY_STATUSES = new Set(['pending', 'delivered', 'bounced', 'complained', 'delayed']);
 const VALID_DATE_RANGES = new Set(['today', 'last24h', 'last7d', 'custom']);
 const VALID_TRANSCRIPT_FILTERS = new Set(['has', 'missing']);

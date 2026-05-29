@@ -2,7 +2,7 @@ import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
 
-const VALID_ROUNDS = ['prior', 'posterior_tentative', 'posterior_tentative_2', 'posterior', 'convergence'];
+const VALID_ROUNDS = ['prior', 'posterior', 'convergence'];
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid docId.' });
   }
   if (!VALID_ROUNDS.includes(round)) {
-    return res.status(400).json({ error: 'Invalid round. Must be "prior", "posterior_tentative", "posterior_tentative_2", "posterior", or "convergence".' });
+    return res.status(400).json({ error: 'Invalid round. Must be "prior", "posterior", or "convergence".' });
   }
 
   try {

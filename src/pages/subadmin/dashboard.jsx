@@ -17,6 +17,8 @@ function formatDate(isoString) {
   return `${day} ${month} ${year}, ${hours}:${mins} IST`;
 }
 
+const VALID_ROUNDS = new Set(['prior', 'posterior', 'convergence']);
+
 function attachTs(registrants) {
   return registrants.map((r) => ({ ...r, _ts: r.submittedAt ? new Date(r.submittedAt).getTime() : 0 }));
 }
@@ -173,7 +175,7 @@ export default function SubadminDashboard() {
     const urlState = {
       search: get('search'),
       status: get('status', 'all'),
-      round: get('round', 'all'),
+      round: VALID_ROUNDS.has(get('round', 'all')) ? get('round', 'all') : 'all',
       dateRange: get('dateRange', 'all'),
       startDate: get('startDate'),
       endDate: get('endDate'),

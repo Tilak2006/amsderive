@@ -596,16 +596,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'broadcastId required (8-64 URL-safe chars).' });
   }
 
-  const validFilters = ['all', 'prior', 'posterior_tentative', 'posterior_tentative_2', 'posterior', 'convergence'];
+  const validFilters = ['all', 'prior', 'posterior', 'convergence'];
   if (!validFilters.includes(roundFilter)) {
     return res.status(400).json({ error: 'Invalid roundFilter.' });
   }
   const filter = roundFilter;
   const validTargetTypes = ['registrants', 'outreach', 'both'];
   const resolvedTargetType = validTargetTypes.includes(targetType) ? targetType : 'registrants';
-  if (filter.startsWith('posterior_tentative') && resolvedTargetType !== 'registrants') {
-    return res.status(400).json({ error: 'POSTERIOR TENTATIVE broadcasts must target approved registrants only.' });
-  }
   let attachment = null;
   try {
     attachment = normalizeAttachment(rawAttachment);

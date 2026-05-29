@@ -70,14 +70,14 @@ const BROADCAST_ATTACHMENT_MAX_BYTES = 3 * 1024 * 1024;
 const BROADCAST_ATTACHMENT_BATCH_SIZE = 4;
 const ROUND_OPTIONS = [
   { value: 'prior', label: 'PRIOR' },
-  { value: 'posterior_tentative', label: 'POSTERIOR TENTATIVE' },
-  { value: 'posterior_tentative_2', label: 'POSTERIOR TENTATIVE 2' },
   { value: 'posterior', label: 'POSTERIOR' },
   { value: 'convergence', label: 'CONVERGENCE' },
 ];
+const ROUND_VALUES = new Set(ROUND_OPTIONS.map((option) => option.value));
 
 function roundLabel(round) {
-  return ROUND_OPTIONS.find((option) => option.value === (round || 'prior'))?.label || 'PRIOR';
+  const value = String(round || 'prior').trim().toLowerCase();
+  return ROUND_OPTIONS.find((option) => option.value === value)?.label || value.toUpperCase() || 'PRIOR';
 }
 
 function normalizeCfHandle(handle) {
@@ -832,7 +832,7 @@ export default function AdminDashboard() {
     const urlState = {
       search: get('search'),
       status: get('status', 'all'),
-      round: get('round', 'all'),
+      round: ROUND_VALUES.has(get('round', 'all')) ? get('round', 'all') : 'all',
       deliveryStatus: get('deliveryStatus', 'all'),
       dateRange: get('dateRange', 'all'),
       startDate: get('startDate'),
@@ -930,13 +930,6 @@ export default function AdminDashboard() {
     const t = setTimeout(() => setSearch(searchInput), 200);
     return () => clearTimeout(t);
   }, [searchInput]);
-
-  useEffect(() => {
-    if (broadcastFilter.startsWith('posterior_tentative') && broadcastTargetType !== 'registrants') {
-      setBroadcastTargetType('registrants');
-      setBroadcastConfirming(false);
-    }
-  }, [broadcastFilter, broadcastTargetType]);
 
   // ── Initial outreach + stats load ────────────────────────────────────────
   // Depends on uid (stable string), not user object (Firebase may give a new
@@ -1878,8 +1871,8 @@ export default function AdminDashboard() {
                   disabled={broadcastLoading || !!broadcastRetryId}
                 >
                   <option value="registrants">Approved Registrants</option>
-                  <option value="outreach" disabled={broadcastFilter.startsWith('posterior_tentative')}>External Outreach Contacts</option>
-                  <option value="both" disabled={broadcastFilter.startsWith('posterior_tentative')}>Both</option>
+                  <option value="outreach">External Outreach Contacts</option>
+                  <option value="both">Both</option>
                 </select>
                 <select
                   className={styles.filterSelect}
@@ -1887,7 +1880,6 @@ export default function AdminDashboard() {
                   onChange={(e) => {
                     const nextFilter = e.target.value;
                     setBroadcastFilter(nextFilter);
-                    if (nextFilter.startsWith('posterior_tentative')) setBroadcastTargetType('registrants');
                     setBroadcastConfirming(false);
                   }}
                   disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === 'outreach'}
