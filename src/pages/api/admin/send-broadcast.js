@@ -1,6 +1,6 @@
 import { admin, db, getStorageBucket } from '../../../lib/firebaseAdmin';
 import crypto from 'crypto';
-import { broadcastEmail } from '../../../emails/templates';
+import { broadcastEmail, priorRankEmail } from '../../../emails/templates';
 import logger, { genReqId } from '../../../utils/logger';
 import { requireAdmin } from '../../../lib/adminAuth';
 import {
@@ -117,6 +117,34 @@ function isDuplicateCreate(err) {
   return err?.code === 6 || /ALREADY_EXISTS/i.test(err?.message || '');
 }
 
+
+function normalizeRankRecipients(rawRows) {
+  if (!Array.isArray(rawRows)) return [];
+  const byEmail = new Map();
+
+  rawRows.forEach((row, index) => {
+    const email = normalizeEmail(row?.email);
+    const rank = String(row?.rank || '').trim();
+    if (!isValidEmail(email) || !rank) return;
+
+    if (byEmail.has(email)) return;
+
+    byEmail.set(email, {
+      email,
+      emailLower: email,
+      fullName: String(row?.name || row?.fullName || '').trim(),
+      firstName: firstNameFrom(row?.name || row?.fullName),
+      cfHandle: String(row?.cfHandle || row?.codeforcesHandle || '').trim(),
+      rank,
+      tag: 'PRIOR',
+      targetKind: 'rankCsv',
+      sortKey: index,
+    });
+  });
+
+  return Array.from(byEmail.values()).sort((a, b) => Number(a.sortKey || 0) - Number(b.sortKey || 0));
+}
+
 function normalizeAttachment(raw) {
   if (!raw) return null;
   const storagePath = String(raw.storagePath || '').trim();
@@ -159,12 +187,17 @@ async function signedAttachmentForResend(attachment) {
   };
 }
 
-async function buildRecipientSnapshot(resolvedTargetType, filter) {
+async function buildRecipientSnapshot(resolvedTargetType, filter, rankRecipients = []) {
   const recipientsByEmail = new Map();
   const suppressedOutreachEmails = new Set();
   let registrantAttempted = 0;
   let outreachAttempted = 0;
   let outreachSuppressed = 0;
+
+  if (resolvedTargetType === 'rankCsv') {
+    const recipients = normalizeRankRecipients(rankRecipients);
+    return { recipients, registrantAttempted: recipients.length, outreachAttempted: 0, outreachSuppressed: 0 };
+  }
 
   if (resolvedTargetType === 'outreach' || resolvedTargetType === 'both') {
     const snapshot = await db.collection('outreach_contacts')
@@ -244,6 +277,8 @@ async function writeRecipientQueue(queueRef, recipients) {
         fullName: r.fullName || '',
         firstName: r.firstName || '',
         institution: r.institution || '',
+        rank: r.rank || '',
+        cfHandle: r.cfHandle || '',
         status: 'queued',
         attemptCount: 0,
         sortKey: i + idx,
@@ -433,9 +468,9 @@ async function releaseProcessingLease(lockRef, leaseId) {
   }
 }
 
-async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText, bodyText, filter, resolvedTargetType, attachment, decoded, reqId, handlerStart }) {
+async function initializeBroadcast({ lockRef, queueRef, broadcastId, subjectText, bodyText, filter, resolvedTargetType, attachment, rankRecipients, decoded, reqId, handlerStart }) {
   const { recipients, registrantAttempted, outreachAttempted, outreachSuppressed } =
-    await buildRecipientSnapshot(resolvedTargetType, filter);
+    await buildRecipientSnapshot(resolvedTargetType, filter, rankRecipients);
   const mode = attachment ? 'queued_attachment' : 'queued_batch';
 
   try {
@@ -569,7 +604,7 @@ async function completeBroadcastIfDone({ lockRef, queueRef, decoded, reqId, broa
 }
 
 // Disable response size limit — broadcast can take a while
-export const config = { api: { responseLimit: false } };
+export const config = { api: { responseLimit: false, bodyParser: { sizeLimit: '2mb' } } };
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -586,10 +621,16 @@ export default async function handler(req, res) {
   const reqId = genReqId();
   const handlerStart = Date.now();
   const requestBody = req.body && typeof req.body === 'object' ? req.body : {};
-  const { subject, body, roundFilter, broadcastId, targetType, batchSize, attachment: rawAttachment } = requestBody;
+  const { subject, body, roundFilter, broadcastId, targetType, batchSize, attachment: rawAttachment, rankRecipients } = requestBody;
 
-  if (!subject?.trim() || !body?.trim()) {
-    return res.status(400).json({ error: 'Subject and body are required.' });
+  const requestedTargetType = String(targetType || 'registrants');
+  const isRankCsvBroadcast = requestedTargetType === 'rankCsv';
+
+  if (!subject?.trim() || (!isRankCsvBroadcast && !body?.trim())) {
+    return res.status(400).json({ error: isRankCsvBroadcast ? 'Subject is required.' : 'Subject and body are required.' });
+  }
+  if (isRankCsvBroadcast && normalizeRankRecipients(rankRecipients).length === 0) {
+    return res.status(400).json({ error: 'Rank CSV broadcast needs valid rows with Email and Rank.' });
   }
 
   if (!broadcastId || typeof broadcastId !== 'string' || !/^[a-zA-Z0-9_-]{8,64}$/.test(broadcastId)) {
@@ -601,8 +642,8 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid roundFilter.' });
   }
   const filter = roundFilter;
-  const validTargetTypes = ['registrants', 'outreach', 'both'];
-  const resolvedTargetType = validTargetTypes.includes(targetType) ? targetType : 'registrants';
+  const validTargetTypes = ['registrants', 'outreach', 'both', 'rankCsv'];
+  const resolvedTargetType = validTargetTypes.includes(requestedTargetType) ? requestedTargetType : 'registrants';
   let attachment = null;
   try {
     attachment = normalizeAttachment(rawAttachment);
@@ -620,7 +661,9 @@ export default async function handler(req, res) {
     ? Math.min(parsedBatchSize, ATTACHMENT_BATCH_SIZE)
     : Math.min(parsedBatchSize, BATCH_SIZE);
   const subjectText = subject.trim();
-  const bodyText = body.trim();
+  const normalizedRankRecipients = isRankCsvBroadcast ? normalizeRankRecipients(rankRecipients) : [];
+  const rankBodyHash = normalizedRankRecipients.map((r) => `${r.emailLower}:${r.rank}`).join('|');
+  const bodyText = isRankCsvBroadcast ? `__PRIOR_RANK_CSV__:${shortHash(rankBodyHash)}` : body.trim();
   const lockRef = db.collection('_broadcasts').doc(broadcastId);
   const queueRef = lockRef.collection('recipients');
   let activeLeaseId = null;
@@ -635,6 +678,7 @@ export default async function handler(req, res) {
       filter,
       resolvedTargetType,
       attachment,
+      rankRecipients,
       decoded,
       reqId,
       handlerStart,
@@ -871,11 +915,13 @@ export default async function handler(req, res) {
 
     if (sendable.length > 0) {
       const chunk = sendable.map(({ data }) => {
-        const template = broadcastEmail({
-          subject: subjectText,
-          body: renderBroadcastBody(bodyText, data),
-          footerHtml: data.targetKind === 'outreach' ? outreachFooterHtml(req, data.email) : '',
-        });
+        const template = data.targetKind === 'rankCsv'
+          ? priorRankEmail({ subject: subjectText, fullName: data.fullName, rank: data.rank })
+          : broadcastEmail({
+            subject: subjectText,
+            body: renderBroadcastBody(bodyText, data),
+            footerHtml: data.targetKind === 'outreach' ? outreachFooterHtml(req, data.email) : '',
+          });
         return {
           from: template.from,
           to: data.email,

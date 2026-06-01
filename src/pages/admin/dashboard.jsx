@@ -75,6 +75,89 @@ const ROUND_OPTIONS = [
 ];
 const ROUND_VALUES = new Set(ROUND_OPTIONS.map((option) => option.value));
 
+const RANK_BROADCAST_TARGET = 'rankCsv';
+
+function normalizeCsvHeader(header) {
+  return String(header || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function parseCsvRows(csvText) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < csvText.length; index += 1) {
+    const char = csvText[index];
+    const nextChar = csvText[index + 1];
+
+    if (char === '"' && inQuotes && nextChar === '"') {
+      cell += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') index += 1;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  rows.push(row);
+  return rows.filter((cells) => cells.some((value) => String(value || '').trim()));
+}
+
+function headerIndex(headers, candidates) {
+  return headers.findIndex((header) => candidates.includes(header));
+}
+
+function parsePriorRankCsv(csvText) {
+  const rows = parseCsvRows(csvText);
+  if (rows.length === 0) return { recipients: [], invalid: 0, duplicates: 0, error: 'CSV is empty.' };
+
+  const headers = rows[0].map(normalizeCsvHeader);
+  const rankIndex = headerIndex(headers, ['rank', 'position', 'officialrank']);
+  const nameIndex = headerIndex(headers, ['name', 'fullname', 'participantname']);
+  const emailIndex = headerIndex(headers, ['email', 'emailaddress', 'mail']);
+  const cfHandleIndex = headerIndex(headers, ['cfhandle', 'codeforceshandle', 'codeforces', 'handle']);
+
+  if (rankIndex === -1 || emailIndex === -1) {
+    return { recipients: [], invalid: Math.max(rows.length - 1, 0), duplicates: 0, error: 'CSV needs Email and Rank headers for one-shot sending.' };
+  }
+
+  const byEmail = new Map();
+  let invalid = 0;
+  let duplicates = 0;
+
+  rows.slice(1).forEach((cells) => {
+    const email = String(cells[emailIndex] || '').trim().toLowerCase();
+    const rank = String(cells[rankIndex] || '').trim();
+    const name = nameIndex >= 0 ? String(cells[nameIndex] || '').trim() : '';
+    const cfHandle = cfHandleIndex >= 0 ? String(cells[cfHandleIndex] || '').trim() : '';
+
+    if (!email || !rank || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      invalid += 1;
+      return;
+    }
+    if (byEmail.has(email)) {
+      duplicates += 1;
+      return;
+    }
+    byEmail.set(email, { email, rank, name, cfHandle, tag: 'PRIOR' });
+  });
+
+  return { recipients: Array.from(byEmail.values()), invalid, duplicates, error: '' };
+}
+
+
 function roundLabel(round) {
   const value = String(round || 'prior').trim().toLowerCase();
   return ROUND_OPTIONS.find((option) => option.value === value)?.label || value.toUpperCase() || 'PRIOR';
@@ -701,6 +784,8 @@ export default function AdminDashboard() {
   const [broadcastAttachment, setBroadcastAttachment] = useState(null);
   const [broadcastAttachmentLoading, setBroadcastAttachmentLoading] = useState(false);
   const [broadcastAttachmentMsg, setBroadcastAttachmentMsg] = useState(null);
+  const [broadcastRankRows, setBroadcastRankRows] = useState([]);
+  const [broadcastRankMsg, setBroadcastRankMsg] = useState(null);
   const [outreachImportLoading, setOutreachImportLoading] = useState(false);
   const [outreachImportMsg, setOutreachImportMsg] = useState(null);
   const [roundLoading, setRoundLoading] = useState(false);
@@ -723,8 +808,10 @@ export default function AdminDashboard() {
   const userRef = useRef(null);
   const tokenCache = useRef({ token: null, expiry: 0 });
   const outreachFileInputRef = useRef(null);
+  const rankCsvInputRef = useRef(null);
   const posteriorImportFileInputRef = useRef(null);
   const broadcastAttachmentInputRef = useRef(null);
+  const broadcastInFlightRef = useRef(false);
   const lastUrlQueryRef = useRef('');
 
   // Returns a cached Firebase ID token. Firebase SDK already caches internally,
@@ -1530,6 +1617,40 @@ export default function AdminDashboard() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   }
 
+  async function handleRankCsvBroadcastImport(file) {
+    if (!file || broadcastLoading || broadcastRetryId) return;
+    setBroadcastRankMsg(null);
+
+    try {
+      const csvText = await file.text();
+      const parsed = parsePriorRankCsv(csvText);
+      if (parsed.error) throw new Error(parsed.error);
+      if (parsed.recipients.length === 0) throw new Error('No valid rank rows found.');
+
+      setBroadcastRankRows(parsed.recipients);
+      setBroadcastTargetType(RANK_BROADCAST_TARGET);
+      setBroadcastFilter('prior');
+      setBroadcastAttachment(null);
+      setBroadcastAttachmentMsg(null);
+      setBroadcastSubject((current) => current.trim() || 'AMS Derive 2026 PRIOR Round | Official Rank');
+      setBroadcastBody('PRIOR rank announcement');
+      setBroadcastConfirming(false);
+
+      const details = [];
+      if (parsed.invalid) details.push(`${parsed.invalid} invalid skipped`);
+      if (parsed.duplicates) details.push(`${parsed.duplicates} duplicate collapsed`);
+      setBroadcastRankMsg({
+        type: parsed.invalid || parsed.duplicates ? 'error' : 'success',
+        text: `Loaded ${parsed.recipients.length} rank recipient${parsed.recipients.length !== 1 ? 's' : ''}${details.length ? ` · ${details.join(' · ')}` : ''}`,
+      });
+    } catch (err) {
+      setBroadcastRankRows([]);
+      setBroadcastRankMsg({ type: 'error', text: err.message || 'Could not read rank CSV.' });
+    } finally {
+      if (rankCsvInputRef.current) rankCsvInputRef.current.value = '';
+    }
+  }
+
   async function handleBroadcastAttachmentUpload(file) {
     if (!file || broadcastAttachmentLoading || broadcastLoading || broadcastRetryId) return;
     setBroadcastAttachmentMsg(null);
@@ -1573,7 +1694,9 @@ export default function AdminDashboard() {
   }
 
   async function handleBroadcast() {
-    if (!broadcastSubject.trim() || !broadcastBody.trim() || broadcastLoading) return;
+    const isRankBroadcast = broadcastTargetType === RANK_BROADCAST_TARGET;
+    if (!broadcastSubject.trim() || (!isRankBroadcast && !broadcastBody.trim()) || (isRankBroadcast && broadcastRankRows.length === 0) || broadcastLoading || broadcastInFlightRef.current) return;
+    broadcastInFlightRef.current = true;
     setBroadcastConfirming(false);
     setBroadcastLoading(true);
     setBroadcastMsg(null);
@@ -1586,7 +1709,7 @@ export default function AdminDashboard() {
       processed: 0,
       skipped: 0,
       remaining: null,
-      mode: broadcastAttachment ? 'Attachment' : 'Batch',
+      mode: isRankBroadcast ? 'PRIOR Rank' : broadcastAttachment ? 'Attachment' : 'Batch',
     });
     // Reuse the same broadcastId after a retryable failure so successful queue rows
     // are not sent again.
@@ -1609,11 +1732,12 @@ export default function AdminDashboard() {
           headers: hdrs,
           body: JSON.stringify({
             subject: broadcastSubject,
-            body: broadcastBody,
+            body: isRankBroadcast ? 'PRIOR rank announcement' : broadcastBody,
             roundFilter: broadcastFilter,
             targetType: broadcastTargetType,
             broadcastId,
             batchSize: broadcastAttachment ? BROADCAST_ATTACHMENT_BATCH_SIZE : BROADCAST_BATCH_SIZE,
+            rankRecipients: isRankBroadcast ? broadcastRankRows : undefined,
             attachment: broadcastAttachment ? {
               storagePath: broadcastAttachment.storagePath,
               fileName: broadcastAttachment.fileName,
@@ -1648,7 +1772,7 @@ export default function AdminDashboard() {
           total: attemptedTotal,
           batchNumber: data.batchNumber || 0,
           totalBatches: data.totalBatches || null,
-          mode: data.mode === 'queued_attachment' ? 'Attachment' : 'Batch',
+          mode: data.targetType === RANK_BROADCAST_TARGET ? 'PRIOR Rank' : data.mode === 'queued_attachment' ? 'Attachment' : 'Batch',
         });
 
         if (data.done) break;
@@ -1662,11 +1786,13 @@ export default function AdminDashboard() {
         await wait(500);
       }
 
-      const target = finalTargetType === 'outreach'
-        ? 'outreach contact'
-        : finalTargetType === 'both'
-          ? 'recipient'
-          : 'registrant';
+      const target = finalTargetType === RANK_BROADCAST_TARGET
+        ? 'rank recipient'
+        : finalTargetType === 'outreach'
+          ? 'outreach contact'
+          : finalTargetType === 'both'
+            ? 'recipient'
+            : 'registrant';
       const skippedText = skippedTotal ? ` · ${skippedTotal} skipped because they were already sent/delivered/bounced/complained/unsubscribed` : '';
       setBroadcastMsg({ type: 'success', text: `Sent to ${sentTotal} ${target}${sentTotal !== 1 ? 's' : ''}${failedTotal ? ` · ${failedTotal} failed` : ''}${skippedText}` });
       setBroadcastSubject('');
@@ -1675,6 +1801,8 @@ export default function AdminDashboard() {
       setBroadcastDraftId(null);
       setBroadcastAttachment(null);
       setBroadcastAttachmentMsg(null);
+      setBroadcastRankRows([]);
+      setBroadcastRankMsg(null);
       if (['outreach', 'both'].includes(finalTargetType)) {
         await refreshOutreachContacts();
       }
@@ -1685,6 +1813,7 @@ export default function AdminDashboard() {
         : '';
       setBroadcastMsg({ type: 'error', text: `${err.message || 'Network error. Please try again.'}${stoppedText}` });
     } finally {
+      broadcastInFlightRef.current = false;
       setBroadcastLoading(false);
       setBroadcastProgress(null);
     }
@@ -1725,13 +1854,15 @@ export default function AdminDashboard() {
   }
 
   const r = selectedRegistrant;
-  const broadcastTargetLabel = broadcastTargetType === 'outreach'
-    ? 'external outreach contacts'
-    : broadcastTargetType === 'both'
-      ? 'approved registrants and external outreach contacts'
-      : 'approved registrants';
+  const broadcastTargetLabel = broadcastTargetType === RANK_BROADCAST_TARGET
+    ? `${broadcastRankRows.length} PRIOR rank recipient${broadcastRankRows.length !== 1 ? 's' : ''}`
+    : broadcastTargetType === 'outreach'
+      ? 'external outreach contacts'
+      : broadcastTargetType === 'both'
+        ? 'approved registrants and external outreach contacts'
+        : 'approved registrants';
   const broadcastRoundLabel = broadcastFilter === 'all' ? 'all rounds' : roundLabel(broadcastFilter);
-  const broadcastAudienceLabel = broadcastTargetType === 'outreach'
+  const broadcastAudienceLabel = broadcastTargetType === RANK_BROADCAST_TARGET || broadcastTargetType === 'outreach'
     ? broadcastTargetLabel
     : `${broadcastTargetLabel} · ${broadcastRoundLabel}`;
 
@@ -1812,6 +1943,43 @@ export default function AdminDashboard() {
               </div>
               <div className={styles.broadcastImportRow}>
                 <input
+                  ref={rankCsvInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  className={styles.hiddenFileInput}
+                  onChange={(e) => handleRankCsvBroadcastImport(e.target.files?.[0])}
+                />
+                <button
+                  type="button"
+                  className={styles.outreachImportBtn}
+                  onClick={() => rankCsvInputRef.current?.click()}
+                  disabled={broadcastLoading || !!broadcastRetryId}
+                  title="Load Rank, Name, Email, and CF Handle rows for a personalized PRIOR rank broadcast"
+                >
+                  IMPORT PRIOR RANK CSV
+                </button>
+                {broadcastRankRows.length > 0 && (
+                  <span className={styles.attachmentPill}>
+                    {broadcastRankRows.length} rank recipient{broadcastRankRows.length !== 1 ? 's' : ''}
+                    <button
+                      type="button"
+                      className={styles.attachmentRemoveBtn}
+                      onClick={() => { setBroadcastRankRows([]); setBroadcastRankMsg(null); if (broadcastTargetType === RANK_BROADCAST_TARGET) setBroadcastTargetType('registrants'); }}
+                      disabled={broadcastLoading || !!broadcastRetryId}
+                      title="Remove rank CSV"
+                    >
+                      X
+                    </button>
+                  </span>
+                )}
+                {broadcastRankMsg && (
+                  <span className={broadcastRankMsg.type === 'success' ? styles.feedbackSuccess : styles.feedbackError}>
+                    {broadcastRankMsg.text}
+                  </span>
+                )}
+              </div>
+              <div className={styles.broadcastImportRow}>
+                <input
                   ref={broadcastAttachmentInputRef}
                   type="file"
                   accept=".pdf,application/pdf"
@@ -1822,7 +1990,7 @@ export default function AdminDashboard() {
                   type="button"
                   className={styles.attachmentBtn}
                   onClick={() => broadcastAttachmentInputRef.current?.click()}
-                  disabled={broadcastAttachmentLoading || broadcastLoading || !!broadcastRetryId}
+                  disabled={broadcastAttachmentLoading || broadcastLoading || !!broadcastRetryId || broadcastTargetType === RANK_BROADCAST_TARGET}
                   title={broadcastRetryId ? 'Finish or abandon the current retry before changing attachments.' : 'Attach a PDF to this broadcast'}
                 >
                   {broadcastAttachmentLoading ? 'UPLOADING PDF...' : broadcastAttachment ? 'REPLACE PDF' : 'ATTACH PDF'}
@@ -1834,7 +2002,7 @@ export default function AdminDashboard() {
                       type="button"
                       className={styles.attachmentRemoveBtn}
                       onClick={() => { setBroadcastAttachment(null); setBroadcastAttachmentMsg(null); }}
-                      disabled={broadcastLoading || !!broadcastRetryId}
+                      disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === RANK_BROADCAST_TARGET}
                       title="Remove attachment"
                     >
                       X
@@ -1857,22 +2025,23 @@ export default function AdminDashboard() {
               />
               <textarea
                 className={styles.broadcastTextarea}
-                placeholder="Message body..."
-                value={broadcastBody}
+                placeholder={broadcastTargetType === RANK_BROADCAST_TARGET ? 'Rank CSV broadcasts use the PRIOR rank email template automatically.' : 'Message body...'}
+                value={broadcastTargetType === RANK_BROADCAST_TARGET ? 'Personalized PRIOR rank email template' : broadcastBody}
                 onChange={(e) => setBroadcastBody(e.target.value)}
                 rows={5}
-                disabled={broadcastLoading || !!broadcastRetryId}
+                disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === RANK_BROADCAST_TARGET}
               />
               <div className={styles.broadcastFooter}>
                 <select
                   className={styles.filterSelect}
                   value={broadcastTargetType}
-                  onChange={(e) => { setBroadcastTargetType(e.target.value); setBroadcastConfirming(false); }}
+                  onChange={(e) => { const next = e.target.value; setBroadcastTargetType(next); setBroadcastConfirming(false); if (next === RANK_BROADCAST_TARGET) { setBroadcastFilter('prior'); setBroadcastAttachment(null); setBroadcastAttachmentMsg(null); setBroadcastSubject((current) => current.trim() || 'AMS Derive 2026 PRIOR Round | Official Rank'); } }}
                   disabled={broadcastLoading || !!broadcastRetryId}
                 >
                   <option value="registrants">Approved Registrants</option>
                   <option value="outreach">External Outreach Contacts</option>
                   <option value="both">Both</option>
+                  <option value={RANK_BROADCAST_TARGET}>PRIOR Rank CSV</option>
                 </select>
                 <select
                   className={styles.filterSelect}
@@ -1882,7 +2051,7 @@ export default function AdminDashboard() {
                     setBroadcastFilter(nextFilter);
                     setBroadcastConfirming(false);
                   }}
-                  disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === 'outreach'}
+                  disabled={broadcastLoading || !!broadcastRetryId || broadcastTargetType === 'outreach' || broadcastTargetType === RANK_BROADCAST_TARGET}
                 >
                   <option value="all">All Approved Rounds</option>
                   {ROUND_OPTIONS.map((option) => (
@@ -1906,7 +2075,7 @@ export default function AdminDashboard() {
                   <button
                     className={styles.broadcastSendBtn}
                     onClick={() => setBroadcastConfirming(true)}
-                    disabled={broadcastLoading || !broadcastSubject.trim() || !broadcastBody.trim()}
+                    disabled={broadcastLoading || !broadcastSubject.trim() || (broadcastTargetType !== RANK_BROADCAST_TARGET && !broadcastBody.trim()) || (broadcastTargetType === RANK_BROADCAST_TARGET && broadcastRankRows.length === 0)}
                   >
                     {broadcastLoading ? 'SENDING...' : broadcastRetryId ? 'RETRY' : 'SEND'}
                   </button>
