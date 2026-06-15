@@ -758,7 +758,7 @@ export default function FirmDashboard() {
                       <span className={styles.metricValue}>
                         {formatFirmPanelDisplayCount(overviewStats.total)}
                       </span>
-                      <span className={styles.metricLabel}>Shared Profiles</span>
+                      <span className={styles.metricLabel}>Total Profiles</span>
                     </div>
                     <div className={styles.metricItem}>
                       <span className={styles.metricValue}>
@@ -789,7 +789,7 @@ export default function FirmDashboard() {
                       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Latest Shared Profiles</span>
+                  <span className={styles.quickActionTitle}>Latest Profiles</span>
                   {firmProfile?.tier === 'derivation' ? (
                     <span className={styles.quickActionDesc}>Convergence & Apex only</span>
                   ) : overviewStats?.recentNames?.length ? (
@@ -1175,7 +1175,7 @@ export default function FirmDashboard() {
                       onChange={(e) => setRegistrantsFilterGradYear(e.target.value)}
                     >
                       <option value="all">All Grad Years</option>
-                      {[2025,2026,2027,2028,2029,2030,2031,2032,2033,2034,2035].map((yr) => (
+                      {[2025, 2026, 2027, 2028, 2029, 2030, 2031, 2032, 2033, 2034, 2035].map((yr) => (
                         <option key={yr} value={yr}>{yr}</option>
                       ))}
                     </select>
@@ -1192,15 +1192,15 @@ export default function FirmDashboard() {
                       <span className={styles.resultCount}>
                         {(registrantsSearch.trim() || registrantsFilterUniversity !== 'all' || registrantsFilterBranch !== 'all' || registrantsFilterGradYear !== 'all')
                           ? `${formatFirmPanelDisplayCount(registrants.filter((r) => {
-                              if (registrantsSearch.trim()) {
-                                const q = registrantsSearch.toLowerCase();
-                                if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
-                              }
-                              if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
-                              if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
-                              if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
-                              return true;
-                            }).length)} loaded / `
+                            if (registrantsSearch.trim()) {
+                              const q = registrantsSearch.toLowerCase();
+                              if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
+                            }
+                            if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
+                            if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
+                            if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
+                            return true;
+                          }).length)} loaded / `
                           : ''}
                         {formatFirmPanelDisplayCount(registrantsTotal)} total registrants
                       </span>
