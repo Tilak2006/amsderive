@@ -107,6 +107,9 @@ export default function RulesPage() {
               <li className={styles.rulesListItem}>
                 Disqualification conditions: Plagiarism · Missing OBS recording · AI-generated solutions · Late submission · Inability to defend solution in verification.
               </li>
+              <li className={styles.rulesListItem}>
+                AMS reserves the right to disqualify any participant, at its sole discretion, whose background check, prior cheating history, or use of unfair means in other contests is found or brought to its notice — before, during, or after the event.
+              </li>
             </ul>
           </div>
 
