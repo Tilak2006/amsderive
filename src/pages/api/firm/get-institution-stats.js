@@ -52,41 +52,60 @@ export default async function handler(req, res) {
         .where('round', '==', 'posterior')
         .where('status', '==', 'approved')
         .where('dataConsent', '==', true)
-        .select('university')
+        .select('university', 'graduationYear', 'branch')
         .get(),
       db.collection('registrants')
         .where('round', '==', 'convergence')
         .where('status', '==', 'approved')
         .where('dataConsent', '==', true)
-        .select('university')
+        .select('university', 'graduationYear', 'branch')
         .get(),
     ]);
 
     const counts = new Map();
+    const gradYearCounts = new Map();
+    const branchCounts = new Map();
     const docs = [...posteriorSnap.docs, ...convergenceSnap.docs];
 
     docs.forEach((doc) => {
-      const name = normalizeInstitution(doc.data().university);
-      if (!name) return;
-      const key = name.toLowerCase();
-      const existing = counts.get(key);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        counts.set(key, { name, count: 1 });
+      const data = doc.data();
+
+      const name = normalizeInstitution(data.university);
+      if (name) {
+        const key = name.toLowerCase();
+        const existing = counts.get(key);
+        if (existing) existing.count += 1;
+        else counts.set(key, { name, count: 1 });
+      }
+
+      const year = Number(data.graduationYear);
+      if (Number.isInteger(year) && year > 0) {
+        gradYearCounts.set(year, (gradYearCounts.get(year) || 0) + 1);
+      }
+
+      const branch = normalizeInstitution(data.branch);
+      if (branch) {
+        const key = branch.toLowerCase();
+        const existing = branchCounts.get(key);
+        if (existing) existing.count += 1;
+        else branchCounts.set(key, { name: branch, count: 1 });
       }
     });
 
     const institutions = Array.from(counts.values()).sort((a, b) => b.count - a.count);
+    const gradYears = Array.from(gradYearCounts.entries())
+      .map(([year, count]) => ({ year, count }))
+      .sort((a, b) => a.year - b.year);
+    const branches = Array.from(branchCounts.values()).sort((a, b) => b.count - a.count);
 
     logger.info('firms', 'institution_stats_fetched', {
       reqId,
       actorId: uid,
-      detail: { institutions: institutions.length, talentPool: docs.length },
+      detail: { institutions: institutions.length, gradYears: gradYears.length, branches: branches.length, talentPool: docs.length },
       status: 'ok',
     });
 
-    return res.status(200).json({ institutions });
+    return res.status(200).json({ institutions, gradYears, branches });
   } catch (err) {
     logger.error('firms', 'institution_stats_query', { reqId, actorId: uid, status: 'failed' }, err);
     return res.status(500).json({ error: 'Internal server error' });

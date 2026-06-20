@@ -168,6 +168,18 @@ export default async function handler(req, res) {
       registrantsMap.set(nameKey, entry);
     });
 
+    // Manually add Rakshit Ranka at rank 151 — not present in the PRIOR CSV.
+    // University / grad year / profile are pulled from his registrant record,
+    // matched by name exactly like every other standings row below.
+    const RAKSHIT_NAME = 'Rakshit Ranka';
+    const rakshitMatch = registrantsMap.get(RAKSHIT_NAME.toLowerCase());
+    standingsRaw.push({
+      rank: 151,
+      name: RAKSHIT_NAME,
+      university: rakshitMatch?.university || '',
+      graduationYear: rakshitMatch?.graduationYear || null,
+    });
+
     // Map each standings row to its registrant details (if available)
     const standings = standingsRaw.map(row => {
       const nameKey = (row.name || '').trim().toLowerCase();

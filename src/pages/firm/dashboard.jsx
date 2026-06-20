@@ -10,9 +10,9 @@ import styles from '../../styles/firm.module.css';
 const RechartsComponents = dynamic(
   () =>
     import('recharts').then((mod) => {
-      const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } = mod;
+      const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell } = mod;
       function RechartsProvider({ children }) {
-        return children({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid });
+        return children({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell });
       }
       return RechartsProvider;
     }),
@@ -29,10 +29,144 @@ const RechartsComponents = dynamic(
 
 const GOLD = '#D4AF37';
 const LABEL_COLOR = '#6b6560';
+// Gold-toned palette for pie/donut slices.
+const PIE_COLORS = ['#D4AF37', '#b8932f', '#e6c862', '#9c7a26', '#cdb04a', '#7d621e', '#dec57a', '#5f4a16'];
 const FIRM_PANEL_COUNT_OFFSET = 500;
 const FIRM_COMMUNITY_PARTNERS_LABEL = '15+';
 const TALENT_REFRESH_COOLDOWN_MS = 2 * 60 * 1000;
 const TALENT_REFRESH_STORAGE_KEY = 'ams_derive_talent_refresh_available_at';
+
+// Leaderboard entries hidden from the standings entirely.
+// Exact full-name match (case- and whitespace-normalized only).
+function normalizeHiddenName(name) {
+  return String(name || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+const HIDDEN_LEADERBOARD_NAMES = ['Aditya Sai Vemparala', 'Poorvansh Tiwari', 'Shatakshi Singh'];
+const HIDDEN_LEADERBOARD_NAME_SET = new Set(HIDDEN_LEADERBOARD_NAMES.map(normalizeHiddenName));
+function isHiddenLeaderboardName(name) {
+  return HIDDEN_LEADERBOARD_NAME_SET.has(normalizeHiddenName(name));
+}
+
+function LockGlyph({ size = 26 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="4.5" y="11" width="15" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
+function ClockGlyph({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" />
+      <path d="M12 8.2V12l2.6 1.6" />
+    </svg>
+  );
+}
+
+function ResumeIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <line x1="9" y1="13" x2="15" y2="13" />
+      <line x1="9" y1="17" x2="13" y2="17" />
+    </svg>
+  );
+}
+
+function TranscriptIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+function LinkedInIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14zM8.34 9.67H5.67V18h2.67V9.67zM7 6.02a1.35 1.35 0 1 0 0 2.7 1.35 1.35 0 0 0 0-2.7zm11 6.07c0-2.28-1.4-3.07-2.87-3.07-1 0-1.78.42-2.18 1.09V9.67h-2.6V18h2.66v-4.13c0-.78.37-1.43 1.2-1.43.83 0 1.12.64 1.12 1.46V18H18v-5.91z" />
+    </svg>
+  );
+}
+
+// Private recruiting pipeline stages (stored per-device, not shared with organizers).
+const PIPELINE_STAGES = [
+  { key: 'interested', label: 'Interested' },
+  { key: 'reaching_out', label: 'Reaching out' },
+  { key: 'pass', label: 'Pass' },
+];
+
+// Sortable table column header.
+function SortHeader({ label, sortKey, sort, onSort, className, style }) {
+  const active = sort.key === sortKey;
+  return (
+    <th
+      className={className}
+      style={{ ...style, cursor: 'pointer', userSelect: 'none' }}
+      onClick={() => onSort(sortKey)}
+      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span className={styles.sortHeaderInner}>
+        {label}
+        <svg
+          className={styles.sortCaret}
+          width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
+          style={{ opacity: active ? 1 : 0.25, transform: active && sort.dir === 'desc' ? 'rotate(180deg)' : 'none' }}
+        >
+          <polyline points="6 15 12 9 18 15" />
+        </svg>
+      </span>
+    </th>
+  );
+}
+
+// Per-candidate pipeline controls: private tag + note (local) and an interest
+// flag sent to organizers (server). Shared by the registrants and leaderboard panels.
+function CandidatePipelineSection({ candidateId, entry, onTag, onNote, canExpressInterest, interested, onToggleInterest, interestBusy, interestError }) {
+  return (
+    <div className={styles.pipelineSection}>
+      <span className={styles.pipelineLabel}>Your pipeline</span>
+      <div className={styles.pipelineTags}>
+        {PIPELINE_STAGES.map((s) => (
+          <button
+            key={s.key}
+            type="button"
+            data-stage={s.key}
+            className={`${styles.pipelineTag} ${entry?.tag === s.key ? styles.pipelineTagActive : ''}`}
+            onClick={() => onTag(candidateId, entry?.tag === s.key ? null : s.key)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <textarea
+        className={styles.pipelineNote}
+        placeholder="Private note — kept on this device only"
+        value={entry?.note || ''}
+        onChange={(e) => onNote(candidateId, e.target.value.slice(0, 1000))}
+        rows={3}
+      />
+      {canExpressInterest && (
+        <>
+          <button
+            type="button"
+            className={`${styles.interestBtn} ${interested ? styles.interestBtnActive : ''}`}
+            onClick={() => onToggleInterest(candidateId)}
+            disabled={interestBusy}
+          >
+            {interestBusy ? 'Saving…' : interested ? 'Interest flagged — withdraw' : 'Express interest to AMS'}
+          </button>
+          {interestError && <span className={styles.pipelineError}>{interestError}</span>}
+        </>
+      )}
+    </div>
+  );
+}
 
 const TIER_DESCRIPTIONS = {
   derivation:
@@ -129,57 +263,41 @@ function getRoundPhase(timestamp) {
   return 'future';
 }
 
+const ROUND_STATUS_LABEL = { past: 'Completed', active: 'Active', future: 'Upcoming' };
+
 function FirmTimeline() {
-  const { phases, progressWidthPct } = useMemo(() => {
-    const ph = CONTEST_ROUNDS.map(r => getRoundPhase(r.timestamp));
-    const pastCount = ph.filter(p => p === 'past').length;
-    const activeIdx = ph.indexOf('active');
-    const totalSteps = Math.max(CONTEST_ROUNDS.length - 1, 1);
-    const currentIdx = activeIdx >= 0 ? activeIdx : Math.max(pastCount - 1, 0);
-    const frac = Math.max(0, Math.min(currentIdx / totalSteps, 1));
-    return { phases: ph, progressWidthPct: `${Math.round(frac * 100)}%` };
-  }, []);
+  const phases = useMemo(() => CONTEST_ROUNDS.map((r) => getRoundPhase(r.timestamp)), []);
 
   return (
-    <div className={styles.ftTimelineWrap}>
-      <div className={styles.ftTrack} style={{ '--ft-progress-width': progressWidthPct }}>
-        {CONTEST_ROUNDS.map(({ index, date, title, desc }, i) => {
-          const phase = phases[i];
-          const isPast = phase === 'past';
-          const isActive = phase === 'active';
-          const isFuture = phase === 'future';
-          return (
-            <div key={index} className={styles.ftStep} title={desc}>
-              <div className={[styles.ftStepDot, isPast ? styles.ftStepDotPast : '', isActive ? styles.ftStepDotActive : '', isFuture ? styles.ftStepDotFuture : ''].join(' ')}>
-                {index}
-              </div>
-              <div className={styles.ftStepMeta}>
-                <div className={[styles.ftStepTitle, isFuture ? styles.ftStepTitleFuture : ''].join(' ')}>{title}</div>
-                <div className={[styles.ftStepDate, isFuture ? styles.ftStepDateFuture : ''].join(' ')}>{date}</div>
-              </div>
-              {isActive && (
-                <span className={styles.ftActiveBadge}>
-                  <span className={styles.ftActiveDot} />
-                  Active
-                </span>
+    <ol className={styles.timeline}>
+      {CONTEST_ROUNDS.map((round, i) => {
+        const phase = phases[i];
+        const name = round.title.split('|').pop().trim();
+        return (
+          <li key={round.index} className={styles.timelineRow} data-phase={phase}>
+            <span className={styles.timelineNode}>
+              {phase === 'past' && (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               )}
+            </span>
+            <div className={styles.timelineBody}>
+              <div className={styles.timelineHead}>
+                <span className={styles.timelineIndex}>Round {String(i + 1).padStart(2, '0')}</span>
+                <span className={styles.timelineStatus}>
+                  {phase === 'active' && <span className={styles.timelineStatusDot} />}
+                  {ROUND_STATUS_LABEL[phase]}
+                </span>
+              </div>
+              <p className={styles.timelineName}>{name}</p>
+              <p className={styles.timelineDate}>{round.date}</p>
+              <p className={styles.timelineDesc}>{round.desc}</p>
             </div>
-          );
-        })}
-      </div>
-
-      <details className={styles.ftDetails}>
-        <summary className={styles.ftDetailsSummary}>View Round Details</summary>
-        <div className={styles.ftDetailsGrid}>
-          {CONTEST_ROUNDS.map(({ index, title, desc }) => (
-            <div key={`detail-${index}`} className={styles.ftDetailsCard}>
-              <p className={styles.ftDetailsTitle}>{title}</p>
-              <p className={styles.ftDetailsDesc}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </details>
-    </div>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -252,6 +370,135 @@ export default function FirmDashboard() {
     });
   }
 
+  // ── Pipeline tags + private notes (per-device, like starring) ──
+  const [pipeline, setPipeline] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = localStorage.getItem('ams_derive_pipeline');
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const updatePipelineEntry = useCallback((id, patch) => {
+    setPipeline((prev) => {
+      const next = { ...prev };
+      const entry = { ...(next[id] || {}), ...patch };
+      if (!entry.tag) delete entry.tag;
+      if (!entry.note) delete entry.note;
+      if (entry.tag || entry.note) next[id] = entry; else delete next[id];
+      try { localStorage.setItem('ams_derive_pipeline', JSON.stringify(next)); } catch { }
+      return next;
+    });
+  }, []);
+
+  const setPipelineTag = useCallback((id, tag) => updatePipelineEntry(id, { tag: tag || undefined }), [updatePipelineEntry]);
+  const setPipelineNote = useCallback((id, note) => updatePipelineEntry(id, { note: note || undefined }), [updatePipelineEntry]);
+
+  // ── Express interest to organizers (server-side, idempotent per candidate) ──
+  const [interestedIds, setInterestedIds] = useState(() => new Set());
+  const [interestBusyId, setInterestBusyId] = useState(null);
+  const [interestError, setInterestError] = useState(null);
+
+  const fetchInterests = useCallback(async () => {
+    if (!user) return;
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/get-interests', { method: 'POST', headers });
+      if (!res.ok) return;
+      const data = await res.json();
+      setInterestedIds(new Set((data.interests || []).map((i) => i.candidateId)));
+    } catch {
+      // Non-fatal — interest markers just stay empty until the next load.
+    }
+  }, [user]);
+
+  const toggleInterest = useCallback(async (candidateId) => {
+    if (!candidateId) return;
+    const wasInterested = interestedIds.has(candidateId);
+    setInterestError(null);
+    setInterestBusyId(candidateId);
+    setInterestedIds((prev) => {
+      const n = new Set(prev);
+      wasInterested ? n.delete(candidateId) : n.add(candidateId);
+      return n;
+    });
+    try {
+      const headers = await getAuthHeader(user);
+      const res = await fetch('/api/firm/express-interest', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ candidateId, withdraw: wasInterested }),
+      });
+      if (!res.ok) throw new Error('request failed');
+    } catch {
+      // Roll back the optimistic toggle.
+      setInterestedIds((prev) => {
+        const n = new Set(prev);
+        wasInterested ? n.add(candidateId) : n.delete(candidateId);
+        return n;
+      });
+      setInterestError('Could not save. Check your connection and try again.');
+    } finally {
+      setInterestBusyId(null);
+    }
+  }, [interestedIds, user]);
+
+  // ── Column sort + pipeline-stage filter ──
+  const [registrantsSort, setRegistrantsSort] = useState({ key: null, dir: 'asc' });
+  const [registrantsFilterStage, setRegistrantsFilterStage] = useState('all');
+  const [leaderboardSort, setLeaderboardSort] = useState({ key: 'rank', dir: 'asc' });
+
+  const handleRegistrantsSort = useCallback((key) => {
+    setRegistrantsSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  }, []);
+  const handleLeaderboardSort = useCallback((key) => {
+    setLeaderboardSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+  }, []);
+
+  const canExpressInterest = firmProfile?.tier !== 'derivation' && Boolean(firmProfile?.access?.registrantProfiles);
+
+  // Load the firm's existing interest flags once they're allowed to express interest.
+  useEffect(() => {
+    if (canExpressInterest) fetchInterests();
+  }, [canExpressInterest, fetchInterests]);
+
+  // Filtered + sorted view of the loaded registrants (search/filter/sort act on loaded rows).
+  const visibleRegistrants = useMemo(() => {
+    const ROUND_ORDER = { prior: 0, posterior: 1, convergence: 2 };
+    let list = registrants.filter((r) => {
+      if (showStarredOnly && !starred.has(r.id)) return false;
+      if (registrantsFilterStage !== 'all' && (pipeline[r.id]?.tag || 'none') !== registrantsFilterStage) return false;
+      if (registrantsSearch.trim()) {
+        const q = registrantsSearch.toLowerCase();
+        if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
+      }
+      if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
+      if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
+      if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
+      return true;
+    });
+    const { key, dir } = registrantsSort;
+    if (key) {
+      const m = dir === 'asc' ? 1 : -1;
+      const str = (v) => String(v || '').toLowerCase();
+      const cmp = (a, b) => (a < b ? -m : a > b ? m : 0);
+      list = [...list].sort((a, b) => {
+        switch (key) {
+          case 'name': return cmp(str(a.fullName), str(b.fullName));
+          case 'institution': return cmp(str(a.university), str(b.university));
+          case 'branch': return cmp(str(a.branch), str(b.branch));
+          case 'gradYear': return ((Number(a.graduationYear) || 0) - (Number(b.graduationYear) || 0)) * m;
+          case 'round': return ((ROUND_ORDER[a.round] ?? -1) - (ROUND_ORDER[b.round] ?? -1)) * m;
+          case 'cf': return cmp(str(a.codeforcesHandle), str(b.codeforcesHandle));
+          default: return 0;
+        }
+      });
+    }
+    return list;
+  }, [registrants, showStarredOnly, starred, registrantsFilterStage, pipeline, registrantsSearch, registrantsFilterUniversity, registrantsFilterBranch, registrantsFilterGradYear, registrantsSort]);
+
   // Leaderboard state
   const [leaderboardData, setLeaderboardData] = useState(null);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
@@ -261,6 +508,8 @@ export default function FirmDashboard() {
   const [leaderboardSearchName, setLeaderboardSearchName] = useState('');
   const [leaderboardFilterUniversity, setLeaderboardFilterUniversity] = useState('');
   const [leaderboardFilterGradYear, setLeaderboardFilterGradYear] = useState('');
+  // Which round's leaderboard to show: 'round1' (PRIOR, live) | 'round2' (POSTERIOR, upcoming)
+  const [leaderboardRound, setLeaderboardRound] = useState('round1');
 
   // Auth check on mount
   useEffect(() => {
@@ -505,7 +754,9 @@ export default function FirmDashboard() {
     if (filterUniversity !== 'all') {
       list = list.filter((f) => f.university === filterUniversity);
     }
-    return list;
+    // Sort by PRIOR rank; non-numeric / unranked candidates fall to the end.
+    const key = (r) => (typeof r === 'number' && Number.isFinite(r) ? r : Infinity);
+    return [...list].sort((a, b) => key(a.rank) - key(b.rank));
   }, [finalists, searchQuery, filterUniversity]);
 
   const uniqueUniversities = useMemo(() => {
@@ -537,7 +788,8 @@ export default function FirmDashboard() {
 
   const filteredLeaderboardStandings = useMemo(() => {
     if (!leaderboardData?.standings) return [];
-    return leaderboardData.standings.filter((row) => {
+    const filtered = leaderboardData.standings.filter((row) => {
+      if (isHiddenLeaderboardName(row.name)) return false;
       if (leaderboardSearchName.trim()) {
         const q = leaderboardSearchName.toLowerCase();
         if (!row.name?.toLowerCase().includes(q)) return false;
@@ -552,13 +804,39 @@ export default function FirmDashboard() {
       }
       return true;
     });
-  }, [leaderboardData, leaderboardSearchName, leaderboardFilterUniversity, leaderboardFilterGradYear]);
+    const { key, dir } = leaderboardSort;
+    const m = dir === 'asc' ? 1 : -1;
+    const str = (v) => String(v || '').toLowerCase();
+    const cmp = (a, b) => (a < b ? -m : a > b ? m : 0);
+    return [...filtered].sort((a, b) => {
+      switch (key) {
+        case 'name': return cmp(str(a.name), str(b.name));
+        case 'institution': return cmp(str(a.university), str(b.university));
+        case 'gradYear': return ((Number(a.graduationYear) || 0) - (Number(b.graduationYear) || 0)) * m;
+        case 'rank':
+        default: return ((Number(a.rank) || 0) - (Number(b.rank) || 0)) * m;
+      }
+    });
+  }, [leaderboardData, leaderboardSearchName, leaderboardFilterUniversity, leaderboardFilterGradYear, leaderboardSort]);
 
   const chartData = useMemo(() => {
     if (!analyticsData?.institutions?.length) return [];
     return [...analyticsData.institutions]
       .sort((a, b) => b.count - a.count)
       .slice(0, 15);
+  }, [analyticsData]);
+
+  const gradYearChartData = useMemo(() => {
+    if (!analyticsData?.gradYears?.length) return [];
+    return analyticsData.gradYears.map((g) => ({ name: String(g.year), value: g.count }));
+  }, [analyticsData]);
+
+  const branchChartData = useMemo(() => {
+    if (!analyticsData?.branches?.length) return [];
+    return [...analyticsData.branches]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8)
+      .map((b) => ({ name: b.name, value: b.count }));
   }, [analyticsData]);
 
   async function handleLogout() {
@@ -800,9 +1078,7 @@ export default function FirmDashboard() {
                     </span>
                   ) : (
                     <span className={styles.quickActionDesc}>Browse all registrant profiles</span>
-                  )}
-                  <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
-                </button>
+                  )}                </button>
 
                 <button
                   className={styles.quickActionCard}
@@ -829,9 +1105,7 @@ export default function FirmDashboard() {
                     </span>
                   ) : (
                     <span className={styles.quickActionDesc}>8-week community activity trend</span>
-                  )}
-                  <span className={styles.quickActionArrow}>→</span>
-                </button>
+                  )}                </button>
 
                 <button
                   className={styles.quickActionCard}
@@ -847,10 +1121,8 @@ export default function FirmDashboard() {
                   <span className={styles.quickActionDesc}>
                     {firmProfile?.tier === 'derivation'
                       ? 'Convergence & Apex only'
-                      : 'Results undergoing verification · Available soon'}
-                  </span>
-                  <span className={`${styles.quickActionArrow} ${firmProfile?.tier === 'derivation' ? styles.quickActionArrowLocked : ''}`}>→</span>
-                </button>
+                      : 'Opens once PRIOR results are verified'}
+                  </span>                </button>
               </div>
 
               {/* Shortlist banner */}
@@ -868,7 +1140,6 @@ export default function FirmDashboard() {
                     {starred.size} candidate{starred.size !== 1 ? 's' : ''} starred
                   </span>
                 </span>
-                <span className={styles.shortlistBannerArrow}>→</span>
               </button>
 
               {/* Contest Timeline */}
@@ -882,20 +1153,17 @@ export default function FirmDashboard() {
                   const granted = firmProfile?.access?.[item.key];
                   const isActive = Boolean(granted);
                   return (
-                    <div key={item.key} className={styles.accessMatrixRow}>
+                    <div key={item.key} className={`${styles.accessMatrixRow} ${isActive ? styles.accessMatrixRowActive : ''}`}>
                       <span className={styles.accessMatrixLabel}>{item.label}</span>
                       {isActive ? (
                         <span className={styles.accessBadgeActive}>
                           <span className={styles.accessBadgeDot} />
-                          Enabled
+                          Active
                         </span>
                       ) : (
-                        <span className={styles.accessBadgeLocked}>
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                          </svg>
-                          {item.unlockLabel || 'Locked'}
+                        <span className={styles.accessBadgeLocked} title={item.unlockLabel || undefined}>
+                          <span className={styles.accessBadgeDotLocked} />
+                          Locked
                         </span>
                       )}
                     </div>
@@ -919,7 +1187,7 @@ export default function FirmDashboard() {
               {/* Derivation tier — no talent pool access */}
               {firmProfile?.tier === 'derivation' ? (
                 <div className={styles.accessDenied}>
-                  <div className={styles.accessDeniedIcon}>🔒</div>
+                  <div className={styles.accessDeniedIcon}><LockGlyph size={26} /></div>
                   <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
                   <p className={styles.accessDeniedText}>
                     Talent Pool access is available to Convergence and Apex partners. Contact{' '}
@@ -945,7 +1213,7 @@ export default function FirmDashboard() {
               ) : finalistsAccess?.locked ? (
                 /* Admin has not yet unlocked finalistProfiles */
                 <div className={styles.lockedCard}>
-                  <div className={styles.lockedCardIcon}>🔒</div>
+                  <div className={styles.lockedCardIcon}><LockGlyph size={26} /></div>
                   <p className={styles.lockedCardTitle}>Talent Pool Locked</p>
                   <p className={styles.lockedCardText}>
                     Talent pool profiles will be unlocked by the organizing team after PRIOR results are published.
@@ -1021,6 +1289,9 @@ export default function FirmDashboard() {
                           className={styles.candidateCard}
                           onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
                         >
+                          {finalist.rank != null && (
+                            <span className={styles.candidateRank}>#{finalist.rank}</span>
+                          )}
                           <p className={styles.candidateName}>{finalist.fullName}</p>
                           <p className={styles.candidateUniv}>{finalist.university}</p>
                           {finalist.round && (
@@ -1035,24 +1306,28 @@ export default function FirmDashboard() {
                                   <>
                                     {finalist.resumeUrl && (
                                       <button
-                                        className={styles.docBtn}
+                                        className={`${styles.docBtn} ${styles.docBtnIcon}`}
+                                        title="Resume"
+                                        aria-label="View resume"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleViewResume(finalist);
                                         }}
                                       >
-                                        RESUME
+                                        <ResumeIcon />
                                       </button>
                                     )}
                                     {finalist.transcriptUrl && (
                                       <button
-                                        className={styles.docBtn}
+                                        className={`${styles.docBtn} ${styles.docBtnIcon}`}
+                                        title="Transcript"
+                                        aria-label="View transcript"
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleViewTranscript(finalist);
                                         }}
                                       >
-                                        TRANSCRIPT
+                                        <TranscriptIcon />
                                       </button>
                                     )}
                                     {!finalist.resumeUrl && !finalist.transcriptUrl && (
@@ -1065,13 +1340,15 @@ export default function FirmDashboard() {
                                 {finalistsAccess?.linkedinAccess ? (
                                   finalist.linkedIn && (
                                     <button
-                                      className={styles.docBtn}
+                                      className={`${styles.docBtn} ${styles.docBtnIcon}`}
+                                      title="LinkedIn"
+                                      aria-label="View LinkedIn profile"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleViewLinkedIn(finalist);
                                       }}
                                     >
-                                      LINKEDIN
+                                      <LinkedInIcon />
                                     </button>
                                   )
                                 ) : (
@@ -1094,7 +1371,7 @@ export default function FirmDashboard() {
             <div className={selectedRegistrant ? styles.splitLayout : undefined}>
               {firmProfile?.tier === 'derivation' ? (
                 <div className={styles.accessDenied}>
-                  <div className={styles.accessDeniedIcon}>🔒</div>
+                  <div className={styles.accessDeniedIcon}><LockGlyph size={26} /></div>
                   <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
                   <p className={styles.accessDeniedText}>
                     Registrant Profiles access is available to Convergence and Apex partners. Contact{' '}
@@ -1106,7 +1383,7 @@ export default function FirmDashboard() {
                 </div>
               ) : registrantsAccessError ? (
                 <div className={styles.lockedCard}>
-                  <div className={styles.lockedCardIcon}>🔒</div>
+                  <div className={styles.lockedCardIcon}><LockGlyph size={26} /></div>
                   <p className={styles.lockedCardTitle}>Registrant Profiles Locked</p>
                   <p className={styles.lockedCardText}>{registrantsAccessError}</p>
                 </div>
@@ -1179,6 +1456,18 @@ export default function FirmDashboard() {
                         <option key={yr} value={yr}>{yr}</option>
                       ))}
                     </select>
+                    <select
+                      className={styles.filterSelect}
+                      value={registrantsFilterStage}
+                      onChange={(e) => setRegistrantsFilterStage(e.target.value)}
+                      title="Filter by pipeline stage"
+                    >
+                      <option value="all">All Stages</option>
+                      <option value="interested">Interested</option>
+                      <option value="reaching_out">Reaching out</option>
+                      <option value="pass">Pass</option>
+                      <option value="none">Untagged</option>
+                    </select>
                     <button
                       className={`${styles.starredFilterPill} ${showStarredOnly ? styles.starredFilterPillActive : ''}`}
                       onClick={() => setShowStarredOnly((v) => !v)}
@@ -1190,17 +1479,8 @@ export default function FirmDashboard() {
                     </button>
                     {registrantsTotal !== null && (
                       <span className={styles.resultCount}>
-                        {(registrantsSearch.trim() || registrantsFilterUniversity !== 'all' || registrantsFilterBranch !== 'all' || registrantsFilterGradYear !== 'all')
-                          ? `${formatFirmPanelDisplayCount(registrants.filter((r) => {
-                            if (registrantsSearch.trim()) {
-                              const q = registrantsSearch.toLowerCase();
-                              if (!r.fullName?.toLowerCase().includes(q) && !r.university?.toLowerCase().includes(q)) return false;
-                            }
-                            if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
-                            if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
-                            if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
-                            return true;
-                          }).length)} loaded / `
+                        {visibleRegistrants.length !== registrants.length
+                          ? `${formatFirmPanelDisplayCount(visibleRegistrants.length)} shown / `
                           : ''}
                         {formatFirmPanelDisplayCount(registrantsTotal)} total registrants
                       </span>
@@ -1225,12 +1505,12 @@ export default function FirmDashboard() {
                       <thead>
                         <tr className={styles.leaderboardThead}>
                           <th className={styles.leaderboardTh}>#</th>
-                          <th className={styles.leaderboardTh}>Name</th>
-                          <th className={styles.leaderboardTh}>Institution</th>
-                          <th className={styles.leaderboardTh}>Branch</th>
-                          <th className={styles.leaderboardTh}>Grad Year</th>
-                          <th className={styles.leaderboardTh}>Round</th>
-                          <th className={styles.leaderboardTh}>CF Handle</th>
+                          <SortHeader label="Name" sortKey="name" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
+                          <SortHeader label="Institution" sortKey="institution" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
+                          <SortHeader label="Branch" sortKey="branch" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
+                          <SortHeader label="Grad Year" sortKey="gradYear" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
+                          <SortHeader label="Round" sortKey="round" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
+                          <SortHeader label="CF Handle" sortKey="cf" sort={registrantsSort} onSort={handleRegistrantsSort} className={styles.leaderboardTh} />
                           <th className={styles.leaderboardTh} style={{ width: 36 }}>
                             <button
                               className={`${styles.starFilterBtn} ${showStarredOnly ? styles.starFilterBtnActive : ''}`}
@@ -1245,22 +1525,7 @@ export default function FirmDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {registrants
-                          .filter((r) => {
-                            if (showStarredOnly && !starred.has(r.id)) return false;
-                            if (registrantsSearch.trim()) {
-                              const q = registrantsSearch.toLowerCase();
-                              if (
-                                !r.fullName?.toLowerCase().includes(q) &&
-                                !r.university?.toLowerCase().includes(q)
-                              ) return false;
-                            }
-                            if (registrantsFilterUniversity !== 'all' && r.university !== registrantsFilterUniversity) return false;
-                            if (registrantsFilterBranch !== 'all' && r.branch !== registrantsFilterBranch) return false;
-                            if (registrantsFilterGradYear !== 'all' && String(r.graduationYear) !== registrantsFilterGradYear) return false;
-                            return true;
-                          })
-                          .map((r, i) => (
+                        {visibleRegistrants.map((r, i) => (
                             <tr
                               key={r.id}
                               className={`${styles.leaderboardTr} ${selectedRegistrant?.id === r.id ? styles.leaderboardTrSelected : ''} ${starred.has(r.id) ? styles.leaderboardTrStarred : ''}`}
@@ -1270,7 +1535,17 @@ export default function FirmDashboard() {
                               <td className={styles.leaderboardTd}>
                                 <span className={styles.rankMuted}>{i + 1}</span>
                               </td>
-                              <td className={styles.leaderboardTd}>{r.fullName}</td>
+                              <td className={styles.leaderboardTd}>
+                                {r.fullName}
+                                {pipeline[r.id]?.tag && (
+                                  <span className={styles.stageChip} data-stage={pipeline[r.id].tag}>
+                                    {pipeline[r.id].tag === 'reaching_out' ? 'Reaching' : pipeline[r.id].tag}
+                                  </span>
+                                )}
+                                {interestedIds.has(r.id) && (
+                                  <span className={styles.interestDot} title="Interest flagged to AMS" />
+                                )}
+                              </td>
                               <td className={styles.leaderboardTd}>{r.university}</td>
                               <td className={styles.leaderboardTd}>{r.branch || <span style={{ color: '#3a3a3a' }}>—</span>}</td>
                               <td className={styles.leaderboardTd}>{r.graduationYear || <span style={{ color: '#3a3a3a' }}>—</span>}</td>
@@ -1461,6 +1736,17 @@ export default function FirmDashboard() {
                     </div>
                   )}
 
+                  <CandidatePipelineSection
+                    candidateId={selectedRegistrant.id}
+                    entry={pipeline[selectedRegistrant.id]}
+                    onTag={setPipelineTag}
+                    onNote={setPipelineNote}
+                    canExpressInterest={canExpressInterest}
+                    interested={interestedIds.has(selectedRegistrant.id)}
+                    onToggleInterest={toggleInterest}
+                    interestBusy={interestBusyId === selectedRegistrant.id}
+                    interestError={interestError}
+                  />
                 </aside>
               )}
             </div>
@@ -1473,7 +1759,7 @@ export default function FirmDashboard() {
                 {/* Derivation tier — no leaderboard access */}
                 {firmProfile?.tier === 'derivation' ? (
                   <div className={styles.accessDenied}>
-                    <div className={styles.accessDeniedIcon}>🔒</div>
+                    <div className={styles.accessDeniedIcon}><LockGlyph size={26} /></div>
                     <p className={styles.accessDeniedTitle}>Not Included in Derivation Tier</p>
                     <p className={styles.accessDeniedText}>
                       Live Leaderboard access is available to Convergence and Apex partners. Contact{' '}
@@ -1483,9 +1769,32 @@ export default function FirmDashboard() {
                       to upgrade your partnership.
                     </p>
                   </div>
+                ) : (
+                  <>
+                    {/* Round selector — switch between Round 1 (PRIOR, live) and Round 2 (POSTERIOR, upcoming) */}
+                    <div className={styles.talentFilterBar} style={{ marginBottom: '16px' }}>
+                      <select
+                        className={styles.filterSelect}
+                        value={leaderboardRound}
+                        onChange={(e) => setLeaderboardRound(e.target.value)}
+                        aria-label="Select leaderboard round"
+                      >
+                        <option value="round1">Round 1 — PRIOR</option>
+                        <option value="round2">Round 2 — POSTERIOR</option>
+                      </select>
+                    </div>
+
+                    {leaderboardRound === 'round2' ? (
+                  <div className={styles.lockedCard}>
+                    <div className={styles.lockedCardIcon}><ClockGlyph size={24} /></div>
+                    <p className={styles.lockedCardTitle}>Live on 23 June 2026</p>
+                    <p className={styles.lockedCardText}>
+                      Round 2 — POSTERIOR standings will be displayed here by 23 June 2026.
+                    </p>
+                  </div>
                 ) : new Date() < new Date('2026-05-23') ? (
                   <div className={styles.lockedCard}>
-                    <div className={styles.lockedCardIcon}>◎</div>
+                    <div className={styles.lockedCardIcon}><ClockGlyph size={24} /></div>
                     <p className={styles.lockedCardTitle}>Live on 23 May 2026</p>
                     <p className={styles.lockedCardText}>
                       PRIOR begins on 23 May. Real-time standings will appear here once the contest starts.
@@ -1493,7 +1802,12 @@ export default function FirmDashboard() {
                   </div>
                 ) : leaderboardError ? (
                   <div className={styles.lockedCard}>
-                    <div className={styles.lockedCardIcon}>⚠</div>
+                    <div className={styles.lockedCardIcon}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                        <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12" y2="17" />
+                      </svg>
+                    </div>
                     <p className={styles.lockedCardTitle}>Leaderboard Unavailable</p>
                     <p className={styles.lockedCardText}>
                       {leaderboardError.message || 'Failed to load leaderboard.'}
@@ -1621,10 +1935,10 @@ export default function FirmDashboard() {
                         <table className={styles.leaderboardTable}>
                           <thead>
                             <tr className={styles.leaderboardThead}>
-                              <th className={styles.leaderboardTh}>Rank</th>
-                              <th className={styles.leaderboardTh}>Name</th>
-                              <th className={styles.leaderboardTh}>Institution</th>
-                              <th className={styles.leaderboardTh}>Grad Year</th>
+                              <SortHeader label="Rank" sortKey="rank" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              <SortHeader label="Name" sortKey="name" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              <SortHeader label="Institution" sortKey="institution" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              <SortHeader label="Grad Year" sortKey="gradYear" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
                             </tr>
                           </thead>
                           <tbody>
@@ -1663,6 +1977,8 @@ export default function FirmDashboard() {
                         </table>
                       </div>
                     )}
+                  </>
+                )}
                   </>
                 )}
               </div>
@@ -1798,6 +2114,18 @@ export default function FirmDashboard() {
                       </a>
                     </div>
                   )}
+
+                  <CandidatePipelineSection
+                    candidateId={selectedLeaderboardRegistrant.id}
+                    entry={pipeline[selectedLeaderboardRegistrant.id]}
+                    onTag={setPipelineTag}
+                    onNote={setPipelineNote}
+                    canExpressInterest={canExpressInterest}
+                    interested={interestedIds.has(selectedLeaderboardRegistrant.id)}
+                    onToggleInterest={toggleInterest}
+                    interestBusy={interestBusyId === selectedLeaderboardRegistrant.id}
+                    interestError={interestError}
+                  />
                 </aside>
               )}
             </div>
@@ -1902,6 +2230,84 @@ export default function FirmDashboard() {
                       </p>
                     </div>
                   )}
+
+                  <div className={styles.analyticsChartsGrid}>
+                    <div className={styles.chartCard}>
+                      <p className={styles.chartTitle}>Graduation Year</p>
+                      {gradYearChartData.length > 0 ? (
+                        <>
+                          <RechartsComponents>
+                            {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
+                              <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={240}>
+                                  <PieChart>
+                                    <Pie data={gradYearChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={92} paddingAngle={2} stroke="none">
+                                      {gradYearChartData.map((entry, i) => (
+                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip content={<ChartTooltip />} />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            )}
+                          </RechartsComponents>
+                          <div className={styles.chartLegend}>
+                            {gradYearChartData.map((entry, i) => (
+                              <span key={entry.name} className={styles.legendItem}>
+                                <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                {entry.name} · {entry.value}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className={styles.chartEmptyNote}>No graduation-year data yet.</p>
+                      )}
+                    </div>
+
+                    <div className={styles.chartCard}>
+                      <p className={styles.chartTitle}>Branch Mix (Top 8)</p>
+                      {branchChartData.length > 0 ? (
+                        <>
+                          <RechartsComponents>
+                            {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
+                              <div className={styles.chartWrap}>
+                                <ResponsiveContainer width="100%" height={240}>
+                                  <PieChart>
+                                    <Pie data={branchChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={92} paddingAngle={2} stroke="none">
+                                      {branchChartData.map((entry, i) => (
+                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                      ))}
+                                    </Pie>
+                                    <Tooltip content={<ChartTooltip />} />
+                                  </PieChart>
+                                </ResponsiveContainer>
+                              </div>
+                            )}
+                          </RechartsComponents>
+                          <div className={styles.chartLegend}>
+                            {branchChartData.map((entry, i) => (
+                              <span key={entry.name} className={styles.legendItem}>
+                                <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                {entry.name} · {entry.value}
+                              </span>
+                            ))}
+                          </div>
+                        </>
+                      ) : (
+                        <p className={styles.chartEmptyNote}>No branch data yet.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={`${styles.chartCard} ${styles.reservedChartCard}`}>
+                    <div className={styles.reservedChartIcon}><ClockGlyph size={26} /></div>
+                    <p className={styles.chartTitle}>Posterior Rank Distribution</p>
+                    <p className={styles.reservedChartText}>
+                      Score and rank spread from the POSTERIOR round will appear here once results are verified.
+                    </p>
+                  </div>
                 </>
               ) : (
                 <div className={styles.accessDenied}>
@@ -1936,6 +2342,12 @@ export default function FirmDashboard() {
             <div className={styles.panelBody}>
               {documentError && (
                 <div className={styles.documentError}>{documentError}</div>
+              )}
+              {selectedFinalist.rank != null && (
+                <div className={styles.panelSection}>
+                  <p className={styles.panelLabel}>PRIOR Rank</p>
+                  <p className={styles.panelValue} style={{ color: '#D4AF37' }}>#{selectedFinalist.rank}</p>
+                </div>
               )}
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>University</p>
