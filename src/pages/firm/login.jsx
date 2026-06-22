@@ -180,9 +180,7 @@ export default function FirmLogin() {
         </Link>
         <div className={styles.loginCard}>
           <div className={styles.loginHeader}>
-            <span className={styles.loginWordmark}>
-              AMS <span className={styles.loginWordmarkGold}>DERIVE</span>
-            </span>
+            <img src="/AMS_DERIVE_TEXT.svg" alt="AMS Derive" className={styles.loginLogo} />
             <p className={styles.loginSubtitle}>PARTNER ACCESS</p>
           </div>
 

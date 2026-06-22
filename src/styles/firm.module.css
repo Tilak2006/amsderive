@@ -88,6 +88,14 @@
   letter-spacing: 0.12em;
 }
 
+.loginLogo {
+  display: block;
+  height: 34px;
+  width: auto;
+  max-width: 100%;
+  margin: 0 auto 6px;
+}
+
 .loginWordmarkGold {
   color: #D4AF37;
 }
