@@ -15,6 +15,7 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 import { createFirmCandidateToken } from '../../../lib/firmCandidateToken';
+import { loadAssessmentMaps, getAssessment } from '../../../lib/assessmentData';
 import fs from 'fs';
 import path from 'path';
 
@@ -32,33 +33,27 @@ function parseCsvLine(line) {
   return result;
 }
 
-// name (lowercased) -> PRIOR rank, from the same ranklist the leaderboard uses.
-function loadPriorRankMap() {
+// name (lowercased) -> POSTERIOR rank. The talent pool is Round 2 oriented:
+// rank = the candidate's position in the POSTERIOR ranklist (file order = rank).
+function loadPosteriorRankMap() {
   const map = new Map();
   try {
-    const csvPath = path.join(process.cwd(), "AMS Derive'26 PRIOR Ranklist.csv");
+    const csvPath = path.join(process.cwd(), 'posterior-ranklist', 'posterior-ranklist-v1.1.csv');
     if (!fs.existsSync(csvPath)) return map;
     const content = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
     const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    for (let i = 1; i < lines.length; i++) {
-      const parts = parseCsvLine(lines[i]);
-      const rank = parseInt(parts[0], 10);
-      const name = (parts[1] || '').trim().toLowerCase();
-      if (name && Number.isFinite(rank) && !map.has(name)) map.set(name, rank);
-    }
+    // No header row — every line is a ranked finalist (order = rank).
+    lines.forEach((line, idx) => {
+      const name = (parseCsvLine(line)[0] || '').trim().toLowerCase();
+      if (name && !map.has(name)) map.set(name, idx + 1);
+    });
   } catch {
     // Missing/unreadable ranklist — finalists just won't carry a rank.
   }
   return map;
 }
 
-// Manual rank overrides (name lowercased). Values may be non-numeric (e.g. test rows).
-const RANK_OVERRIDES = new Map([
-  ['rakshit ranka', 151],
-  ['tilak jain', 'Test'],
-]);
-
-// Sort key: real numeric ranks first (ascending), everything else (strings/null) last.
+// Sort key: real numeric ranks first (ascending), everything else (null) last.
 function rankSortKey(rank) {
   return typeof rank === 'number' && Number.isFinite(rank) ? rank : Infinity;
 }
@@ -152,7 +147,8 @@ export default async function handler(req, res) {
     // Stub snapshot for the mapping below
     const snapshot = { docs: allDocs };
 
-    const rankByName = loadPriorRankMap();
+    const rankByName = loadPosteriorRankMap();
+    const assessmentMaps = loadAssessmentMaps();
 
     const finalists = snapshot.docs.map((doc) => {
       const d = doc.data();
@@ -161,9 +157,13 @@ export default async function handler(req, res) {
         id: createFirmCandidateToken(doc.id),
         fullName: d.fullName,
         university: d.university,
+        branch: d.branch || null,
+        graduationYear: d.graduationYear || null,
         round: d.round,
-        rank: RANK_OVERRIDES.has(nameKey) ? RANK_OVERRIDES.get(nameKey) : (rankByName.get(nameKey) ?? null),
+        rank: rankByName.get(nameKey) ?? null,
       };
+      const assessment = getAssessment(assessmentMaps, d.fullName, d.email);
+      if (assessment) entry.assessment = assessment;
       if (resumeDownload && d.resumeUrl) {
         entry.resumeUrl = d.resumeUrl;
         entry.resumeFileName = d.resumeFileName || null;

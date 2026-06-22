@@ -146,7 +146,7 @@ function CandidatePipelineSection({ candidateId, entry, onTag, onNote, canExpres
       </div>
       <textarea
         className={styles.pipelineNote}
-        placeholder="Private note — kept on this device only"
+        placeholder="Private note, kept on this device only"
         value={entry?.note || ''}
         onChange={(e) => onNote(candidateId, e.target.value.slice(0, 1000))}
         rows={3}
@@ -159,7 +159,7 @@ function CandidatePipelineSection({ candidateId, entry, onTag, onNote, canExpres
             onClick={() => onToggleInterest(candidateId)}
             disabled={interestBusy}
           >
-            {interestBusy ? 'Saving…' : interested ? 'Interest flagged — withdraw' : 'Express interest to AMS'}
+            {interestBusy ? 'Saving…' : interested ? 'Interest flagged · withdraw' : 'Express interest to AMS'}
           </button>
           {interestError && <span className={styles.pipelineError}>{interestError}</span>}
         </>
@@ -170,22 +170,12 @@ function CandidatePipelineSection({ candidateId, entry, onTag, onNote, canExpres
 
 const TIER_DESCRIPTIONS = {
   derivation:
-    'Derivation Partner — Live leaderboard access (coming soon), performance analytics, logo on the AMS Derive contest platform, and round sponsorship across PRIOR and POSTERIOR rounds.',
+    'Derivation Partner: Live leaderboard access (coming soon), performance analytics, logo on the AMS Derive contest platform, and round sponsorship across PRIOR and POSTERIOR rounds.',
   convergence:
-    'Convergence Partner — All Derivation benefits, plus finalist profile access, an evaluation panel seat at IIT Bombay finals, in-person attendance, and first access to finalist talent.',
+    'Convergence Partner: All Derivation benefits, plus finalist profile access, an evaluation panel seat at IIT Bombay finals, in-person attendance, and first access to finalist talent.',
   apex:
     'Priority access to contest-qualified quant and programming talent across PRIOR, POSTERIOR, and CONVERGENCE.',
 };
-
-const ACCESS_MATRIX = [
-  { key: 'registrantProfiles', label: 'Registrant Profiles', status: 'active', unlockLabel: null },
-  { key: 'analytics', label: 'Performance Analytics', status: 'active', unlockLabel: null },
-  { key: 'linkedinAccess', label: 'LinkedIn Access', status: 'upcoming', unlockLabel: 'Results undergoing verification' },
-  { key: 'namingRights', label: 'Naming Rights', status: 'active', unlockLabel: null },
-  { key: 'leaderboard', label: 'Live Leaderboard', status: 'upcoming', unlockLabel: 'Results undergoing verification' },
-  { key: 'resumeDownload', label: 'Resume Download', status: 'upcoming', unlockLabel: 'Displayed soon' },
-  { key: 'finalistProfiles', label: 'Finalist Profiles', status: 'upcoming', unlockLabel: 'Displayed soon' },
-];
 
 function formatDate(isoString) {
   if (!isoString) return '—';
@@ -305,6 +295,495 @@ function SkeletonLine({ className = '', style }) {
   return <span className={`${styles.skeletonLine} ${className}`.trim()} style={style} aria-hidden="true" />;
 }
 
+// One round's analytics body: cohort stats + college distribution bar + grad-year / branch donuts.
+// Shared 2-line people list used by both the chart drill and the college drill.
+function DrillPeopleList({ members }) {
+  if (!members.length) {
+    return <p className={styles.chartEmptyNote}>No named profiles in this bucket.</p>;
+  }
+  return (
+    <ul className={styles.drillList}>
+      {members.map((m) => {
+        const meta = [m.branch, m.graduationYear].filter(Boolean);
+        if (m.jeeAdvRank) meta.push(`JEE #${m.jeeAdvRank}`);
+        const metaStr = meta.join(' · ');
+        return (
+          <li key={`${m.rank}-${m.name}`} className={styles.drillRow}>
+            <div className={styles.drillRowTop}>
+              <span className={styles.drillRank}>#{m.rank}</span>
+              <span className={styles.drillName}>{m.name}</span>
+            </div>
+            {metaStr && <span className={styles.drillMeta} title={metaStr}>{metaStr}</span>}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function AnalyticsRoundPanel({ data, loading, showReservedPosterior }) {
+  const chartData = useMemo(() => {
+    if (!data?.institutions?.length) return [];
+    return [...data.institutions].sort((a, b) => b.count - a.count).slice(0, 15);
+  }, [data]);
+
+  const gradYearChartData = useMemo(() => {
+    if (!data?.gradYears?.length) return [];
+    return data.gradYears.map((g) => ({ name: String(g.year), value: g.count }));
+  }, [data]);
+
+  const branchChartData = useMemo(() => {
+    if (!data?.branches?.length) return [];
+    return [...data.branches].sort((a, b) => b.count - a.count).slice(0, 8).map((b) => ({ name: b.name, value: b.count }));
+  }, [data]);
+
+  // One distribution view at a time, chosen from the dropdown.
+  const [view, setView] = useState('college'); // 'college' | 'branch' | 'gradYear'
+
+  // Chart drill-down: clicking a bar / pie slice lists the people in that bucket.
+  const members = useMemo(() => data?.members || [], [data]);
+  const [drill, setDrill] = useState(null); // { type: 'institution'|'branch'|'gradYear', value, label }
+
+  const drillMembers = useMemo(() => {
+    if (!drill) return [];
+    const v = String(drill.value).toLowerCase();
+    return members
+      .filter((m) => {
+        if (drill.type === 'institution') return (m.university || '').toLowerCase() === v;
+        if (drill.type === 'branch') return (m.branch || '').toLowerCase() === v;
+        if (drill.type === 'gradYear') return String(m.graduationYear) === String(drill.value);
+        return false;
+      })
+      .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+  }, [drill, members]);
+
+  // Separate drill for the "Top Finalists by College" list (its own inline result).
+  const [collegeDrill, setCollegeDrill] = useState(null); // college name
+  const collegeDrillMembers = useMemo(() => {
+    if (!collegeDrill) return [];
+    const v = collegeDrill.toLowerCase();
+    return members
+      .filter((m) => (m.university || '').toLowerCase() === v)
+      .sort((a, b) => (a.rank ?? Infinity) - (b.rank ?? Infinity));
+  }, [collegeDrill, members]);
+
+  // Colleges ranked by their single best (lowest-numbered) finalist rank.
+  const topByCollege = useMemo(() => {
+    const map = new Map();
+    members.forEach((m) => {
+      if (!m.university) return;
+      const key = m.university.toLowerCase();
+      const rank = m.rank ?? Infinity;
+      const cur = map.get(key);
+      if (cur) {
+        cur.count += 1;
+        if (rank < cur.bestRank) cur.bestRank = rank;
+      } else {
+        map.set(key, { name: m.university, count: 1, bestRank: rank });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.bestRank - b.bestRank);
+  }, [members]);
+
+  if (loading && !data) {
+    return (
+      <div className={styles.skeletonAnalyticsWrap} aria-label="Loading analytics">
+        <div className={styles.skeletonStatsGrid}>
+          <div className={styles.skeletonStatCard}>
+            <SkeletonLine className={styles.skeletonLineSub} style={{ width: '120px' }} />
+            <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '80px' }} />
+          </div>
+          <div className={styles.skeletonStatCard}>
+            <SkeletonLine className={styles.skeletonLineSub} style={{ width: '150px' }} />
+            <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '60px' }} />
+          </div>
+        </div>
+        <div className={styles.skeletonChartCard}>
+          <SkeletonLine className={styles.skeletonLineSub} style={{ width: '240px' }} />
+          <div className={styles.skeletonChartArea} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className={styles.accessDenied}>
+        <p className={styles.accessDeniedTitle}>Analytics unavailable</p>
+        <p className={styles.accessDeniedText}>Could not load analytics for this round. Try refreshing.</p>
+      </div>
+    );
+  }
+
+  const cohortSize = (data.institutions || []).reduce((a, b) => a + b.count, 0);
+  const institutionsCount = (data.institutions || []).length;
+  const avgPerInstitution = institutionsCount ? (cohortSize / institutionsCount).toFixed(1) : '0.0';
+
+  return (
+    <>
+      <div className={styles.analyticsStatsGrid}>
+        {[
+          { label: 'Cohort Size', value: cohortSize },
+          { label: 'Community Partners', value: FIRM_COMMUNITY_PARTNERS_LABEL },
+          { label: 'Avg / Institution', value: avgPerInstitution },
+        ].map((s) => (
+          <div key={s.label} className={`${styles.statCard} ${styles.analyticsStatCard}`}>
+            <span className={styles.statLabel}>{s.label}</span>
+            <span className={styles.statValue}>{s.value}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.chartCard}>
+        <div className={styles.analyticsViewHeader}>
+          <p className={styles.chartTitle} style={{ margin: 0 }}>Distribution</p>
+          <select
+            className={styles.filterSelect}
+            value={view}
+            onChange={(e) => { setView(e.target.value); setDrill(null); }}
+            aria-label="Choose distribution view"
+            style={{ maxWidth: 210 }}
+          >
+            <option value="college">By College</option>
+            <option value="branch">By Branch</option>
+            <option value="gradYear">By Graduation Year</option>
+          </select>
+        </div>
+
+        {view === 'college' && (
+          chartData.length > 0 ? (
+            <RechartsComponents>
+              {({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid }) => (
+                <div className={styles.chartWrap} style={{ cursor: 'pointer' }}>
+                  <ResponsiveContainer width="100%" height={340}>
+                    <BarChart data={chartData} margin={{ top: 4, right: 16, left: -4, bottom: 110 }} barCategoryGap="35%">
+                      <defs>
+                        <linearGradient id="firmAnalyticsBarGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.95} />
+                          <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.22} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} angle={-38} textAnchor="end" interval={0} height={92} tickFormatter={(value) => truncateInstitutionName(value)} />
+                      <YAxis tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }} tickLine={false} axisLine={false} allowDecimals={false} domain={[0, 'auto']} />
+                      <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.04)' }} />
+                      <Bar dataKey="count" fill="url(#firmAnalyticsBarGradient)" maxBarSize={52} radius={[4, 4, 0, 0]} cursor="pointer"
+                        onClick={(d) => { const name = d?.payload?.name ?? d?.name; if (name) setDrill({ type: 'institution', value: name, label: name }); }}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </RechartsComponents>
+          ) : (<p className={styles.chartEmptyNote}>No college data yet.</p>)
+        )}
+
+        {view === 'gradYear' && (
+          gradYearChartData.length > 0 ? (
+            <>
+              <RechartsComponents>
+                {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
+                  <div className={styles.chartWrap} style={{ cursor: 'pointer' }}>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={gradYearChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} stroke="none" cursor="pointer"
+                          onClick={(d) => { const name = d?.name ?? d?.payload?.name; if (name != null) setDrill({ type: 'gradYear', value: name, label: `Class of ${name}` }); }}
+                        >
+                          {gradYearChartData.map((entry, i) => (<Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
+                        </Pie>
+                        <Tooltip content={<ChartTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </RechartsComponents>
+              <div className={styles.chartLegend}>
+                {gradYearChartData.map((entry, i) => (
+                  <span key={entry.name} className={styles.legendItem}>
+                    <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    {entry.name} · {entry.value}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (<p className={styles.chartEmptyNote}>No graduation-year data yet.</p>)
+        )}
+
+        {view === 'branch' && (
+          branchChartData.length > 0 ? (
+            <>
+              <RechartsComponents>
+                {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
+                  <div className={styles.chartWrap} style={{ cursor: 'pointer' }}>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={branchChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} stroke="none" cursor="pointer"
+                          onClick={(d) => { const name = d?.name ?? d?.payload?.name; if (name) setDrill({ type: 'branch', value: name, label: name }); }}
+                        >
+                          {branchChartData.map((entry, i) => (<Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />))}
+                        </Pie>
+                        <Tooltip content={<ChartTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+              </RechartsComponents>
+              <div className={styles.chartLegend}>
+                {branchChartData.map((entry, i) => (
+                  <span key={entry.name} className={styles.legendItem}>
+                    <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                    {entry.name} · {entry.value}
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (<p className={styles.chartEmptyNote}>No branch data yet.</p>)
+        )}
+
+        {/* Drill result, directly under the chart it came from */}
+        <div className={styles.drillInline}>
+          {drill ? (
+            <>
+              <div className={styles.drillHeader}>
+                <span className={styles.drillTitle}>{drill.label}</span>
+                <span className={styles.drillCount}>{drillMembers.length} {drillMembers.length === 1 ? 'person' : 'people'}</span>
+                <button className={styles.drillClose} onClick={() => setDrill(null)} aria-label="Clear selection">✕</button>
+              </div>
+              <DrillPeopleList members={drillMembers} />
+            </>
+          ) : (
+            <p className={styles.drillHint}>Click a segment above to see who&apos;s in it.</p>
+          )}
+        </div>
+      </div>
+
+      {showReservedPosterior && (
+        <div className={styles.chartCard}>
+          <p className={styles.chartTitle}>Top Finalists by College</p>
+          {topByCollege.length > 0 ? (
+            <>
+              <ol className={styles.collegeRankList}>
+                {topByCollege.slice(0, 15).map((c) => {
+                  const active = collegeDrill && collegeDrill.toLowerCase() === c.name.toLowerCase();
+                  return (
+                    <li key={c.name}>
+                      <button
+                        type="button"
+                        className={`${styles.collegeRankRow} ${active ? styles.collegeRankRowActive : ''}`}
+                        onClick={() => setCollegeDrill(active ? null : c.name)}
+                      >
+                        <span className={styles.collegeRankBest}>#{Number.isFinite(c.bestRank) ? c.bestRank : '—'}</span>
+                        <span className={styles.collegeRankName}>{c.name}</span>
+                        <span className={styles.collegeRankCount}>{c.count} finalist{c.count === 1 ? '' : 's'}</span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+              {collegeDrill && (
+                <div className={styles.drillInline}>
+                  <div className={styles.drillHeader}>
+                    <span className={styles.drillTitle}>{collegeDrill}</span>
+                    <span className={styles.drillCount}>{collegeDrillMembers.length} {collegeDrillMembers.length === 1 ? 'finalist' : 'finalists'}</span>
+                    <button className={styles.drillClose} onClick={() => setCollegeDrill(null)} aria-label="Clear selection">✕</button>
+                  </div>
+                  <DrillPeopleList members={collegeDrillMembers} />
+                </div>
+              )}
+            </>
+          ) : (
+            <p className={styles.chartEmptyNote}>No college data for finalists yet.</p>
+          )}
+        </div>
+      )}
+
+    </>
+  );
+}
+
+// One-line "what this is / what to do" shown under the tab bar for each tab.
+const TAB_INTRO = {
+  overview: 'Your starting point: the finalists, where to look first, and what your partnership unlocks.',
+  talent: 'The finalists: full profiles, quant signals and documents. Shortlist and export from here.',
+  registrants: 'Everyone who registered and consented to share data. Use this for a broad search.',
+  analytics: 'The cohort at a glance: colleges, branches and graduation years. Click any chart to see who.',
+  leaderboard: 'Round-by-round rankings. Switch rounds to compare the screening field against the finalists.',
+};
+
+// Quant-assessment fields (from the placement form), in display order.
+const ASSESSMENT_FIELDS = [
+  ['interviews', 'Industry Track Record'],
+  ['jeeAdvRank', 'JEE Advanced Rank', (v) => `#${v}`],
+  ['olympiad', 'Olympiad / Math'],
+  ['kvpyNtse', 'KVPY / NTSE'],
+  ['cpQuant', 'CP & Quant Comps'],
+  ['research', 'Research / Projects'],
+  ['atcoder', 'AtCoder / TopCoder'],
+  ['github', 'GitHub / Site'],
+  ['quantInterest', 'Quant Interest'],
+];
+
+function AssessmentValue({ value }) {
+  if (typeof value === 'string' && /^https?:\/\//i.test(value.trim())) {
+    return <a href={value.trim()} target="_blank" rel="noopener noreferrer" style={{ color: '#D4AF37', wordBreak: 'break-all' }}>{value.trim()}</a>;
+  }
+  return <>{value}</>;
+}
+
+function AssessmentSection({ assessment, inset }) {
+  if (!assessment) return null;
+  const rows = ASSESSMENT_FIELDS
+    .map(([key, label, fmt]) => [label, assessment[key] ? (fmt ? fmt(assessment[key]) : assessment[key]) : null])
+    .filter(([, v]) => v);
+  if (!rows.length) return null;
+  return (
+    <div className={`${styles.assessmentSection} ${inset ? styles.assessmentSectionInset : ''}`}>
+      <p className={styles.assessmentHeading}>Quant Assessment</p>
+      {rows.map(([label, value]) => (
+        <div key={label} className={styles.assessmentRow}>
+          <span className={styles.assessmentLabel}>{label}</span>
+          <span className={styles.assessmentValue}><AssessmentValue value={value} /></span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Columns available for the finalist CSV export. `get` pulls the value off a finalist row.
+const EXPORT_COLUMNS = [
+  { key: 'rank', label: 'Rank', get: (f) => f.rank },
+  { key: 'fullName', label: 'Name', get: (f) => f.fullName },
+  { key: 'university', label: 'University', get: (f) => f.university },
+  { key: 'branch', label: 'Branch', get: (f) => f.branch },
+  { key: 'graduationYear', label: 'Graduation Year', get: (f) => f.graduationYear },
+  { key: 'round', label: 'Round', get: (f) => f.round },
+  { key: 'jeeAdvRank', label: 'JEE Advanced Rank', get: (f) => f.assessment?.jeeAdvRank },
+  { key: 'olympiad', label: 'Olympiad / Math', get: (f) => f.assessment?.olympiad },
+  { key: 'kvpyNtse', label: 'KVPY / NTSE', get: (f) => f.assessment?.kvpyNtse },
+  { key: 'cpQuant', label: 'CP & Quant Comps', get: (f) => f.assessment?.cpQuant },
+  { key: 'research', label: 'Research / Projects', get: (f) => f.assessment?.research },
+  { key: 'atcoder', label: 'AtCoder / TopCoder', get: (f) => f.assessment?.atcoder },
+  { key: 'github', label: 'GitHub / Site', get: (f) => f.assessment?.github },
+  { key: 'interviews', label: 'Industry Track Record', get: (f) => f.assessment?.interviews },
+  { key: 'linkedIn', label: 'LinkedIn', get: (f) => f.linkedIn },
+];
+const DEFAULT_EXPORT_KEYS = ['rank', 'fullName', 'university', 'graduationYear', 'jeeAdvRank', 'olympiad', 'cpQuant'];
+
+// Map a PRIOR leaderboard standings row into the finalist/export row shape.
+function standingToExportRow(row) {
+  return {
+    rank: row.rank,
+    fullName: row.name,
+    university: row.university,
+    branch: row.registrant?.branch ?? null,
+    graduationYear: row.graduationYear ?? row.registrant?.graduationYear ?? null,
+    round: row.registrant?.round ?? 'prior',
+    assessment: row.registrant?.assessment ?? null,
+    linkedIn: row.registrant?.linkedIn ?? null,
+  };
+}
+
+function FinalistExport({ rows, user }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(() => new Set(DEFAULT_EXPORT_KEYS));
+  const [round, setRound] = useState('round2'); // 'round2' | 'round1' | 'both'
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const toggle = (k) => setSelected((s) => {
+    const n = new Set(s);
+    n.has(k) ? n.delete(k) : n.add(k);
+    return n;
+  });
+
+  const download = async () => {
+    const cols = EXPORT_COLUMNS.filter((c) => selected.has(c.key));
+    if (!cols.length) return;
+    setBusy(true);
+    setError(null);
+    try {
+      let out = [];
+      if (round === 'round2' || round === 'both') out = out.concat(rows);
+      if (round === 'round1' || round === 'both') {
+        const headers = await getAuthHeader(user);
+        const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'prior' }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.error || 'Could not load Round 1 data.');
+        out = out.concat((data.standings || []).map(standingToExportRow));
+      }
+      if (!out.length) { setError('Nothing to export for this selection.'); return; }
+
+      const esc = (v) => {
+        const s = v == null ? '' : String(v);
+        return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+      };
+      const lines = [
+        cols.map((c) => esc(c.label)).join(','),
+        ...out.map((f) => cols.map((c) => esc(c.get(f))).join(',')),
+      ];
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const tag = round === 'both' ? 'round1-2' : round === 'round1' ? 'round1' : 'finalists';
+      a.href = url;
+      a.download = `ams-derive-${tag}-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setOpen(false);
+    } catch (e) {
+      setError(e.message || 'Export failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const count = selected.size;
+  return (
+    <div className={styles.exportWrap}>
+      <button type="button" className={styles.exportBtn} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        EXPORT CSV
+      </button>
+      {open && (
+        <div className={styles.exportPanel}>
+          <p className={styles.exportPanelTitle}>Rounds to include</p>
+          <select
+            className={styles.filterSelect}
+            value={round}
+            onChange={(e) => { setRound(e.target.value); setError(null); }}
+            aria-label="Rounds to export"
+            style={{ width: '100%', marginBottom: 14 }}
+          >
+            <option value="round2">Round 2 — Finalists</option>
+            <option value="round1">Round 1 — Screening</option>
+            <option value="both">Both rounds</option>
+          </select>
+
+          <p className={styles.exportPanelTitle}>Columns to export</p>
+          <div className={styles.exportFields}>
+            {EXPORT_COLUMNS.map((c) => (
+              <label key={c.key} className={styles.exportField}>
+                <input type="checkbox" checked={selected.has(c.key)} onChange={() => toggle(c.key)} />
+                <span>{c.label}</span>
+              </label>
+            ))}
+          </div>
+          {error && <p className={styles.exportErrorNote}>{error}</p>}
+          <div className={styles.exportPanelFoot}>
+            <span className={styles.exportMeta}>
+              {round === 'round2' ? `${rows.length} row${rows.length === 1 ? '' : 's'} · ` : ''}{count} column{count === 1 ? '' : 's'}
+            </span>
+            <button type="button" className={styles.exportDownload} onClick={download} disabled={!count || busy}>
+              {busy ? 'Preparing…' : 'Download'}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FirmDashboard() {
   const router = useRouter();
   const [user, setUser] = useState(null);
@@ -325,9 +804,11 @@ export default function FirmDashboard() {
   const [talentRefreshAvailableAt, setTalentRefreshAvailableAt] = useState(0);
   const [talentRefreshTick, setTalentRefreshTick] = useState(Date.now());
 
-  // Analytics state
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  // Analytics state — per round ('posterior' = Round 2 finalists, 'prior' = Round 1)
+  const [analyticsByRound, setAnalyticsByRound] = useState({ posterior: null, prior: null });
+  const [analyticsLoadingRound, setAnalyticsLoadingRound] = useState({ posterior: false, prior: false });
+  const [analyticsOpen, setAnalyticsOpen] = useState({ round2: true, round1: false });
+  const analyticsRequestedRef = useRef(new Set());
 
   // Overview stats state
   const [overviewStats, setOverviewStats] = useState(null);
@@ -508,8 +989,8 @@ export default function FirmDashboard() {
   const [leaderboardSearchName, setLeaderboardSearchName] = useState('');
   const [leaderboardFilterUniversity, setLeaderboardFilterUniversity] = useState('');
   const [leaderboardFilterGradYear, setLeaderboardFilterGradYear] = useState('');
-  // Which round's leaderboard to show: 'round1' (PRIOR, live) | 'round2' (POSTERIOR, upcoming)
-  const [leaderboardRound, setLeaderboardRound] = useState('round1');
+  // Which round's leaderboard to show: 'round1' (PRIOR) | 'round2' (POSTERIOR, default)
+  const [leaderboardRound, setLeaderboardRound] = useState('round2');
 
   // Auth check on mount
   useEffect(() => {
@@ -580,16 +1061,14 @@ export default function FirmDashboard() {
     }
     if (activeTab === 'analytics' && !tabDataLoaded.current.has('analytics')) {
       tabDataLoaded.current.add('analytics');
-      fetchAnalytics();
+      analyticsRequestedRef.current.add('posterior'); // Round 2 is open by default
+      fetchAnalytics('posterior');
     }
     if (activeTab === 'registrants' && !tabDataLoaded.current.has('registrants')) {
       tabDataLoaded.current.add('registrants');
       fetchRegistrants();
     }
-    if (activeTab === 'leaderboard' && !tabDataLoaded.current.has('leaderboard')) {
-      tabDataLoaded.current.add('leaderboard');
-      fetchLeaderboard();
-    }
+    // Leaderboard fetch is handled by its own effect (keyed on the selected round).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user, firmProfile]);
 
@@ -677,7 +1156,8 @@ export default function FirmDashboard() {
     setLeaderboardLoading(true);
     try {
       const headers = await getAuthHeader(user);
-      const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({}) });
+      const round = leaderboardRound === 'round2' ? 'posterior' : 'prior';
+      const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round }) });
       const data = await res.json();
       if (res.status === 403) {
         setLeaderboardError({ type: 'access', message: data.message || 'Access denied' });
@@ -695,34 +1175,47 @@ export default function FirmDashboard() {
     } finally {
       setLeaderboardLoading(false);
     }
-  }, [user]);
+  }, [user, leaderboardRound]);
 
-  // Auto-refresh leaderboard every 30s while on the tab
+  // Fetch on tab entry / round switch, then auto-refresh every 30s while on the tab.
+  // fetchLeaderboard identity changes when leaderboardRound changes, so switching rounds
+  // re-runs this effect and immediately refetches the selected round's standings.
   useEffect(() => {
     if (activeTab !== 'leaderboard' || !firmProfile) return;
+    fetchLeaderboard();
     leaderboardIntervalRef.current = setInterval(fetchLeaderboard, 30000);
     return () => {
       if (leaderboardIntervalRef.current) clearInterval(leaderboardIntervalRef.current);
     };
   }, [activeTab, firmProfile, fetchLeaderboard]);
 
-  const fetchAnalytics = useCallback(async () => {
-    setAnalyticsLoading(true);
+  const fetchAnalytics = useCallback(async (round = 'posterior') => {
+    setAnalyticsLoadingRound((s) => ({ ...s, [round]: true }));
     try {
       const headers = await getAuthHeader(user);
-      const res = await fetch('/api/firm/get-institution-stats', { method: 'POST', headers, body: JSON.stringify({}) });
+      const res = await fetch('/api/firm/get-institution-stats', { method: 'POST', headers, body: JSON.stringify({ round }) });
       if (!res.ok) {
-        setAnalyticsData(null);
+        setAnalyticsByRound((s) => ({ ...s, [round]: null }));
         return;
       }
       const data = await res.json();
-      setAnalyticsData(data);
+      setAnalyticsByRound((s) => ({ ...s, [round]: data }));
     } catch {
-      setAnalyticsData(null);
+      setAnalyticsByRound((s) => ({ ...s, [round]: null }));
     } finally {
-      setAnalyticsLoading(false);
+      setAnalyticsLoadingRound((s) => ({ ...s, [round]: false }));
     }
   }, [user]);
+
+  // Expand/collapse a round; lazily fetch its analytics the first time it opens.
+  const toggleAnalyticsRound = useCallback((uiRound) => {
+    const apiRound = uiRound === 'round1' ? 'prior' : 'posterior';
+    setAnalyticsOpen((s) => ({ ...s, [uiRound]: !s[uiRound] }));
+    if (!analyticsRequestedRef.current.has(apiRound)) {
+      analyticsRequestedRef.current.add(apiRound);
+      fetchAnalytics(apiRound);
+    }
+  }, [fetchAnalytics]);
 
   const fetchOverviewStats = useCallback(async () => {
     try {
@@ -818,26 +1311,6 @@ export default function FirmDashboard() {
       }
     });
   }, [leaderboardData, leaderboardSearchName, leaderboardFilterUniversity, leaderboardFilterGradYear, leaderboardSort]);
-
-  const chartData = useMemo(() => {
-    if (!analyticsData?.institutions?.length) return [];
-    return [...analyticsData.institutions]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
-  }, [analyticsData]);
-
-  const gradYearChartData = useMemo(() => {
-    if (!analyticsData?.gradYears?.length) return [];
-    return analyticsData.gradYears.map((g) => ({ name: String(g.year), value: g.count }));
-  }, [analyticsData]);
-
-  const branchChartData = useMemo(() => {
-    if (!analyticsData?.branches?.length) return [];
-    return [...analyticsData.branches]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8)
-      .map((b) => ({ name: b.name, value: b.count }));
-  }, [analyticsData]);
 
   async function handleLogout() {
     try {
@@ -939,7 +1412,7 @@ export default function FirmDashboard() {
   return (
     <>
       <Head>
-        <title>{firmProfile?.firmName || 'Partner Portal'} — AMS Derive</title>
+        <title>{firmProfile?.firmName || 'Partner Portal'} · AMS Derive</title>
         <meta name="robots" content="noindex, nofollow" />
       </Head>
 
@@ -973,9 +1446,9 @@ export default function FirmDashboard() {
             {[
               { key: 'overview', label: 'OVERVIEW' },
               { key: 'talent', label: 'TALENT POOL' },
-              { key: 'registrants', label: 'REGISTRANTS' },
+              { key: 'registrants', label: 'ALL APPLICANTS' },
               { key: 'analytics', label: 'ANALYTICS' },
-              { key: 'leaderboard', label: 'LEADERBOARD' },
+              { key: 'leaderboard', label: 'STANDINGS' },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -994,6 +1467,10 @@ export default function FirmDashboard() {
               </button>
             ))}
           </div>
+
+          {TAB_INTRO[activeTab] && (
+            <p className={styles.tabIntro}>{TAB_INTRO[activeTab]}</p>
+          )}
 
           {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
@@ -1027,6 +1504,19 @@ export default function FirmDashboard() {
                 <div className={styles.overviewHeroRule} />
               </div>
 
+              {/* Lead — the single starting action */}
+              {firmProfile?.tier !== 'derivation' && (
+                <button className={styles.overviewLead} onClick={() => setActiveTab('talent')}>
+                  <span className={styles.overviewLeadText}>
+                    <span className={styles.overviewLeadTitle}>Start with the finalists</span>
+                    <span className={styles.overviewLeadSub}>
+                      The candidates who advanced, ranked, with quant signals, documents and one-click CSV export.
+                    </span>
+                  </span>
+                  <span className={styles.overviewLeadCta}>View Talent Pool</span>
+                </button>
+              )}
+
               {/* Metrics row */}
               {overviewStats && (
                 <>
@@ -1054,31 +1544,27 @@ export default function FirmDashboard() {
                 </>
               )}
 
-              {/* Action Center */}
-              <p className={styles.sectionLabel} style={{ marginBottom: 16, marginTop: overviewStats ? 32 : 0 }}>Talent Workflow</p>
+              {/* Recruiter questions — each routes to where it's answered */}
+              <p className={styles.sectionLabel} style={{ marginBottom: 16, marginTop: overviewStats ? 32 : 0 }}>Where to Start</p>
               <div className={styles.quickActionGrid}>
                 <button
                   className={styles.quickActionCard}
-                  onClick={() => setActiveTab('registrants')}
+                  onClick={() => setActiveTab('talent')}
                   disabled={firmProfile?.tier === 'derivation'}
                 >
                   <span className={styles.quickActionIcon}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
+                      <circle cx="12" cy="8" r="6" /><path d="M8.21 13.89 7 23l5-3 5 3-1.21-9.12" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Latest Profiles</span>
-                  {firmProfile?.tier === 'derivation' ? (
-                    <span className={styles.quickActionDesc}>Convergence & Apex only</span>
-                  ) : overviewStats?.recentNames?.length ? (
-                    <span className={styles.quickActionRecentNames}>
-                      {overviewStats.recentNames.map((name, i) => (
-                        <span key={i} className={styles.quickActionRecentName}>{name}</span>
-                      ))}
-                    </span>
-                  ) : (
-                    <span className={styles.quickActionDesc}>Browse all registrant profiles</span>
-                  )}                </button>
+                  <span className={styles.quickActionTitle}>Who has elite math &amp; CP pedigree?</span>
+                  <span className={styles.quickActionDesc}>
+                    {firmProfile?.tier === 'derivation'
+                      ? 'Convergence & Apex only'
+                      : 'Finalists with JEE Advanced rank, olympiad honours and Codeforces signal.'}
+                  </span>
+                  <span className={styles.quickActionArrow}>Talent Pool</span>
+                </button>
 
                 <button
                   className={styles.quickActionCard}
@@ -1086,43 +1572,31 @@ export default function FirmDashboard() {
                 >
                   <span className={styles.quickActionIcon}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                      <path d="M3 21h18" /><path d="M5 21V7l8-4v18" /><path d="M19 21V11l-6-4" /><path d="M9 9h.01M9 13h.01M9 17h.01" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Institution Mix</span>
-                  {overviewStats?.sparkline ? (
-                    <span className={styles.sparklineWrap} aria-hidden="true">
-                      {(() => {
-                        const max = Math.max(...overviewStats.sparkline, 1);
-                        return overviewStats.sparkline.map((v, i) => (
-                          <span
-                            key={i}
-                            className={styles.sparklineBar}
-                            style={{ height: `${Math.max(3, Math.round((v / max) * 32))}px` }}
-                          />
-                        ));
-                      })()}
-                    </span>
-                  ) : (
-                    <span className={styles.quickActionDesc}>8-week community activity trend</span>
-                  )}                </button>
+                  <span className={styles.quickActionTitle}>Where is the top talent concentrated?</span>
+                  <span className={styles.quickActionDesc}>
+                    Top colleges ranked by their best finalist, plus the full institution mix.
+                  </span>
+                  <span className={styles.quickActionArrow}>Analytics</span>
+                </button>
 
                 <button
                   className={styles.quickActionCard}
-                  onClick={() => setActiveTab('leaderboard')}
-                  disabled={firmProfile?.tier === 'derivation'}
+                  onClick={() => setActiveTab('analytics')}
                 >
                   <span className={styles.quickActionIcon}>
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="12" width="5" height="9" rx="1" /><rect x="10" y="4" width="5" height="17" rx="1" /><rect x="17" y="8" width="5" height="13" rx="1" />
+                      <path d="M22 10 12 5 2 10l10 5 10-5z" /><path d="M6 12v5c0 1 2 3 6 3s6-2 6-3v-5" />
                     </svg>
                   </span>
-                  <span className={styles.quickActionTitle}>Live Leaderboard</span>
+                  <span className={styles.quickActionTitle}>Who&apos;s graduating soon?</span>
                   <span className={styles.quickActionDesc}>
-                    {firmProfile?.tier === 'derivation'
-                      ? 'Convergence & Apex only'
-                      : 'Opens once PRIOR results are verified'}
-                  </span>                </button>
+                    Class-year breakdown: full-time hires now versus internship pipeline.
+                  </span>
+                  <span className={styles.quickActionArrow}>Analytics</span>
+                </button>
               </div>
 
               {/* Shortlist banner */}
@@ -1146,34 +1620,9 @@ export default function FirmDashboard() {
               <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 32 }}>Contest Schedule</p>
               <FirmTimeline />
 
-              {/* Access Matrix */}
-              <p className={styles.sectionLabel} style={{ marginTop: 40, marginBottom: 0 }}>Access & Unlocks</p>
-              <div className={styles.accessMatrix}>
-                {ACCESS_MATRIX.map((item) => {
-                  const granted = firmProfile?.access?.[item.key];
-                  const isActive = Boolean(granted);
-                  return (
-                    <div key={item.key} className={`${styles.accessMatrixRow} ${isActive ? styles.accessMatrixRowActive : ''}`}>
-                      <span className={styles.accessMatrixLabel}>{item.label}</span>
-                      {isActive ? (
-                        <span className={styles.accessBadgeActive}>
-                          <span className={styles.accessBadgeDot} />
-                          Active
-                        </span>
-                      ) : (
-                        <span className={styles.accessBadgeLocked} title={item.unlockLabel || undefined}>
-                          <span className={styles.accessBadgeDotLocked} />
-                          Locked
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
               {/* Contact line */}
               <p className={styles.overviewContact}>
-                Dedicated Partner Support —{' '}
+                Dedicated Partner Support:{' '}
                 <a href="mailto:partnership@amsociety.in" className={styles.overviewContactLink}>
                   partnership@amsociety.in
                 </a>
@@ -1266,7 +1715,15 @@ export default function FirmDashboard() {
                     >
                       {talentRefreshLabel}
                     </button>
+                    <FinalistExport rows={filteredFinalists} user={user} />
                   </div>
+
+                  <p className={styles.talentLegend}>
+                    <span className={styles.talentLegendStar}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="#D4AF37" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                    </span>
+                    Tap the star to shortlist · open a candidate to add private notes and express interest to the organisers.
+                  </p>
 
                   {filteredFinalists.length === 0 ? (
                     <div className={styles.accessDenied}>
@@ -1286,9 +1743,19 @@ export default function FirmDashboard() {
                       {filteredFinalists.map((finalist) => (
                         <div
                           key={finalist.id}
-                          className={styles.candidateCard}
+                          className={`${styles.candidateCard} ${typeof finalist.rank === 'number' ? styles.candidateCardR2 : ''}`}
                           onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
                         >
+                          <button
+                            className={`${styles.candidateStar} ${starred.has(finalist.id) ? styles.candidateStarActive : ''}`}
+                            onClick={(e) => toggleStar(finalist.id, e)}
+                            title={starred.has(finalist.id) ? 'Remove from shortlist' : 'Add to shortlist'}
+                            aria-label="Shortlist candidate"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill={starred.has(finalist.id) ? '#D4AF37' : 'none'} stroke={starred.has(finalist.id) ? '#D4AF37' : '#6b6560'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                          </button>
                           {finalist.rank != null && (
                             <span className={styles.candidateRank}>#{finalist.rank}</span>
                           )}
@@ -1297,6 +1764,23 @@ export default function FirmDashboard() {
                           {finalist.round && (
                             <span className={styles.candidateRoundBadge} data-round={finalist.round}>
                               {finalist.round.toUpperCase()}
+                            </span>
+                          )}
+                          {finalist.assessment && (() => {
+                            const a = finalist.assessment;
+                            const bits = [];
+                            if (a.jeeAdvRank) bits.push(`JEE Adv #${a.jeeAdvRank}`);
+                            if (a.olympiad) bits.push(a.olympiad);
+                            if (!bits.length && a.cpQuant) bits.push(a.cpQuant);
+                            return bits.length ? (
+                              <p className={styles.candidateAssessment} title={bits.join(' · ')}>
+                                {bits.slice(0, 2).join('  ·  ')}
+                              </p>
+                            ) : null;
+                          })()}
+                          {finalist.assessment?.interviews && (
+                            <span className={styles.candidateIntel} title={finalist.assessment.interviews}>
+                              {finalist.assessment.interviews}
                             </span>
                           )}
                           <div className={styles.candidateActions}>
@@ -1331,11 +1815,11 @@ export default function FirmDashboard() {
                                       </button>
                                     )}
                                     {!finalist.resumeUrl && !finalist.transcriptUrl && (
-                                      <span className={styles.docBtnLocked}>DOCUMENTS — NOT PROVIDED</span>
+                                      <span className={styles.docBtnLocked}>DOCUMENTS · NOT PROVIDED</span>
                                     )}
                                   </>
                                 ) : (
-                                  <span className={styles.docBtnLocked}>DOCUMENTS — LOCKED</span>
+                                  <span className={styles.docBtnLocked}>DOCUMENTS · LOCKED</span>
                                 )}
                                 {finalistsAccess?.linkedinAccess ? (
                                   finalist.linkedIn && (
@@ -1352,7 +1836,7 @@ export default function FirmDashboard() {
                                     </button>
                                   )
                                 ) : (
-                                  <span className={styles.docBtnLocked}>LINKEDIN — LOCKED</span>
+                                  <span className={styles.docBtnLocked}>LINKEDIN · LOCKED</span>
                                 )}
                               </>
                             )}
@@ -1779,20 +2263,12 @@ export default function FirmDashboard() {
                         onChange={(e) => setLeaderboardRound(e.target.value)}
                         aria-label="Select leaderboard round"
                       >
-                        <option value="round1">Round 1 — PRIOR</option>
-                        <option value="round2">Round 2 — POSTERIOR</option>
+                        <option value="round2">Round 2 · Finalists (POSTERIOR)</option>
+                        <option value="round1">Round 1 · Screening (PRIOR)</option>
                       </select>
                     </div>
 
-                    {leaderboardRound === 'round2' ? (
-                  <div className={styles.lockedCard}>
-                    <div className={styles.lockedCardIcon}><ClockGlyph size={24} /></div>
-                    <p className={styles.lockedCardTitle}>Live on 23 June 2026</p>
-                    <p className={styles.lockedCardText}>
-                      Round 2 — POSTERIOR standings will be displayed here by 23 June 2026.
-                    </p>
-                  </div>
-                ) : new Date() < new Date('2026-05-23') ? (
+                    {leaderboardRound === 'round1' && new Date() < new Date('2026-05-23') ? (
                   <div className={styles.lockedCard}>
                     <div className={styles.lockedCardIcon}><ClockGlyph size={24} /></div>
                     <p className={styles.lockedCardTitle}>Live on 23 May 2026</p>
@@ -1842,7 +2318,9 @@ export default function FirmDashboard() {
                     <div className={styles.leaderboardHeader}>
                       <div className={styles.leaderboardMeta}>
                         <span className={styles.liveIndicator} />
-                        <span className={styles.leaderboardTitle}>PRIOR — STANDINGS</span>
+                        <span className={styles.leaderboardTitle}>
+                          {leaderboardRound === 'round2' ? 'ROUND 2 · FINALIST STANDINGS' : 'ROUND 1 · SCREENING STANDINGS'}
+                        </span>
                         {leaderboardData?.updatedAt && (
                           <span className={styles.leaderboardUpdated}>
                             Last updated:{' '}
@@ -2115,6 +2593,8 @@ export default function FirmDashboard() {
                     </div>
                   )}
 
+                  <AssessmentSection assessment={selectedLeaderboardRegistrant.assessment} />
+
                   <CandidatePipelineSection
                     candidateId={selectedLeaderboardRegistrant.id}
                     entry={pipeline[selectedLeaderboardRegistrant.id]}
@@ -2133,190 +2613,40 @@ export default function FirmDashboard() {
 
           {/* ── ANALYTICS TAB ── */}
           {activeTab === 'analytics' && (
-            <div>
-              {analyticsLoading ? (
-                <div className={styles.skeletonAnalyticsWrap} aria-label="Loading analytics">
-                  <div className={styles.skeletonStatsGrid}>
-                    <div className={styles.skeletonStatCard}>
-                      <SkeletonLine className={styles.skeletonLineSub} style={{ width: '120px' }} />
-                      <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '80px' }} />
-                    </div>
-                    <div className={styles.skeletonStatCard}>
-                      <SkeletonLine className={styles.skeletonLineSub} style={{ width: '150px' }} />
-                      <SkeletonLine className={styles.skeletonLineTitle} style={{ width: '60px' }} />
-                    </div>
+            <div className={styles.analyticsAccordion}>
+              {[
+                { ui: 'round2', api: 'posterior', label: 'Round 2 · Finalists', sub: 'The finalists who advanced (POSTERIOR), heading to Round 3', reserved: true },
+                { ui: 'round1', api: 'prior', label: 'Round 1 · Screening', sub: 'The full opening applicant ranklist (PRIOR)', reserved: false },
+              ].map((r) => {
+                const open = analyticsOpen[r.ui];
+                return (
+                  <div key={r.ui} className={styles.analyticsRound}>
+                    <button
+                      type="button"
+                      className={`${styles.analyticsRoundHeader} ${open ? styles.analyticsRoundHeaderOpen : ''}`}
+                      onClick={() => toggleAnalyticsRound(r.ui)}
+                      aria-expanded={open}
+                    >
+                      <span className={styles.analyticsRoundHeaderText}>
+                        <span className={styles.analyticsRoundLabel}>{r.label}</span>
+                        <span className={styles.analyticsRoundSub}>{r.sub}</span>
+                      </span>
+                      <svg className={`${styles.analyticsChevron} ${open ? styles.analyticsChevronOpen : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                    {open && (
+                      <div className={styles.analyticsRoundBody}>
+                        <AnalyticsRoundPanel
+                          data={analyticsByRound[r.api]}
+                          loading={analyticsLoadingRound[r.api]}
+                          showReservedPosterior={r.reserved}
+                        />
+                      </div>
+                    )}
                   </div>
-                  <div className={styles.skeletonChartCard}>
-                    <SkeletonLine className={styles.skeletonLineSub} style={{ width: '240px' }} />
-                    <div className={styles.skeletonChartArea} />
-                  </div>
-                </div>
-              ) : analyticsData ? (
-                <>
-                  <div className={styles.analyticsStatsGrid}>
-                    {(() => {
-                      const talentPoolSize = (analyticsData.institutions || []).reduce((a, b) => a + b.count, 0);
-                      const institutionsCount = (analyticsData.institutions || []).length;
-                      const avgPerInstitution = institutionsCount ? (talentPoolSize / institutionsCount).toFixed(1) : '0.0';
-
-                      return [
-                        { label: 'Talent Pool Size', value: talentPoolSize },
-                        { label: 'Community Partners', value: FIRM_COMMUNITY_PARTNERS_LABEL },
-                        { label: 'Avg Talent / Institution', value: avgPerInstitution },
-                      ].map((s) => (
-                        <div key={s.label} className={`${styles.statCard} ${styles.analyticsStatCard}`}>
-                          <span className={styles.statLabel}>{s.label}</span>
-                          <span className={styles.statValue}>{s.value}</span>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-
-                  {chartData.length > 0 ? (
-                    <div className={styles.chartCard}>
-                      <p className={styles.chartTitle}>Talent Pool by Institution (Top 15)</p>
-                      <RechartsComponents>
-                        {({ BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid }) => (
-                          <div className={styles.chartWrap}>
-                            <ResponsiveContainer width="100%" height={340}>
-                              <BarChart
-                                data={chartData}
-                                margin={{ top: 4, right: 16, left: -4, bottom: 110 }}
-                                barCategoryGap="35%"
-                              >
-                                <defs>
-                                  <linearGradient id="firmAnalyticsBarGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#D4AF37" stopOpacity={0.95} />
-                                    <stop offset="100%" stopColor="#D4AF37" stopOpacity={0.22} />
-                                  </linearGradient>
-                                </defs>
-
-                                <CartesianGrid
-                                  strokeDasharray="3 3"
-                                  stroke="rgba(255,255,255,0.04)"
-                                  vertical={false}
-                                />
-                                <XAxis
-                                  dataKey="name"
-                                  tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
-                                  tickLine={false}
-                                  axisLine={false}
-                                  angle={-38}
-                                  textAnchor="end"
-                                  interval={0}
-                                  height={92}
-                                  tickFormatter={(value) => truncateInstitutionName(value)}
-                                />
-                                <YAxis
-                                  tick={{ fill: LABEL_COLOR, fontSize: 10, fontFamily: 'var(--font-mono)' }}
-                                  tickLine={false}
-                                  axisLine={false}
-                                  allowDecimals={false}
-                                  domain={[0, 'auto']}
-                                />
-                                <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(212,175,55,0.04)' }} />
-                                <Bar dataKey="count" fill="url(#firmAnalyticsBarGradient)" maxBarSize={52} radius={[4, 4, 0, 0]} />
-                              </BarChart>
-                            </ResponsiveContainer>
-                          </div>
-                        )}
-                      </RechartsComponents>
-                    </div>
-                  ) : (
-                    <div className={styles.accessDenied}>
-                      <p className={styles.accessDeniedTitle}>Talent pool analytics will appear here</p>
-                      <p className={styles.accessDeniedText}>
-                        Institution distribution will populate once candidates advance past PRIOR into the Talent Pool.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className={styles.analyticsChartsGrid}>
-                    <div className={styles.chartCard}>
-                      <p className={styles.chartTitle}>Graduation Year</p>
-                      {gradYearChartData.length > 0 ? (
-                        <>
-                          <RechartsComponents>
-                            {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
-                              <div className={styles.chartWrap}>
-                                <ResponsiveContainer width="100%" height={240}>
-                                  <PieChart>
-                                    <Pie data={gradYearChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={92} paddingAngle={2} stroke="none">
-                                      {gradYearChartData.map((entry, i) => (
-                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip content={<ChartTooltip />} />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                            )}
-                          </RechartsComponents>
-                          <div className={styles.chartLegend}>
-                            {gradYearChartData.map((entry, i) => (
-                              <span key={entry.name} className={styles.legendItem}>
-                                <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                {entry.name} · {entry.value}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <p className={styles.chartEmptyNote}>No graduation-year data yet.</p>
-                      )}
-                    </div>
-
-                    <div className={styles.chartCard}>
-                      <p className={styles.chartTitle}>Branch Mix (Top 8)</p>
-                      {branchChartData.length > 0 ? (
-                        <>
-                          <RechartsComponents>
-                            {({ PieChart, Pie, Cell, Tooltip, ResponsiveContainer }) => (
-                              <div className={styles.chartWrap}>
-                                <ResponsiveContainer width="100%" height={240}>
-                                  <PieChart>
-                                    <Pie data={branchChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={56} outerRadius={92} paddingAngle={2} stroke="none">
-                                      {branchChartData.map((entry, i) => (
-                                        <Cell key={entry.name} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                                      ))}
-                                    </Pie>
-                                    <Tooltip content={<ChartTooltip />} />
-                                  </PieChart>
-                                </ResponsiveContainer>
-                              </div>
-                            )}
-                          </RechartsComponents>
-                          <div className={styles.chartLegend}>
-                            {branchChartData.map((entry, i) => (
-                              <span key={entry.name} className={styles.legendItem}>
-                                <span className={styles.legendSwatch} style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                                {entry.name} · {entry.value}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      ) : (
-                        <p className={styles.chartEmptyNote}>No branch data yet.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={`${styles.chartCard} ${styles.reservedChartCard}`}>
-                    <div className={styles.reservedChartIcon}><ClockGlyph size={26} /></div>
-                    <p className={styles.chartTitle}>Posterior Rank Distribution</p>
-                    <p className={styles.reservedChartText}>
-                      Score and rank spread from the POSTERIOR round will appear here once results are verified.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className={styles.accessDenied}>
-                  <p className={styles.accessDeniedTitle}>Analytics unavailable</p>
-                  <p className={styles.accessDeniedText}>
-                    Could not load analytics data. Please try refreshing.
-                  </p>
-                </div>
-              )}
+                );
+              })}
             </div>
           )}
         </main>
@@ -2345,7 +2675,7 @@ export default function FirmDashboard() {
               )}
               {selectedFinalist.rank != null && (
                 <div className={styles.panelSection}>
-                  <p className={styles.panelLabel}>PRIOR Rank</p>
+                  <p className={styles.panelLabel}>Round 2 Rank</p>
                   <p className={styles.panelValue} style={{ color: '#D4AF37' }}>#{selectedFinalist.rank}</p>
                 </div>
               )}
@@ -2381,6 +2711,7 @@ export default function FirmDashboard() {
                   </p>
                 </div>
               )}
+              <AssessmentSection assessment={selectedFinalist.assessment} inset />
               <div className={styles.panelDivider} />
               {isAdvancedCandidate(selectedFinalist) && (
                 <>
@@ -2394,7 +2725,7 @@ export default function FirmDashboard() {
                     </button>
                   ) : (
                     <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center' }}>
-                      RESUME — {finalistsAccess?.resumeDownload ? 'NOT PROVIDED' : 'LOCKED'}
+                      RESUME · {finalistsAccess?.resumeDownload ? 'NOT PROVIDED' : 'LOCKED'}
                     </span>
                   )}
                   {selectedFinalist.transcriptUrl ? (
@@ -2407,7 +2738,7 @@ export default function FirmDashboard() {
                     </button>
                   ) : (
                     <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>
-                      TRANSCRIPT — NOT PROVIDED
+                      TRANSCRIPT · NOT PROVIDED
                     </span>
                   )}
                 </>

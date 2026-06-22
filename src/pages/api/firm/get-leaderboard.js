@@ -11,6 +11,7 @@
 import { admin, db } from '../../../lib/firebaseAdmin';
 import logger, { genReqId } from '../../../utils/logger';
 import { createFirmCandidateToken } from '../../../lib/firmCandidateToken';
+import { loadAssessmentMaps, getAssessment } from '../../../lib/assessmentData';
 import fs from 'fs';
 import path from 'path';
 
@@ -96,34 +97,12 @@ export default async function handler(req, res) {
     });
   }
 
+  // Which round's standings to return. 'prior' (default) reads the PRIOR ranklist;
+  // 'posterior' reads the POSTERIOR ranklist (order = rank, enriched from registrants).
+  const round = req.body?.round === 'posterior' ? 'posterior' : 'prior';
+
   try {
-    // Read and parse the CSV file
-    const csvPath = path.join(process.cwd(), "AMS Derive'26 PRIOR Ranklist.csv");
-    if (!fs.existsSync(csvPath)) {
-      throw new Error('PRIOR Ranklist CSV file not found on server.');
-    }
-
-    const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
-    const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
-
-    if (lines.length <= 1) {
-      throw new Error('CSV file is empty or missing headers.');
-    }
-
-    const standingsRaw = [];
-    for (let i = 1; i < lines.length; i++) {
-      const parts = parseCsvLine(lines[i]);
-      if (parts.length >= 4) {
-        standingsRaw.push({
-          rank: parseInt(parts[0], 10),
-          name: parts[1],
-          university: parts[2],
-          graduationYear: parseInt(parts[3], 10)
-        });
-      }
-    }
-
-    // Fetch all approved registrants who consented to share data
+    // Fetch all approved registrants who consented to share data (shared by both rounds)
     const registrantsSnap = await db.collection('registrants')
       .where('status', '==', 'approved')
       .where('dataConsent', '==', true)
@@ -133,6 +112,7 @@ export default async function handler(req, res) {
     const registrantsMap = new Map();
     const { resumeDownload, linkedinAccess, emailAccess, finalistProfiles } = firmData.access || {};
     const resumeUnlocked = Date.now() >= new Date('2026-05-23').getTime();
+    const assessmentMaps = loadAssessmentMaps();
 
     registrantsSnap.forEach((doc) => {
       const d = doc.data();
@@ -165,20 +145,74 @@ export default async function handler(req, res) {
         entry.email = d.email || null;
       }
 
+      const assessment = getAssessment(assessmentMaps, d.fullName, d.email);
+      if (assessment) entry.assessment = assessment;
+
       registrantsMap.set(nameKey, entry);
     });
 
-    // Manually add Rakshit Ranka at rank 151 — not present in the PRIOR CSV.
-    // University / grad year / profile are pulled from his registrant record,
-    // matched by name exactly like every other standings row below.
-    const RAKSHIT_NAME = 'Rakshit Ranka';
-    const rakshitMatch = registrantsMap.get(RAKSHIT_NAME.toLowerCase());
-    standingsRaw.push({
-      rank: 151,
-      name: RAKSHIT_NAME,
-      university: rakshitMatch?.university || '',
-      graduationYear: rakshitMatch?.graduationYear || null,
-    });
+    const standingsRaw = [];
+
+    if (round === 'posterior') {
+      // POSTERIOR ranklist: 'Name,CodeforcesHandle' rows, NO header, order = final rank.
+      // University / grad year are pulled from the matched registrant record.
+      const csvPath = path.join(process.cwd(), 'posterior-ranklist', 'posterior-ranklist-v1.1.csv');
+      if (!fs.existsSync(csvPath)) {
+        throw new Error('POSTERIOR Ranklist CSV file not found on server.');
+      }
+      const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
+      const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+
+      lines.forEach((line, idx) => {
+        const parts = parseCsvLine(line);
+        const name = parts[0];
+        if (!name) return;
+        const match = registrantsMap.get(name.trim().toLowerCase()) || null;
+        standingsRaw.push({
+          rank: idx + 1,
+          name,
+          university: match?.university || '',
+          graduationYear: match?.graduationYear || null,
+        });
+      });
+    } else {
+      // PRIOR ranklist: 'Rank,Name,University,GraduationYear' with a header row.
+      const csvPath = path.join(process.cwd(), "AMS Derive'26 PRIOR Ranklist.csv");
+      if (!fs.existsSync(csvPath)) {
+        throw new Error('PRIOR Ranklist CSV file not found on server.');
+      }
+
+      const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
+      const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+
+      if (lines.length <= 1) {
+        throw new Error('CSV file is empty or missing headers.');
+      }
+
+      for (let i = 1; i < lines.length; i++) {
+        const parts = parseCsvLine(lines[i]);
+        if (parts.length >= 4) {
+          standingsRaw.push({
+            rank: parseInt(parts[0], 10),
+            name: parts[1],
+            university: parts[2],
+            graduationYear: parseInt(parts[3], 10)
+          });
+        }
+      }
+
+      // Manually add Rakshit Ranka at rank 151 — not present in the PRIOR CSV.
+      // University / grad year / profile are pulled from his registrant record,
+      // matched by name exactly like every other standings row below.
+      const RAKSHIT_NAME = 'Rakshit Ranka';
+      const rakshitMatch = registrantsMap.get(RAKSHIT_NAME.toLowerCase());
+      standingsRaw.push({
+        rank: 151,
+        name: RAKSHIT_NAME,
+        university: rakshitMatch?.university || '',
+        graduationYear: rakshitMatch?.graduationYear || null,
+      });
+    }
 
     // Map each standings row to its registrant details (if available)
     const standings = standingsRaw.map(row => {
@@ -196,13 +230,14 @@ export default async function handler(req, res) {
     logger.info('firms', 'leaderboard_fetched_csv', {
       reqId,
       actorId: uid,
-      detail: { rowCount: standings.length, matchedCount: standings.filter(s => s.registrant !== null).length },
+      detail: { round, rowCount: standings.length, matchedCount: standings.filter(s => s.registrant !== null).length },
       status: 'ok',
       durationMs: Date.now() - handlerStart,
     });
 
     return res.status(200).json({
       standings,
+      round,
       updatedAt: new Date().toISOString(),
       access: {
         resumeDownload: !!resumeDownload,

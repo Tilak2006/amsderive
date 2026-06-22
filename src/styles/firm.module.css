@@ -932,6 +932,7 @@
   font-weight: 700;
   color: #f0ede6;
   margin: 0 0 4px;
+  padding-left: 30px;
   padding-right: 40px;
 }
 
@@ -3162,4 +3163,591 @@
   color: #8a847a;
   margin: 0;
   max-width: 60ch;
+}
+
+/* ── Analytics round accordion (Round 2 / Round 1) ── */
+.analyticsAccordion {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.analyticsRound {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.02);
+  overflow: hidden;
+}
+
+.analyticsRoundHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.18s ease;
+}
+
+.analyticsRoundHeader:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.analyticsRoundHeaderOpen {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.analyticsRoundHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.analyticsRoundLabel {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #D4AF37;
+}
+
+.analyticsRoundSub {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: #8a847a;
+}
+
+.analyticsChevron {
+  flex-shrink: 0;
+  color: #6b6560;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.analyticsChevronOpen {
+  transform: rotate(180deg);
+  color: #D4AF37;
+}
+
+.analyticsRoundBody {
+  padding: 22px;
+}
+
+/* Charts already carry their own bottom margin; drop it on the last one inside a round body. */
+.analyticsRoundBody > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Analytics chart drill-down (who's in this bucket) ── */
+.drillCard {
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.12);
+  border-radius: 2px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.drillHint {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: #6b6560;
+}
+
+.drillHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.drillTitle {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #efe9df;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drillCount {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #D4AF37;
+}
+
+.drillClose {
+  flex-shrink: 0;
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: #6b6560;
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  transition: color 0.15s ease;
+}
+
+.drillClose:hover {
+  color: #D4AF37;
+}
+
+.drillList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 6px 28px;
+}
+
+.drillRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.drillRowTop {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  min-width: 0;
+}
+
+.drillRank {
+  flex-shrink: 0;
+  width: 40px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #D4AF37;
+}
+
+.drillName {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: 0.9rem;
+  color: #d8d2c8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drillMeta {
+  display: block;
+  padding-left: 49px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.02em;
+  color: #8a847a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Drill result block sitting inside the distribution card, under the chart. */
+.drillInline {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* View-by header (title + dropdown) for the distribution card. */
+.analyticsViewHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* ── Top Finalists by College (posterior rank card) ── */
+.collegeRankList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: none;
+}
+
+.collegeRankRow {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+@media (hover: hover) {
+  .collegeRankRow:hover {
+    background: rgba(212, 175, 55, 0.04);
+  }
+}
+
+.collegeRankRowActive {
+  background: rgba(212, 175, 55, 0.07);
+}
+
+.collegeRankBest {
+  flex-shrink: 0;
+  width: 46px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #D4AF37;
+}
+
+.collegeRankName {
+  font-family: var(--font-serif);
+  font-size: 0.95rem;
+  color: #d8d2c8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collegeRankCount {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a847a;
+}
+
+/* ── Quant Assessment (placement form enrichment) ── */
+.assessmentSection {
+  margin-top: 18px;
+  padding: 16px 20px 0;
+  border-top: 1px solid rgba(212, 175, 55, 0.14);
+}
+
+/* Inside a .panelBody (already padded 20px) — cancel the doubled gutter so the
+   section content lines up with the other panel sections. */
+.assessmentSectionInset {
+  margin-left: -20px;
+  margin-right: -20px;
+}
+
+.assessmentHeading {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #D4AF37;
+  margin: 0 0 12px;
+}
+
+.assessmentRow {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.assessmentRow:last-child {
+  border-bottom: none;
+}
+
+.assessmentLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b6560;
+}
+
+.assessmentValue {
+  font-family: var(--font-serif);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  color: #d8d2c8;
+  word-break: break-word;
+}
+
+/* Talent-pool card preview line */
+.candidateAssessment {
+  margin: 8px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  color: #a39b90;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Industry interview track-record chip (talent card) */
+.candidateIntel {
+  display: inline-block;
+  margin-top: 8px;
+  max-width: 100%;
+  padding: 4px 9px;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #D4AF37;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Round 2 (ranked posterior finalists) — a subtle gold accent */
+.candidateCardR2 {
+  border-color: rgba(212, 175, 55, 0.2);
+  box-shadow: inset 2px 0 0 rgba(212, 175, 55, 0.55);
+}
+
+@media (hover: hover) {
+  .candidateCardR2:hover {
+    border-color: rgba(212, 175, 55, 0.32);
+    box-shadow: inset 2px 0 0 rgba(212, 175, 55, 0.7);
+  }
+}
+
+/* ── Tab intro helper line ── */
+.tabIntro {
+  margin: 0 0 22px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: #8a847a;
+}
+
+/* ── Overview lead CTA (start here) ── */
+.overviewLead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 24px 0 8px;
+  padding: 20px 24px;
+  background: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+@media (hover: hover) {
+  .overviewLead:hover {
+    background: rgba(212, 175, 55, 0.08);
+    border-color: rgba(212, 175, 55, 0.5);
+  }
+}
+
+.overviewLeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.overviewLeadTitle {
+  font-family: var(--font-serif);
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: #f0ede6;
+}
+
+.overviewLeadSub {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: #a39b90;
+}
+
+.overviewLeadCta {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0a0a0a;
+  background: #D4AF37;
+  padding: 11px 18px;
+  border-radius: 3px;
+}
+
+/* ── Shortlist star on talent cards ── */
+.candidateStar {
+  position: absolute;
+  top: 13px;
+  left: 12px;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 2;
+  transition: background 0.12s ease;
+}
+
+@media (hover: hover) {
+  .candidateStar:hover {
+    background: rgba(212, 175, 55, 0.1);
+  }
+}
+
+.candidateStarActive {
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* ── Talent pool action legend ── */
+.talentLegend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 16px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  color: #6b6560;
+}
+
+.talentLegendStar {
+  display: inline-flex;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+/* ── Finalist CSV export (column picker) ── */
+.exportWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.exportPanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 30;
+  width: 300px;
+  background: #0e0e0e;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 4px;
+  padding: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.exportPanelTitle {
+  margin: 0 0 12px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #D4AF37;
+}
+
+.exportFields {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.exportField {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: #d8d2c8;
+  cursor: pointer;
+}
+
+.exportField input {
+  accent-color: #D4AF37;
+  cursor: pointer;
+}
+
+.exportPanelFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.exportMeta {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  color: #6b6560;
+}
+
+.exportDownload {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #0a0a0a;
+  background: #D4AF37;
+  border: none;
+  border-radius: 3px;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.exportDownload:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Export error note */
+.exportErrorNote {
+  margin: 12px 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  line-height: 1.5;
+  color: #d98b7a;
 }
