@@ -42,7 +42,7 @@ export default function RulesPage() {
                 Full-time quants or traders are not eligible. This circuit is designed for students and recent graduates only.
               </li>
               <li className={styles.rulesListItem}>
-                Rounds 1 (PRIOR) and 2 (POSTERIOR) are strictly individual. Round 3 (CONVERGENCE) is team-based — teams are formed on-site on the day of the finals. Participants do not choose their own teams.
+                Rounds 1 (PRIOR), 2 (POSTERIOR), and 3 (CONVERGENCE) are strictly individual. Round 3 is solved on-site at the finals.
               </li>
               <li className={styles.rulesListItem}>
                 Registration closes on 23 May 2026 at 2:00 PM IST or when 10,000 spots are filled, whichever comes first.
@@ -137,7 +137,7 @@ export default function RulesPage() {
                 Attendance at the offline finals is mandatory. Participants who do not confirm within the stipulated window or fail to attend will forfeit their spot. No remote participation.
               </li>
               <li className={styles.rulesListItem}>
-                Teams are formed on-site on the day of the finals. Participants do not choose their teams. Pre-coordination with other finalists on team composition is not permitted.
+                The finals syllabus covers puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.
               </li>
               <li className={styles.rulesListItem}>
                 Problems are open-ended, real-world, and deliberately ambiguous — co-designed with partner firms. There is no single correct answer. Evaluation is based on problem framing, reasoning depth, execution, and communication.

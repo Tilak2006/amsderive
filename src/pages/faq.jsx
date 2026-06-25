@@ -17,8 +17,8 @@ const FAQS = [
         a: 'Full-time employed quants, traders, or financial professionals are not eligible, regardless of educational qualifications.',
       },
       {
-        q: 'Is there a team size requirement?',
-        a: 'Rounds 1 (PRIOR) and 2 (POSTERIOR) are individual. Round 3 (CONVERGENCE) is team-based — teams of exactly 3 members. Team formation details will be communicated to qualifiers.',
+        q: 'Is the contest individual or team-based?',
+        a: 'All three rounds are individual. Round 3 (CONVERGENCE) is solved on-site at the finals, with a syllabus covering puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.',
       },
     ],
   },
@@ -48,7 +48,7 @@ const FAQS = [
     items: [
       {
         q: 'What is the structure of AMS Derive?',
-        a: 'The contest has three rounds: PRIOR (Round 1, May 23 — individual, Codeforces Gym, ICPC format), POSTERIOR (Round 2, June 21 — individual), and CONVERGENCE (Round 3, July 11 — teams of 3, offline at IIT Bombay).',
+        a: 'The contest has three rounds: PRIOR (Round 1, May 23 — individual, Codeforces Gym, ICPC format), POSTERIOR (Round 2, June 21 — individual), and CONVERGENCE (Round 3, July 11 — individual, offline at IIT Bombay).',
       },
       {
         q: 'What topics does the contest cover?',

@@ -20,7 +20,7 @@ const ROUNDS = [
     title: 'CONVERGENCE',
     tags: ['Invite-Only', 'IIT', 'Live Duel'],
     what: 'Finals',
-    text: 'Round 3 is the prestige moment. 30–50 finalists meet at IIT, form teams on-site, solve a real derivation problem, and the top 2 enter a live 1v1 Derivation Duel.',
+    text: 'Round 3 is the prestige moment. 30–50 finalists meet at IIT to solve from a syllabus of puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions. The top 2 enter a live 1v1 Derivation Duel.',
   },
 ];
 
