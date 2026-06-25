@@ -548,22 +548,22 @@
 .prepGuideConvergence {
   margin-top: 16px;
   background:
-    linear-gradient(180deg, rgba(90, 140, 200, 0.07), rgba(90, 140, 200, 0.018)),
+    linear-gradient(180deg, rgba(200, 70, 60, 0.07), rgba(200, 70, 60, 0.018)),
     #0e0e0e;
-  border-color: rgba(90, 140, 200, 0.18);
+  border-color: rgba(200, 70, 60, 0.18);
 }
 
 .prepGuideConvergence[open] {
-  border-color: rgba(90, 140, 200, 0.34);
-  box-shadow: 0 0 28px rgba(90, 140, 200, 0.08);
+  border-color: rgba(200, 70, 60, 0.34);
+  box-shadow: 0 0 28px rgba(200, 70, 60, 0.08);
 }
 
 .convergenceEyebrow {
-  color: rgba(120, 165, 215, 0.75);
+  color: rgba(215, 95, 85, 0.75);
 }
 
 .convergenceCard {
-  border-color: rgba(90, 140, 200, 0.1);
+  border-color: rgba(200, 70, 60, 0.1);
 }
 
 .convergenceExampleLabel {
@@ -572,7 +572,7 @@
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(120, 165, 215, 0.6);
+  color: rgba(215, 95, 85, 0.6);
   margin: 14px 0 8px;
 }
 
@@ -588,19 +588,19 @@
 
 .convergenceExample::before {
   content: '›';
-  color: rgba(120, 165, 215, 0.55);
+  color: rgba(215, 95, 85, 0.55);
   position: absolute;
   left: 0;
   top: 0;
 }
 
 .convergenceNoteLabel {
-  background: rgba(90, 140, 200, 0.88);
+  background: rgba(200, 70, 60, 0.88);
 }
 
 .convergencePill {
-  border-color: rgba(90, 140, 200, 0.16);
-  color: #a8b6c8;
+  border-color: rgba(200, 70, 60, 0.16);
+  color: #c8a8a4;
 }
 
 /* ── Responsive ── */
