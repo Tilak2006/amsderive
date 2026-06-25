@@ -586,7 +586,10 @@ const SyllabusSection = () => {
               <span className={`${styles.importantNoteLabel} ${styles.convergenceNoteLabel}`}>Important Note</span>
               <p>
                 Convergence is solved individually, not in teams. Finalists are evaluated on adaptability, structured
-                reasoning, and modeling under uncertainty — not on memorised formulas.
+                reasoning, and modeling under uncertainty.
+              </p>
+              <p>
+                You may carry a one-page formula sheet into the finals.
               </p>
             </div>
           </div>
