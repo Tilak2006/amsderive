@@ -27,7 +27,7 @@ const ROUNDS = [
     what: 'Finals',
     badges: ['Invite-Only', 'IIT', '30–50 Finalists', '11 July 2026 Tentative'],
     body: 'Round 3 is the spectacle and prestige moment. Invite-only finalists meet at IIT, compete individually in an on-site Codeforces contest, and the top 2 advance to a live 1v1 round on Codeforces.',
-    evaluated: ['On-site Codeforces contest', 'Individual', 'Live 1v1 duel'],
+    evaluated: ['On-site Codeforces contest', 'Individual', 'Live 1v1 on Codeforces'],
   },
 ];
 
