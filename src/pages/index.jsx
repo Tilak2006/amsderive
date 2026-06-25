@@ -232,7 +232,7 @@ export default function LandingPage() {
                   "name": "What is the structure of AMS Derive 2026?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "AMS Derive 2026 is a three-round evaluation circuit: PRIOR (May 23, individual, Codeforces Gym, ICPC format), POSTERIOR (June 21, individual), and CONVERGENCE (July 11, teams of 3, offline finals at IIT Bombay)."
+                    "text": "AMS Derive 2026 is a three-round evaluation circuit: PRIOR (May 23, individual, Codeforces Gym, ICPC format), POSTERIOR (June 21, individual), and CONVERGENCE (July 11, individual, offline finals at IIT Bombay)."
                   }
                 },
                 {

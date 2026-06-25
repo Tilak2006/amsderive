@@ -30,7 +30,7 @@ const EVENTS = [
     date: 'July 11, 2026 (Tentative)',
     timestamp: new Date('2026-07-11'),
     title: 'Round 3 | CONVERGENCE',
-    desc: 'Invite-only finals at IIT. 30–50 finalists, teams formed on-site, real derivation problem, live 1v1 duel for the top 2.',
+    desc: 'Invite-only finals at IIT. 30–50 finalists, individual, real derivation problem, live 1v1 duel for the top 2.',
   },
 ];
 

@@ -239,7 +239,7 @@ const CONTEST_ROUNDS = [
     date: 'July 11, 2026',
     timestamp: new Date('2026-07-11'),
     title: 'Round 3 | CONVERGENCE',
-    desc: 'Teams of 3 · Offline at a prestigious IIT. Open-ended quant problems with partner firm evaluation.',
+    desc: 'Individual · Offline at a prestigious IIT. Open-ended quant problems with partner firm evaluation.',
   },
 ];
 

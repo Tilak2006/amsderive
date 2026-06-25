@@ -272,6 +272,102 @@ const posteriorNotRequired = [
   'advanced economics',
 ];
 
+// ── Round 3 · Convergence ──
+
+const convergenceTopics = [
+  {
+    name: 'Puzzles & Brain Teasers',
+    topics: [
+      'estimation and Fermi problems',
+      'logic and constraint puzzles',
+      'adversarial / strategic reasoning',
+      'structured simplification of open-ended questions',
+    ],
+    examples: [
+      'derive a result from first principles',
+      'reason about an underspecified setup',
+      'find the optimal strategy in a novel game',
+    ],
+  },
+  {
+    name: 'Probability & Expected Value',
+    topics: [
+      'conditional probability',
+      'linearity of expectation',
+      'variance & higher moments',
+      'distributions and tail behaviour',
+    ],
+    examples: [
+      'expected payoff of a strategy',
+      'probability of an outcome under uncertainty',
+      'comparing risky alternatives by EV',
+    ],
+  },
+  {
+    name: 'The Kelly Criterion',
+    topics: [
+      'optimal bet sizing',
+      'log-growth maximisation',
+      'edge vs. variance trade-offs',
+      'fractional Kelly and risk control',
+    ],
+    examples: [
+      'sizing a bet given edge and odds',
+      'long-run growth vs. drawdown reasoning',
+      'allocating across simultaneous bets',
+    ],
+  },
+  {
+    name: 'Random Walks & Stochastic Processes',
+    topics: [
+      'simple and biased random walks',
+      'hitting times and absorbing states',
+      'martingales & stopping times',
+      'Brownian motion intuition',
+    ],
+    examples: [
+      'probability of ruin',
+      'expected time to hit a boundary',
+      'drift vs. diffusion reasoning',
+    ],
+  },
+  {
+    name: 'Monte Carlo Simulation',
+    topics: [
+      'estimating quantities by sampling',
+      'convergence and error intuition',
+      'variance reduction ideas',
+      'when to simulate vs. derive in closed form',
+    ],
+    examples: [
+      'approximate a hard probability',
+      'estimate an expected value via sampling',
+      'reason about simulation accuracy',
+    ],
+  },
+  {
+    name: 'Bayesian Reasoning',
+    topics: [
+      "Bayes' theorem",
+      'priors, likelihoods & posteriors',
+      'belief updating from evidence',
+      'inference under noisy observations',
+    ],
+    examples: [
+      'update a belief after new data',
+      'identify the most likely hidden state',
+      'reason about reliability of a signal',
+    ],
+  },
+];
+
+const convergenceFormat = [
+  'Invite-only, on-site at IIT',
+  'Individual — solved alone, not in teams',
+  'Open-ended derivation problems',
+  'Top 2 advance to a live 1v1 Derivation Duel',
+];
+
 const SyllabusSection = () => {
   return (
     <section id="syllabus" className={styles.syllabusPage}>
@@ -427,6 +523,71 @@ const SyllabusSection = () => {
                   <span key={item} className={`${styles.focusPill} ${styles.posteriorPill}`}>{item}</span>
                 ))}
               </div>
+            </div>
+          </div>
+        </details>
+
+        {/* ── Round 3 · Convergence Syllabus ── */}
+        <details className={`${styles.prepGuide} ${styles.prepGuideConvergence}`}>
+          <summary className={styles.prepGuideSummary}>
+            <span className={styles.prepGuideSummaryCopy}>
+              <span className={`${styles.prepGuideEyebrow} ${styles.convergenceEyebrow}`}>Round 3 · CONVERGENCE</span>
+              <span className={styles.prepGuideTitle}>AMS Derive Convergence | Syllabus &amp; Scope</span>
+              <span className={styles.prepGuidePreview}>
+                Invite-only, on-site finals. Open-ended derivation problems across puzzles, probability, and stochastic reasoning.
+              </span>
+            </span>
+            <span className={styles.prepGuideToggle} aria-hidden="true" />
+          </summary>
+
+          <div className={styles.prepGuideBody}>
+            <div className={styles.prepGuideIntro}>
+              <p className={styles.prepLead}>
+                Convergence is the on-site final, solved individually. It covers puzzles, probability, the Kelly criterion,
+                random walks, Monte Carlo simulation, expected value, and Bayesian questions.
+              </p>
+              <p className={styles.prepEmphasis}>
+                Problems are open-ended — derivation and clear reasoning matter more than a single final number.
+              </p>
+              <div className={styles.focusGrid}>
+                {convergenceFormat.map((item) => (
+                  <span key={item} className={`${styles.focusPill} ${styles.convergencePill}`}>{item}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.prepBlock}>
+              <h2 className={styles.prepBlockTitle}>Topics &amp; Problem Areas</h2>
+              <div className={styles.prepTopicGrid}>
+                {convergenceTopics.map((group) => (
+                  <article key={group.name} className={`${styles.prepTopicCard} ${styles.convergenceCard}`}>
+                    <h3>{group.name}</h3>
+                    <ul>
+                      {group.topics.map((topic) => (
+                        <li key={topic}>{topic}</li>
+                      ))}
+                    </ul>
+                    {group.examples && (
+                      <>
+                        <p className={styles.convergenceExampleLabel}>Example areas</p>
+                        <ul>
+                          {group.examples.map((ex) => (
+                            <li key={ex} className={styles.convergenceExample}>{ex}</li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.importantNote}>
+              <span className={`${styles.importantNoteLabel} ${styles.convergenceNoteLabel}`}>Important Note</span>
+              <p>
+                Convergence is solved individually, not in teams. Finalists are evaluated on adaptability, structured
+                reasoning, and modeling under uncertainty — not on memorised formulas.
+              </p>
             </div>
           </div>
         </details>
