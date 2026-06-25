@@ -26,8 +26,8 @@ const ROUNDS = [
     name: 'CONVERGENCE',
     what: 'Finals',
     badges: ['Invite-Only', 'IIT', '30–50 Finalists', '11 July 2026 Tentative'],
-    body: 'Round 3 is the spectacle and prestige moment. Invite-only finalists meet at IIT, work individually on a real derivation problem, and the top 2 advance to a live 1v1 Derivation Duel.',
-    evaluated: ['Individual derivation', 'Real derivation problem', 'Live 1v1 duel'],
+    body: 'Round 3 is the spectacle and prestige moment. Invite-only finalists meet at IIT, compete individually in an on-site Codeforces contest, and the top 2 advance to a live 1v1 Derivation Duel.',
+    evaluated: ['On-site Codeforces contest', 'Individual', 'Live 1v1 duel'],
   },
 ];
 
@@ -57,7 +57,7 @@ const PHILOSOPHY = [
 ];
 
 const FINAL = [
-  '30–50 finalists are invited to IIT for an on-site final built around a real derivation problem.',
+  '30–50 finalists are invited to IIT for an on-site final run as a Codeforces contest.',
   'Finalists work individually and are evaluated on adaptability, structured reasoning, and modeling under uncertainty.',
   'The top 2 finalists enter a live 1v1 Derivation Duel — the final spectacle of AMS Derive 2026.',
   'The finals are designed as the prestige moment of the circuit, bringing together the strongest signal from PRIOR and POSTERIOR.',

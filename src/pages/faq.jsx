@@ -18,7 +18,7 @@ const FAQS = [
       },
       {
         q: 'Is the contest individual or team-based?',
-        a: 'All three rounds are individual. Round 3 (CONVERGENCE) is solved on-site at the finals, with a syllabus covering puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.',
+        a: 'All three rounds are individual. Round 3 (CONVERGENCE) is an on-site Codeforces contest at the finals, with a syllabus covering puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.',
       },
     ],
   },

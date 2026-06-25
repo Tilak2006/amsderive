@@ -281,7 +281,7 @@ const convergenceTopics = [
       'estimation and Fermi problems',
       'logic and constraint puzzles',
       'adversarial / strategic reasoning',
-      'structured simplification of open-ended questions',
+      'structured simplification of unfamiliar problems',
     ],
     examples: [
       'derive a result from first principles',
@@ -364,7 +364,7 @@ const convergenceTopics = [
 const convergenceFormat = [
   'Invite-only, on-site at IIT',
   'Individual — solved alone, not in teams',
-  'Open-ended derivation problems',
+  'Hosted on Codeforces (ICPC-style)',
   'Top 2 advance to a live 1v1 Derivation Duel',
 ];
 
@@ -534,7 +534,7 @@ const SyllabusSection = () => {
               <span className={`${styles.prepGuideEyebrow} ${styles.convergenceEyebrow}`}>Round 3 · CONVERGENCE</span>
               <span className={styles.prepGuideTitle}>AMS Derive Convergence | Syllabus &amp; Scope</span>
               <span className={styles.prepGuidePreview}>
-                Invite-only, on-site finals. Open-ended derivation problems across puzzles, probability, and stochastic reasoning.
+                Invite-only, on-site finals hosted on Codeforces. Problems span puzzles, probability, and stochastic reasoning.
               </span>
             </span>
             <span className={styles.prepGuideToggle} aria-hidden="true" />
@@ -543,11 +543,11 @@ const SyllabusSection = () => {
           <div className={styles.prepGuideBody}>
             <div className={styles.prepGuideIntro}>
               <p className={styles.prepLead}>
-                Convergence is the on-site final, solved individually. It covers puzzles, probability, the Kelly criterion,
-                random walks, Monte Carlo simulation, expected value, and Bayesian questions.
+                Convergence is the on-site final, solved individually as a Codeforces contest. It covers puzzles, probability,
+                the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.
               </p>
               <p className={styles.prepEmphasis}>
-                Problems are open-ended — derivation and clear reasoning matter more than a single final number.
+                Same Codeforces format as the earlier rounds — judged on accepted solutions, now at IIT.
               </p>
               <div className={styles.focusGrid}>
                 {convergenceFormat.map((item) => (

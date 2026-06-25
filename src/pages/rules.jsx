@@ -140,7 +140,7 @@ export default function RulesPage() {
                 The finals syllabus covers puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions.
               </li>
               <li className={styles.rulesListItem}>
-                Problems are open-ended, real-world, and deliberately ambiguous — co-designed with partner firms. There is no single correct answer. Evaluation is based on problem framing, reasoning depth, execution, and communication.
+                The finals run as a Codeforces contest, ICPC-style, with problems co-designed with partner firms. Evaluation is based on accepted solutions, reasoning depth, and execution under contest conditions.
               </li>
               <li className={styles.rulesListItem}>
                 Alongside the main evaluation, finalists can expect structured chess and poker sessions and dedicated networking with peers, the AMS team, and partner firm representatives.
