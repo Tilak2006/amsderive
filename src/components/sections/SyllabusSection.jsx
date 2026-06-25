@@ -365,7 +365,7 @@ const convergenceFormat = [
   'Invite-only, on-site at IIT',
   'Individual — solved alone, not in teams',
   'Hosted on Codeforces (ICPC-style)',
-  'Top 2 advance to a live 1v1 Derivation Duel',
+  'Top 2 advance to a live 1v1 round on Codeforces',
 ];
 
 const SyllabusSection = () => {

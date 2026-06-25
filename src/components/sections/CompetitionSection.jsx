@@ -18,9 +18,9 @@ const ROUNDS = [
   {
     num: '03',
     title: 'CONVERGENCE',
-    tags: ['Invite-Only', 'IIT', 'Live Duel'],
+    tags: ['Invite-Only', 'IIT', 'Live 1v1'],
     what: 'Finals',
-    text: 'Round 3 is the prestige moment. 30–50 finalists meet at IIT to solve from a syllabus of puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions. The top 2 enter a live 1v1 Derivation Duel.',
+    text: 'Round 3 is the prestige moment. 30–50 finalists meet at IIT to solve from a syllabus of puzzles, probability, the Kelly criterion, random walks, Monte Carlo simulation, expected value, and Bayesian questions. The top 2 advance to a live 1v1 round on Codeforces.',
   },
 ];
 
