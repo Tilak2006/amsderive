@@ -1761,11 +1761,8 @@ export default function FirmDashboard() {
                     <FinalistExport rows={filteredFinalists} allRows={finalists} user={user} />
                   </div>
 
-                  <p className={styles.talentLegend}>
-                    <span className={styles.talentLegendStar}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="#D4AF37" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                    </span>
-                    Tap the star to shortlist · open a candidate to add private notes and express interest to the organisers.
+                  <p className={styles.talentHint}>
+                    ★ Star to shortlist · click a card for full profile, notes and interest
                   </p>
 
                   {filteredFinalists.length === 0 ? (

@@ -897,11 +897,32 @@
 
 /* ── Talent Pool ── */
 .talentFilterBar {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(180px, 1fr) auto auto auto auto;
   gap: 12px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
+  margin-bottom: 8px;
   align-items: center;
+}
+
+@media (max-width: 1023px) {
+  .talentFilterBar {
+    grid-template-columns: 1fr 1fr;
+  }
+  .talentFilterBar > input {
+    grid-column: 1 / -1;
+  }
+}
+
+.talentHint {
+  display: block;
+  margin: 0 0 20px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--fp-text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .searchInput {
