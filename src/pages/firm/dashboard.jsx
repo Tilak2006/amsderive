@@ -105,6 +105,7 @@ function SortHeader({ label, sortKey, sort, onSort, className, style }) {
   const active = sort.key === sortKey;
   return (
     <th
+      scope="col"
       className={className}
       style={{ ...style, cursor: 'pointer', userSelect: 'none' }}
       onClick={() => onSort(sortKey)}
@@ -1403,6 +1404,13 @@ export default function FirmDashboard() {
     });
   }, [leaderboardData, leaderboardSearchName, leaderboardFilterUniversity, leaderboardFilterGradYear, leaderboardSort]);
 
+  const standingsCaption =
+    leaderboardRound === 'round3'
+      ? 'CONVERGENCE · FINAL STANDINGS'
+      : leaderboardRound === 'round2'
+        ? 'ROUND 2 · FINALIST STANDINGS'
+        : 'ROUND 1 · SCREENING STANDINGS';
+
   async function handleLogout() {
     try {
       await fetch('/api/auth/logout', {
@@ -2425,11 +2433,11 @@ export default function FirmDashboard() {
                     {/* Header bar */}
                     <div className={styles.leaderboardHeader}>
                       <div className={styles.leaderboardMeta}>
-                        <span className={styles.liveIndicator} />
+                        {leaderboardRound !== 'round3' && <span className={styles.liveIndicator} />}
                         <span className={styles.leaderboardTitle}>
-                          {leaderboardRound === 'round3' ? 'CONVERGENCE · FINAL STANDINGS' : leaderboardRound === 'round2' ? 'ROUND 2 · FINALIST STANDINGS' : 'ROUND 1 · SCREENING STANDINGS'}
+                          {standingsCaption}
                         </span>
-                        {leaderboardData?.updatedAt && (
+                        {leaderboardRound !== 'round3' && leaderboardData?.updatedAt && (
                           <span className={styles.leaderboardUpdated}>
                             Last updated:{' '}
                             {new Date(leaderboardData.updatedAt).toLocaleTimeString('en-IN', {
@@ -2519,29 +2527,40 @@ export default function FirmDashboard() {
                     ) : (
                       <div className={styles.leaderboardTableWrap}>
                         <table className={styles.leaderboardTable}>
+                          <caption className={styles.srOnly}>{standingsCaption}</caption>
                           <thead>
                             <tr className={styles.leaderboardThead}>
-                              <SortHeader label="Rank" sortKey="rank" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              <SortHeader label="Rank" sortKey="rank" sort={leaderboardSort} onSort={handleLeaderboardSort} className={`${styles.leaderboardTh} ${styles.numCell}`} />
                               <SortHeader label="Name" sortKey="name" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
                               <SortHeader label="Institution" sortKey="institution" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
-                              <SortHeader label="Grad Year" sortKey="gradYear" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              <SortHeader label="Grad Year" sortKey="gradYear" sort={leaderboardSort} onSort={handleLeaderboardSort} className={`${styles.leaderboardTh} ${styles.numCell}`} />
                             </tr>
                           </thead>
                           <tbody>
                             {filteredLeaderboardStandings.map((row, i) => {
                               const hasProfile = Boolean(row.registrant);
                               const isSelected = selectedLeaderboardRegistrant?.id === row.registrant?.id;
+                              const tier = rankTier(row.rank);
+                              const handleRowActivate = hasProfile
+                                ? () => {
+                                    setSelectedLeaderboardRegistrant(isSelected ? null : row.registrant);
+                                    setDocumentError(null);
+                                  }
+                                : undefined;
                               return (
                                 <tr
                                   key={`${row.name}-${row.rank}`}
-                                  className={`${styles.leaderboardTr} ${row.rank <= 3 ? styles.leaderboardTrTop : ''} ${isSelected ? styles.leaderboardTrSelected : ''}`}
+                                  className={`${styles.leaderboardTr} ${tier && tier !== 'rn' ? styles['rowTier_' + tier] : ''} ${isSelected ? styles.leaderboardTrSelected : ''}`}
                                   style={hasProfile ? { cursor: 'pointer' } : undefined}
-                                  onClick={hasProfile ? () => {
-                                    setSelectedLeaderboardRegistrant(isSelected ? null : row.registrant);
-                                    setDocumentError(null);
+                                  tabIndex={hasProfile ? 0 : undefined}
+                                  onClick={handleRowActivate}
+                                  onKeyDown={hasProfile ? (e) => {
+                                    if (e.key === 'Enter' && e.target === e.currentTarget) {
+                                      handleRowActivate();
+                                    }
                                   } : undefined}
                                 >
-                                  <td className={styles.leaderboardTd}>
+                                  <td className={`${styles.leaderboardTd} ${styles.numCell}`}>
                                     <span className={row.rank <= 3 ? styles.rankGold : styles.rankMuted}>
                                       {row.rank}
                                     </span>
@@ -2549,13 +2568,11 @@ export default function FirmDashboard() {
                                   <td className={styles.leaderboardTd} style={{ fontWeight: hasProfile ? 600 : 'normal' }}>
                                     {row.name}
                                     {hasProfile && (
-                                      <span style={{ color: '#D4AF37', fontSize: '0.62rem', marginLeft: '6px', fontFamily: 'var(--font-mono)' }}>
-                                        [VIEW PROFILE]
-                                      </span>
+                                      <span className={styles.rowChevron} aria-hidden="true">›</span>
                                     )}
                                   </td>
                                   <td className={styles.leaderboardTd}>{row.university}</td>
-                                  <td className={styles.leaderboardTd}>{row.graduationYear}</td>
+                                  <td className={`${styles.leaderboardTd} ${styles.numCell}`}>{row.graduationYear}</td>
                                 </tr>
                               );
                             })}

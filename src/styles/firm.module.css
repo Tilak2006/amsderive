@@ -2006,7 +2006,8 @@
 }
 
 .leaderboardTableWrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-height: 70vh;
   border: 1px solid #1a1a1a;
   border-radius: 2px;
 }
@@ -2067,6 +2068,66 @@
 
 .rankMuted {
   color: #6b6560;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.leaderboardTable thead th {
+  position: sticky;
+  top: 0;
+  background: #0e0e0e;
+  z-index: 2;
+}
+
+.leaderboardTr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rowTier_r1 {
+  background: var(--fp-rank-1-bg);
+}
+.rowTier_r2 {
+  background: var(--fp-rank-2-bg);
+}
+.rowTier_r3 {
+  background: var(--fp-rank-3-bg);
+}
+.rowTier_r1 td:first-child {
+  color: var(--fp-rank-1);
+  font-weight: 700;
+}
+.rowTier_r2 td:first-child {
+  color: var(--fp-rank-2);
+  font-weight: 700;
+}
+.rowTier_r3 td:first-child {
+  color: var(--fp-rank-3);
+  font-weight: 700;
+}
+
+.rowChevron {
+  margin-left: 8px;
+  color: var(--fp-text-2);
+}
+
+.leaderboardTr:hover .rowChevron,
+.leaderboardTr:focus-visible .rowChevron {
+  color: var(--fp-gold);
 }
 
 .handleLink {
