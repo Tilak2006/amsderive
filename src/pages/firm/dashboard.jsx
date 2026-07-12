@@ -1002,6 +1002,7 @@ export default function FirmDashboard() {
   const [leaderboardSort, setLeaderboardSort] = useState({ key: 'rank', dir: 'asc' });
   const [standingsVisible, setStandingsVisible] = useState(10);
   const [copiedEmailKey, setCopiedEmailKey] = useState(null);
+  const [copiedBulkCount, setCopiedBulkCount] = useState(0);
   const copiedEmailTimerRef = useRef(null);
   useEffect(() => () => {
     if (copiedEmailTimerRef.current) clearTimeout(copiedEmailTimerRef.current);
@@ -2356,12 +2357,17 @@ export default function FirmDashboard() {
                   {registrantsAccess?.emailAccess && selectedRegistrant.email && (
                     <div className={styles.panelRow}>
                       <span className={styles.panelLabel}>Email</span>
-                      <a
-                        href={`mailto:${selectedRegistrant.email}`}
-                        className={styles.handleLink}
+                      <button
+                        type="button"
+                        className={styles.emailLink}
+                        aria-label={`Copy ${selectedRegistrant.email} to clipboard`}
+                        onClick={() => copyEmail(selectedRegistrant.email, `panel-${selectedRegistrant.id}`)}
                       >
-                        {selectedRegistrant.email}
-                      </a>
+                        {copiedEmailKey === `panel-${selectedRegistrant.id}` ? 'Copied to clipboard' : selectedRegistrant.email}
+                      </button>
+                      <span className={styles.srOnly} role="status">
+                        {copiedEmailKey === `panel-${selectedRegistrant.id}` ? 'Copied to clipboard' : ''}
+                      </span>
                     </div>
                   )}
 
@@ -2540,6 +2546,28 @@ export default function FirmDashboard() {
                       <span className={styles.resultCount}>
                         {filteredLeaderboardStandings.length}/{leaderboardData?.standings?.length || 0} rank{filteredLeaderboardStandings.length !== 1 ? 's' : ''}
                       </span>
+                      {registrantsAccess?.emailAccess && (() => {
+                        const filteredEmails = [...new Set(filteredLeaderboardStandings.map((r) => r.registrant?.email).filter(Boolean))];
+                        return (
+                          <>
+                            <button
+                              type="button"
+                              className={styles.refreshBtn}
+                              disabled={filteredEmails.length === 0}
+                              aria-label={`Copy ${filteredEmails.length} filtered candidate emails to clipboard`}
+                              onClick={() => {
+                                setCopiedBulkCount(filteredEmails.length);
+                                copyEmail(filteredEmails.join(', '), 'bulk-standings');
+                              }}
+                            >
+                              {copiedEmailKey === 'bulk-standings' ? `COPIED ${copiedBulkCount} EMAILS` : `COPY ${filteredEmails.length} EMAILS`}
+                            </button>
+                            <span className={styles.srOnly} role="status">
+                              {copiedEmailKey === 'bulk-standings' ? `Copied ${copiedBulkCount} emails to clipboard` : ''}
+                            </span>
+                          </>
+                        );
+                      })()}
                     </div>
 
                     {/* Standings table */}
@@ -2780,12 +2808,17 @@ export default function FirmDashboard() {
                   {registrantsAccess?.emailAccess && selectedLeaderboardRegistrant.email && (
                     <div className={styles.panelRow}>
                       <span className={styles.panelLabel}>Email</span>
-                      <a
-                        href={`mailto:${selectedLeaderboardRegistrant.email}`}
-                        className={styles.handleLink}
+                      <button
+                        type="button"
+                        className={styles.emailLink}
+                        aria-label={`Copy ${selectedLeaderboardRegistrant.email} to clipboard`}
+                        onClick={() => copyEmail(selectedLeaderboardRegistrant.email, `lb-panel-${selectedLeaderboardRegistrant.id}`)}
                       >
-                        {selectedLeaderboardRegistrant.email}
-                      </a>
+                        {copiedEmailKey === `lb-panel-${selectedLeaderboardRegistrant.id}` ? 'Copied to clipboard' : selectedLeaderboardRegistrant.email}
+                      </button>
+                      <span className={styles.srOnly} role="status">
+                        {copiedEmailKey === `lb-panel-${selectedLeaderboardRegistrant.id}` ? 'Copied to clipboard' : ''}
+                      </span>
                     </div>
                   )}
 
