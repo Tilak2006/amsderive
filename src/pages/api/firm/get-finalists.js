@@ -42,13 +42,36 @@ function loadPosteriorRankMap() {
     if (!fs.existsSync(csvPath)) return map;
     const content = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
     const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    // No header row — every line is a ranked finalist (order = rank).
+    // Tolerate an optional header line; every other line is a ranked finalist (order = rank).
+    if (lines.length && (parseCsvLine(lines[0])[0] || '').trim().toLowerCase() === 'name') lines.shift();
     lines.forEach((line, idx) => {
       const name = (parseCsvLine(line)[0] || '').trim().toLowerCase();
       if (name && !map.has(name)) map.set(name, idx + 1);
     });
   } catch {
     // Missing/unreadable ranklist — finalists just won't carry a rank.
+  }
+  return map;
+}
+
+// name (lowercased) -> CONVERGENCE finals rank, from the full finals standings
+// ('Rank,Name,CF Handle' with a header row).
+function loadConvergenceRankMap() {
+  const map = new Map();
+  try {
+    const csvPath = path.join(process.cwd(), 'convergence-ranklist', 'standings-2026.csv');
+    if (!fs.existsSync(csvPath)) return map;
+    const content = fs.readFileSync(csvPath, 'utf8').replace(/^\uFEFF/, '');
+    const lines = content.split(/\r?\n/).filter((l) => l.trim().length > 0);
+    if (lines.length && (parseCsvLine(lines[0])[0] || '').trim().toLowerCase() === 'rank') lines.shift();
+    lines.forEach((line, idx) => {
+      const parts = parseCsvLine(line);
+      const name = (parts[1] || '').trim().toLowerCase();
+      const rank = parseInt(parts[0], 10);
+      if (name && !map.has(name)) map.set(name, Number.isFinite(rank) ? rank : idx + 1);
+    });
+  } catch {
+    // Missing/unreadable standings — candidates just won't carry a finals rank.
   }
   return map;
 }
@@ -148,6 +171,7 @@ export default async function handler(req, res) {
     const snapshot = { docs: allDocs };
 
     const rankByName = loadPosteriorRankMap();
+    const convRankByName = loadConvergenceRankMap();
     const assessmentMaps = loadAssessmentMaps();
 
     const finalists = snapshot.docs.map((doc) => {
@@ -161,6 +185,7 @@ export default async function handler(req, res) {
         graduationYear: d.graduationYear || null,
         round: d.round,
         rank: rankByName.get(nameKey) ?? null,
+        convergenceRank: convRankByName.get(nameKey) ?? null,
       };
       const assessment = getAssessment(assessmentMaps, d.fullName, d.email);
       if (assessment) entry.assessment = assessment;

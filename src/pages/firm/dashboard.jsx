@@ -652,6 +652,7 @@ function AssessmentSection({ assessment, inset }) {
 // Columns available for the finalist CSV export. `get` pulls the value off a finalist row.
 const EXPORT_COLUMNS = [
   { key: 'rank', label: 'Rank', get: (f) => f.rank },
+  { key: 'convergenceRank', label: 'Finals Rank', get: (f) => f.convergenceRank },
   { key: 'fullName', label: 'Name', get: (f) => f.fullName },
   { key: 'university', label: 'University', get: (f) => f.university },
   { key: 'branch', label: 'Branch', get: (f) => f.branch },
@@ -808,6 +809,7 @@ export default function FirmDashboard() {
   const [finalistsCount, setFinalistsCount] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterUniversity, setFilterUniversity] = useState('all');
+  const [poolRound, setPoolRound] = useState('convergence'); // 'convergence' | 'posterior' | 'all'
   const [selectedFinalist, setSelectedFinalist] = useState(null);
   const [talentRefreshAvailableAt, setTalentRefreshAvailableAt] = useState(0);
   const [talentRefreshTick, setTalentRefreshTick] = useState(Date.now());
@@ -1244,6 +1246,9 @@ export default function FirmDashboard() {
 
   const filteredFinalists = useMemo(() => {
     let list = finalists;
+    if (poolRound !== 'all') {
+      list = list.filter((f) => f.round === poolRound);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(
@@ -1255,10 +1260,14 @@ export default function FirmDashboard() {
     if (filterUniversity !== 'all') {
       list = list.filter((f) => f.university === filterUniversity);
     }
-    // Sort by PRIOR rank; non-numeric / unranked candidates fall to the end.
+    // Sort: finals rank in the Convergence view, POSTERIOR rank otherwise;
+    // non-numeric / unranked candidates fall to the end.
     const key = (r) => (typeof r === 'number' && Number.isFinite(r) ? r : Infinity);
+    if (poolRound === 'convergence') {
+      return [...list].sort((a, b) => key(a.convergenceRank) - key(b.convergenceRank));
+    }
     return [...list].sort((a, b) => key(a.rank) - key(b.rank));
-  }, [finalists, searchQuery, filterUniversity]);
+  }, [finalists, searchQuery, filterUniversity, poolRound]);
 
   const uniqueUniversities = useMemo(() => {
     const set = new Set(finalists.map((f) => f.university).filter(Boolean));
@@ -1693,6 +1702,16 @@ export default function FirmDashboard() {
                 <>
                   {/* Filter bar */}
                   <div className={styles.talentFilterBar}>
+                    <select
+                      className={styles.filterSelect}
+                      value={poolRound}
+                      onChange={(e) => setPoolRound(e.target.value)}
+                      aria-label="Select talent pool round"
+                    >
+                      <option value="convergence">Convergence · Finals</option>
+                      <option value="posterior">Posterior · Finalists</option>
+                      <option value="all">All advanced</option>
+                    </select>
                     <input
                       type="text"
                       className={styles.searchInput}
@@ -1764,8 +1783,10 @@ export default function FirmDashboard() {
                               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                             </svg>
                           </button>
-                          {finalist.rank != null && (
-                            <span className={styles.candidateRank}>#{finalist.rank}</span>
+                          {(poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank) != null && (
+                            <span className={styles.candidateRank}>
+                              #{poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank}
+                            </span>
                           )}
                           <p className={styles.candidateName}>{finalist.fullName}</p>
                           <p className={styles.candidateUniv}>{finalist.university}</p>

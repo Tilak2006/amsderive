@@ -52,6 +52,7 @@ function loadRoundNames(round) {
       const p = path.join(process.cwd(), 'posterior-ranklist', 'posterior-ranklist-v1.1.csv');
       if (!fs.existsSync(p)) return names;
       const lines = fs.readFileSync(p, 'utf8').replace(/^﻿/, '').split(/\r?\n/).filter((l) => l.trim());
+      if (lines.length && (parseCsvLine(lines[0])[0] || '').trim().toLowerCase() === 'name') lines.shift();
       lines.forEach((line) => {
         const name = parseCsvLine(line)[0];
         if (name) names.push(name);
