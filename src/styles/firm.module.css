@@ -1006,14 +1006,73 @@
   }
 }
 
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.rankChip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--fp-text-2);
+}
+.rankChip_r1 {
+  color: var(--fp-rank-1);
+  border-color: var(--fp-rank-1);
+  background: var(--fp-rank-1-bg);
+}
+.rankChip_r2 {
+  color: var(--fp-rank-2);
+  border-color: var(--fp-rank-2);
+  background: var(--fp-rank-2-bg);
+}
+.rankChip_r3 {
+  color: var(--fp-rank-3);
+  border-color: var(--fp-rank-3);
+  background: var(--fp-rank-3-bg);
+}
+
+.cardTier_r1 {
+  border-color: var(--fp-rank-1);
+}
+.cardTier_r2 {
+  border-color: var(--fp-rank-2);
+}
+.cardTier_r3 {
+  border-color: var(--fp-rank-3);
+}
+
+.cardMeta {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--fp-text-2);
+  letter-spacing: 0.04em;
+  margin: 0 0 10px;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
 .candidateName {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: #f0ede6;
   margin: 0 0 4px;
-  padding-left: 30px;
-  padding-right: 40px;
 }
 
 .candidateRank {

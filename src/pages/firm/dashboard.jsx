@@ -214,6 +214,29 @@ function isAdvancedCandidate(candidate) {
   return candidate?.round === 'posterior' || candidate?.round === 'convergence';
 }
 
+const rankTier = (rank) =>
+  rank === 1
+    ? 'r1'
+    : rank === 2
+      ? 'r2'
+      : rank === 3
+        ? 'r3'
+        : rank != null
+          ? 'rn'
+          : null;
+
+function signalChips(assessment) {
+  if (!assessment) return { chips: [], more: 0 };
+  const bits = [];
+  if (assessment.jeeAdvRank) bits.push(`JEE Adv #${assessment.jeeAdvRank}`);
+  if (assessment.olympiad) bits.push(assessment.olympiad);
+  if (assessment.cpQuant) bits.push(assessment.cpQuant);
+  const chips = bits
+    .slice(0, 3)
+    .map((b) => (b.length > 34 ? b.slice(0, 31) + '...' : b));
+  return { chips, more: Math.max(0, bits.length - 3) };
+}
+
 async function getAuthHeader(currentUser) {
   const token = await currentUser?.getIdToken();
   return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -1780,46 +1803,52 @@ export default function FirmDashboard() {
                     </div>
                   ) : (
                     <div className={styles.candidateGrid}>
-                      {filteredFinalists.map((finalist) => (
+                      {filteredFinalists.map((finalist) => {
+                        const activeRank = poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank;
+                        const tier = rankTier(activeRank);
+                        const { chips: signalChipList, more: signalChipMore } = signalChips(finalist.assessment);
+                        const lockedLabels = [];
+                        if (!finalistsAccess?.resumeDownload) lockedLabels.push('DOCUMENTS');
+                        if (!finalistsAccess?.linkedinAccess) lockedLabels.push('LINKEDIN');
+                        return (
                         <div
                           key={finalist.id}
-                          className={`${styles.candidateCard} ${typeof (poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank) === 'number' ? styles.candidateCardR2 : ''}`}
+                          className={`${styles.candidateCard}${tier ? ' ' + styles['cardTier_' + tier] : ''}`}
                           onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { setSelectedFinalist(finalist); setDocumentError(null); } }}
                         >
-                          <button
-                            className={`${styles.candidateStar} ${starred.has(finalist.id) ? styles.candidateStarActive : ''}`}
-                            onClick={(e) => toggleStar(finalist.id, e)}
-                            title={starred.has(finalist.id) ? 'Remove from shortlist' : 'Add to shortlist'}
-                            aria-label="Shortlist candidate"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill={starred.has(finalist.id) ? '#D4AF37' : 'none'} stroke={starred.has(finalist.id) ? '#D4AF37' : '#6b6560'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                            </svg>
-                          </button>
-                          {(poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank) != null && (
-                            <span className={styles.candidateRank}>
-                              #{poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank}
-                            </span>
-                          )}
+                          <div className={styles.cardHead}>
+                            {activeRank != null && (
+                              <span className={`${styles.rankChip} ${styles['rankChip_' + tier]}`}>#{activeRank}</span>
+                            )}
+                            <button
+                              className={`${styles.candidateStar} ${starred.has(finalist.id) ? styles.candidateStarActive : ''}`}
+                              onClick={(e) => toggleStar(finalist.id, e)}
+                              title={starred.has(finalist.id) ? 'Remove from shortlist' : 'Add to shortlist'}
+                              aria-label="Shortlist candidate"
+                              aria-pressed={starred.has(finalist.id)}
+                            >
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill={starred.has(finalist.id) ? '#D4AF37' : 'none'} stroke={starred.has(finalist.id) ? '#D4AF37' : '#6b6560'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              </svg>
+                            </button>
+                          </div>
                           <p className={styles.candidateName}>{finalist.fullName}</p>
-                          <p className={styles.candidateUniv}>{finalist.university}</p>
-                          {finalist.round && (
-                            <span className={styles.candidateRoundBadge} data-round={finalist.round}>
-                              {finalist.round.toUpperCase()}
-                            </span>
-                          )}
-                          {finalist.assessment && (() => {
-                            const a = finalist.assessment;
-                            const bits = [];
-                            if (a.jeeAdvRank) bits.push(`JEE Adv #${a.jeeAdvRank}`);
-                            if (a.olympiad) bits.push(a.olympiad);
-                            if (!bits.length && a.cpQuant) bits.push(a.cpQuant);
-                            return bits.length ? (
-                              <p className={styles.candidateAssessment} title={bits.join(' · ')}>
-                                {bits.slice(0, 2).join('  ·  ')}
-                              </p>
-                            ) : null;
-                          })()}
+                          <p className={styles.cardMeta}>{finalist.university}{finalist.graduationYear ? ` · ${finalist.graduationYear}` : ''}</p>
+                          <div className={styles.chipRow}>
+                            {finalist.round && (
+                              <span className={styles.candidateRoundBadge} data-round={finalist.round}>
+                                {finalist.round.toUpperCase()}
+                              </span>
+                            )}
+                            {signalChipList.map((c) => (
+                              <span key={c} className={styles.fpChip}>{c}</span>
+                            ))}
+                            {signalChipMore > 0 && (
+                              <span className={styles.fpChip}>+{signalChipMore}</span>
+                            )}
+                          </div>
                           {finalist.assessment?.interviews && (
                             <span className={styles.candidateIntel} title={finalist.assessment.interviews}>
                               {finalist.assessment.interviews}
@@ -1828,7 +1857,7 @@ export default function FirmDashboard() {
                           <div className={styles.candidateActions}>
                             {isAdvancedCandidate(finalist) && (
                               <>
-                                {finalistsAccess?.resumeDownload ? (
+                                {finalistsAccess?.resumeDownload && (
                                   <>
                                     {finalist.resumeUrl && (
                                       <button
@@ -1860,31 +1889,31 @@ export default function FirmDashboard() {
                                       <span className={styles.docBtnLocked}>DOCUMENTS · NOT PROVIDED</span>
                                     )}
                                   </>
-                                ) : (
-                                  <span className={styles.docBtnLocked}>DOCUMENTS · LOCKED</span>
                                 )}
-                                {finalistsAccess?.linkedinAccess ? (
-                                  finalist.linkedIn && (
-                                    <button
-                                      className={`${styles.docBtn} ${styles.docBtnIcon}`}
-                                      title="LinkedIn"
-                                      aria-label="View LinkedIn profile"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleViewLinkedIn(finalist);
-                                      }}
-                                    >
-                                      <LinkedInIcon />
-                                    </button>
-                                  )
-                                ) : (
-                                  <span className={styles.docBtnLocked}>LINKEDIN · LOCKED</span>
+                                {finalistsAccess?.linkedinAccess && finalist.linkedIn && (
+                                  <button
+                                    className={`${styles.docBtn} ${styles.docBtnIcon}`}
+                                    title="LinkedIn"
+                                    aria-label="View LinkedIn profile"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewLinkedIn(finalist);
+                                    }}
+                                  >
+                                    <LinkedInIcon />
+                                  </button>
+                                )}
+                                {lockedLabels.length > 0 && (
+                                  <p className={styles.fpAccessNote}>
+                                    <LockGlyph size={12} /> {lockedLabels.join(' · ')} locked
+                                  </p>
                                 )}
                               </>
                             )}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </>
