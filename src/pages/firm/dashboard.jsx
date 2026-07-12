@@ -1718,7 +1718,7 @@ export default function FirmDashboard() {
               ) : (
                 <>
                   {/* Filter bar */}
-                  <div className={styles.talentFilterBar}>
+                  <div className={`${styles.talentFilterBar} ${styles.talentBarGrid}`}>
                     <select
                       className={styles.filterSelect}
                       value={poolRound}

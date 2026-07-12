@@ -897,6 +897,14 @@
 
 /* ── Talent Pool ── */
 .talentFilterBar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.talentBarGrid {
   display: grid;
   grid-template-columns: auto minmax(180px, 1fr) auto auto auto auto;
   gap: 12px;
@@ -905,10 +913,10 @@
 }
 
 @media (max-width: 1023px) {
-  .talentFilterBar {
+  .talentBarGrid {
     grid-template-columns: 1fr 1fr;
   }
-  .talentFilterBar > input {
+  .talentBarGrid > input {
     grid-column: 1 / -1;
   }
 }
