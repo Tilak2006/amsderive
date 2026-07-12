@@ -668,7 +668,7 @@ const EXPORT_COLUMNS = [
   { key: 'interviews', label: 'Industry Track Record', get: (f) => f.assessment?.interviews },
   { key: 'linkedIn', label: 'LinkedIn', get: (f) => f.linkedIn },
 ];
-const DEFAULT_EXPORT_KEYS = ['rank', 'fullName', 'university', 'graduationYear', 'jeeAdvRank', 'olympiad', 'cpQuant'];
+const DEFAULT_EXPORT_KEYS = ['rank', 'convergenceRank', 'fullName', 'university', 'graduationYear', 'jeeAdvRank', 'olympiad', 'cpQuant'];
 
 // Map a PRIOR leaderboard standings row into the finalist/export row shape.
 function standingToExportRow(row) {
@@ -765,7 +765,7 @@ function FinalistExport({ rows, allRows, user }) {
             style={{ width: '100%', marginBottom: 14 }}
           >
             <option value="view">Current view</option>
-            <option value="round3">Finals · Winners</option>
+            <option value="round3">Finals · Winners (Top 10)</option>
             <option value="round2">Round 2 — Finalists</option>
             <option value="round1">Round 1 — Screening</option>
             <option value="both">Both rounds</option>
@@ -811,7 +811,7 @@ export default function FirmDashboard() {
   const [finalistsCount, setFinalistsCount] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterUniversity, setFilterUniversity] = useState('all');
-  const [poolRound, setPoolRound] = useState('convergence'); // 'convergence' | 'posterior' | 'all'
+  const [poolRound, setPoolRound] = useState('convergence'); // 'convergence' (finals cohort) | 'posterior' (everyone advanced)
   const [selectedFinalist, setSelectedFinalist] = useState(null);
   const [talentRefreshAvailableAt, setTalentRefreshAvailableAt] = useState(0);
   const [talentRefreshTick, setTalentRefreshTick] = useState(Date.now());
@@ -1246,10 +1246,18 @@ export default function FirmDashboard() {
     }
   }, [user]);
 
+  // If the finals cohort is empty (e.g. pre-finals), fall back to the full pool
+  // so the default view is never a confusing blank.
+  useEffect(() => {
+    if (poolRound === 'convergence' && finalists.length > 0 && !finalists.some((f) => f.round === 'convergence')) {
+      setPoolRound('posterior');
+    }
+  }, [finalists, poolRound]);
+
   const filteredFinalists = useMemo(() => {
     let list = finalists;
-    if (poolRound !== 'all') {
-      list = list.filter((f) => f.round === poolRound);
+    if (poolRound === 'convergence') {
+      list = list.filter((f) => f.round === 'convergence');
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -1263,16 +1271,22 @@ export default function FirmDashboard() {
       list = list.filter((f) => f.university === filterUniversity);
     }
     // Sort: finals rank in the Convergence view, POSTERIOR rank otherwise;
-    // non-numeric / unranked candidates fall to the end.
+    // non-numeric / unranked candidates fall to the end, tie-broken by name.
     const key = (r) => (typeof r === 'number' && Number.isFinite(r) ? r : Infinity);
+    const byRank = (ra, rb, a, b) => {
+      const ka = key(ra);
+      const kb = key(rb);
+      if (ka !== kb) return ka - kb;
+      return (a.fullName || '').localeCompare(b.fullName || '');
+    };
     if (poolRound === 'convergence') {
-      return [...list].sort((a, b) => key(a.convergenceRank) - key(b.convergenceRank));
+      return [...list].sort((a, b) => byRank(a.convergenceRank, b.convergenceRank, a, b));
     }
-    return [...list].sort((a, b) => key(a.rank) - key(b.rank));
+    return [...list].sort((a, b) => byRank(a.rank, b.rank, a, b));
   }, [finalists, searchQuery, filterUniversity, poolRound]);
 
   const uniqueUniversities = useMemo(() => {
-    const pool = poolRound === 'all' ? finalists : finalists.filter((f) => f.round === poolRound);
+    const pool = poolRound === 'convergence' ? finalists.filter((f) => f.round === 'convergence') : finalists;
     const set = new Set(pool.map((f) => f.university).filter(Boolean));
     return Array.from(set).sort();
   }, [finalists, poolRound]);
@@ -1712,8 +1726,7 @@ export default function FirmDashboard() {
                       aria-label="Select talent pool round"
                     >
                       <option value="convergence">Convergence · Finals</option>
-                      <option value="posterior">Posterior · Finalists</option>
-                      <option value="all">All advanced</option>
+                      <option value="posterior">Posterior · All finalists</option>
                     </select>
                     <input
                       type="text"
@@ -2705,6 +2718,12 @@ export default function FirmDashboard() {
             <div className={styles.panelBody}>
               {documentError && (
                 <div className={styles.documentError}>{documentError}</div>
+              )}
+              {selectedFinalist.convergenceRank != null && (
+                <div className={styles.panelSection}>
+                  <p className={styles.panelLabel}>Finals Rank</p>
+                  <p className={styles.panelValue} style={{ color: '#D4AF37' }}>#{selectedFinalist.convergenceRank}</p>
+                </div>
               )}
               {selectedFinalist.rank != null && (
                 <div className={styles.panelSection}>
