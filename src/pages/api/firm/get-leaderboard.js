@@ -156,11 +156,12 @@ export default async function handler(req, res) {
     const standingsRaw = [];
 
     if (round === 'convergence') {
-      // CONVERGENCE winners ranklist: 'Rank,Name,CF Handle' with a header row.
+      // CONVERGENCE finals standings: 'Rank,Name,CF Handle' with a header row,
+      // full 30-row final standings (winners-2026.csv keeps the top-10 record).
       // University / grad year are pulled from the matched registrant record.
-      const csvPath = path.join(process.cwd(), 'convergence-ranklist', 'winners-2026.csv');
+      const csvPath = path.join(process.cwd(), 'convergence-ranklist', 'standings-2026.csv');
       if (!fs.existsSync(csvPath)) {
-        throw new Error('CONVERGENCE winners CSV file not found on server.');
+        throw new Error('CONVERGENCE standings CSV file not found on server.');
       }
       const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
       const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);

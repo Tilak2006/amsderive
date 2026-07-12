@@ -734,7 +734,7 @@ function FinalistExport({ rows, allRows, user }) {
         const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'convergence' }) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || data.error || 'Could not load Finals data.');
-        out = out.concat((data.standings || []).map((s) => ({ ...standingToExportRow(s), round: 'convergence', convergenceRank: s.rank })));
+        out = out.concat((data.standings || []).filter((s) => typeof s.rank === 'number' && s.rank <= 10).map((s) => ({ ...standingToExportRow(s), round: 'convergence', convergenceRank: s.rank })));
       }
       if (round === 'round2' || round === 'both') out = out.concat(allRows ?? rows);
       if (round === 'round1' || round === 'both') {
@@ -2381,7 +2381,7 @@ export default function FirmDashboard() {
                         onChange={(e) => { setLeaderboardRound(e.target.value); setStandingsVisible(10); }}
                         aria-label="Select leaderboard round"
                       >
-                        <option value="round3">Finals · Winners (CONVERGENCE)</option>
+                        <option value="round3">Finals · Standings (CONVERGENCE)</option>
                         <option value="round2">Round 2 · Finalists (POSTERIOR)</option>
                         <option value="round1">Round 1 · Screening (PRIOR)</option>
                       </select>
