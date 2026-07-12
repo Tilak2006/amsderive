@@ -1000,6 +1000,7 @@ export default function FirmDashboard() {
   const [registrantsSort, setRegistrantsSort] = useState({ key: null, dir: 'asc' });
   const [registrantsFilterStage, setRegistrantsFilterStage] = useState('all');
   const [leaderboardSort, setLeaderboardSort] = useState({ key: 'rank', dir: 'asc' });
+  const [standingsVisible, setStandingsVisible] = useState(10);
 
   const handleRegistrantsSort = useCallback((key) => {
     setRegistrantsSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -2377,7 +2378,7 @@ export default function FirmDashboard() {
                       <select
                         className={styles.filterSelect}
                         value={leaderboardRound}
-                        onChange={(e) => setLeaderboardRound(e.target.value)}
+                        onChange={(e) => { setLeaderboardRound(e.target.value); setStandingsVisible(10); }}
                         aria-label="Select leaderboard round"
                       >
                         <option value="round3">Finals · Winners (CONVERGENCE)</option>
@@ -2535,11 +2536,14 @@ export default function FirmDashboard() {
                               <SortHeader label="Rank" sortKey="rank" sort={leaderboardSort} onSort={handleLeaderboardSort} className={`${styles.leaderboardTh} ${styles.numCell}`} />
                               <SortHeader label="Name" sortKey="name" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
                               <SortHeader label="Institution" sortKey="institution" sort={leaderboardSort} onSort={handleLeaderboardSort} className={styles.leaderboardTh} />
+                              {registrantsAccess?.emailAccess && (
+                                <th scope="col" className={styles.leaderboardTh}>Email</th>
+                              )}
                               <SortHeader label="Grad Year" sortKey="gradYear" sort={leaderboardSort} onSort={handleLeaderboardSort} className={`${styles.leaderboardTh} ${styles.numCell}`} />
                             </tr>
                           </thead>
                           <tbody>
-                            {filteredLeaderboardStandings.map((row, i) => {
+                            {filteredLeaderboardStandings.slice(0, standingsVisible).map((row, i) => {
                               const hasProfile = Boolean(row.registrant);
                               const isSelected = selectedLeaderboardRegistrant?.id === row.registrant?.id;
                               const tier = rankTier(row.rank);
@@ -2572,12 +2576,43 @@ export default function FirmDashboard() {
                                     )}
                                   </td>
                                   <td className={styles.leaderboardTd}>{row.university}</td>
+                                  {registrantsAccess?.emailAccess && (
+                                    <td className={styles.leaderboardTd}>
+                                      {row.registrant?.email ? (
+                                        <a
+                                          href={`mailto:${row.registrant.email}`}
+                                          className={styles.emailLink}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {row.registrant.email}
+                                        </a>
+                                      ) : null}
+                                    </td>
+                                  )}
                                   <td className={`${styles.leaderboardTd} ${styles.numCell}`}>{row.graduationYear}</td>
                                 </tr>
                               );
                             })}
                           </tbody>
                         </table>
+                        {filteredLeaderboardStandings.length > standingsVisible && (
+                          <button
+                            type="button"
+                            className={styles.showMoreBtn}
+                            onClick={() => setStandingsVisible((v) => v + 10)}
+                          >
+                            {'\u2304'} Show 10 more · {standingsVisible} of {filteredLeaderboardStandings.length} shown
+                          </button>
+                        )}
+                        {standingsVisible > 10 && filteredLeaderboardStandings.length > 10 && (
+                          <button
+                            type="button"
+                            className={styles.showMoreBtn}
+                            onClick={() => setStandingsVisible(10)}
+                          >
+                            {'\u005E'} Show top 10 only
+                          </button>
+                        )}
                       </div>
                     )}
                   </>

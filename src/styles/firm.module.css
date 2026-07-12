@@ -3997,3 +3997,33 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.showMoreBtn {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  background: rgba(255, 255, 255, 0.02);
+  border: none;
+  border-top: 1px solid #1a1a1a;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: var(--fp-text-2);
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.showMoreBtn:hover {
+  color: var(--fp-gold);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.emailLink {
+  color: var(--fp-text-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.emailLink:hover {
+  color: var(--fp-gold);
+}
