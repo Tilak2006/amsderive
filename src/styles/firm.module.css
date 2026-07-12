@@ -1215,9 +1215,15 @@
 
 .panelName {
   font-family: var(--font-serif);
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
   color: #f0ede6;
+}
+
+.panelRankChips {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .panelClose {

@@ -838,6 +838,40 @@ export default function FirmDashboard() {
   const [selectedFinalist, setSelectedFinalist] = useState(null);
   const [talentRefreshAvailableAt, setTalentRefreshAvailableAt] = useState(0);
   const [talentRefreshTick, setTalentRefreshTick] = useState(Date.now());
+  const panelRef = useRef(null);
+  const panelReturnFocusRef = useRef(null);
+  useEffect(() => {
+    if (!selectedFinalist || !panelRef.current) return undefined;
+    panelReturnFocusRef.current = document.activeElement;
+    const panel = panelRef.current;
+    const focusables = () =>
+      panel.querySelectorAll('button, a[href], [tabindex="0"]');
+    (focusables()[0] || panel).focus();
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setSelectedFinalist(null);
+        setDocumentError(null);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const f = [...focusables()];
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    panel.addEventListener('keydown', onKey);
+    return () => {
+      panel.removeEventListener('keydown', onKey);
+      if (panelReturnFocusRef.current?.focus) panelReturnFocusRef.current.focus();
+    };
+  }, [selectedFinalist]);
 
   // Analytics state — per round ('posterior' = Round 2 finalists, 'prior' = Round 1)
   const [analyticsByRound, setAnalyticsByRound] = useState({ posterior: null, prior: null });
@@ -2733,9 +2767,39 @@ export default function FirmDashboard() {
             className={styles.panelBackdrop}
             onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
           />
-          <aside className={styles.sidePanel}>
+          <aside
+            className={styles.sidePanel}
+            ref={panelRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="fpPanelName"
+          >
             <div className={styles.panelHeader}>
-              <span className={styles.panelName}>{selectedFinalist.fullName}</span>
+              <div>
+                <h3 id="fpPanelName" className={styles.panelName}>
+                  {selectedFinalist.fullName}
+                </h3>
+                <p className={styles.cardMeta} style={{ margin: '2px 0 0' }}>
+                  {selectedFinalist.university}
+                  {selectedFinalist.graduationYear
+                    ? ` · ${selectedFinalist.graduationYear}`
+                    : ''}
+                </p>
+                <div className={styles.panelRankChips}>
+                  {selectedFinalist.convergenceRank != null && (() => {
+                    const tier = rankTier(selectedFinalist.convergenceRank);
+                    const chipTierClass = tier && tier !== 'rn' ? styles['rankChip_' + tier] : '';
+                    return (
+                      <span className={`${styles.rankChip}${chipTierClass ? ' ' + chipTierClass : ''}`}>
+                        FINALS #{selectedFinalist.convergenceRank}
+                      </span>
+                    );
+                  })()}
+                  {selectedFinalist.rank != null && (
+                    <span className={styles.rankChip}>R2 #{selectedFinalist.rank}</span>
+                  )}
+                </div>
+              </div>
               <button
                 className={styles.panelClose}
                 onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
@@ -2746,18 +2810,6 @@ export default function FirmDashboard() {
             <div className={styles.panelBody}>
               {documentError && (
                 <div className={styles.documentError}>{documentError}</div>
-              )}
-              {selectedFinalist.convergenceRank != null && (
-                <div className={styles.panelSection}>
-                  <p className={styles.panelLabel}>Finals Rank</p>
-                  <p className={styles.panelValue} style={{ color: '#D4AF37' }}>#{selectedFinalist.convergenceRank}</p>
-                </div>
-              )}
-              {selectedFinalist.rank != null && (
-                <div className={styles.panelSection}>
-                  <p className={styles.panelLabel}>Round 2 Rank</p>
-                  <p className={styles.panelValue} style={{ color: '#D4AF37' }}>#{selectedFinalist.rank}</p>
-                </div>
               )}
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>University</p>
@@ -2784,45 +2836,53 @@ export default function FirmDashboard() {
                 </div>
               )}
               {!finalistsAccess?.linkedinAccess && (
-                <div className={styles.panelSection}>
-                  <p className={styles.panelLabel}>LinkedIn</p>
-                  <p className={styles.panelValue} style={{ color: '#3a3a3a' }}>
-                    LinkedIn access locked
-                  </p>
-                </div>
+                <p className={styles.fpAccessNote}>
+                  <LockGlyph size={12} /> LinkedIn access locked
+                </p>
               )}
               <AssessmentSection assessment={selectedFinalist.assessment} inset />
               <div className={styles.panelDivider} />
-              {isAdvancedCandidate(selectedFinalist) && (
-                <>
-                  {finalistsAccess?.resumeDownload && selectedFinalist.resumeUrl ? (
-                    <button
-                      className={styles.docBtn}
-                      style={{ width: '100%' }}
-                      onClick={() => handleViewResume(selectedFinalist)}
-                    >
-                      VIEW RESUME
-                    </button>
-                  ) : (
-                    <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center' }}>
-                      RESUME · {finalistsAccess?.resumeDownload ? 'NOT PROVIDED' : 'LOCKED'}
-                    </span>
-                  )}
-                  {selectedFinalist.transcriptUrl ? (
-                    <button
-                      className={styles.docBtn}
-                      style={{ width: '100%', marginTop: 8 }}
-                      onClick={() => handleViewTranscript(selectedFinalist)}
-                    >
-                      VIEW TRANSCRIPT
-                    </button>
-                  ) : (
-                    <span className={styles.docBtnLocked} style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>
-                      TRANSCRIPT · NOT PROVIDED
-                    </span>
-                  )}
-                </>
-              )}
+              {isAdvancedCandidate(selectedFinalist) && (() => {
+                const resumeAvailable = finalistsAccess?.resumeDownload && selectedFinalist.resumeUrl;
+                const transcriptAvailable = !!selectedFinalist.transcriptUrl;
+                const docLockedLabels = [];
+                if (!resumeAvailable) {
+                  docLockedLabels.push(`RESUME · ${finalistsAccess?.resumeDownload ? 'NOT PROVIDED' : 'LOCKED'}`);
+                }
+                if (!transcriptAvailable) {
+                  docLockedLabels.push('TRANSCRIPT · NOT PROVIDED');
+                }
+                return (
+                  <>
+                    {resumeAvailable && (
+                      <button
+                        className={styles.docBtn}
+                        style={{ width: '100%' }}
+                        onClick={() => handleViewResume(selectedFinalist)}
+                      >
+                        VIEW RESUME
+                      </button>
+                    )}
+                    {transcriptAvailable && (
+                      <button
+                        className={styles.docBtn}
+                        style={{ width: '100%', marginTop: resumeAvailable ? 8 : 0 }}
+                        onClick={() => handleViewTranscript(selectedFinalist)}
+                      >
+                        VIEW TRANSCRIPT
+                      </button>
+                    )}
+                    {docLockedLabels.length > 0 && (
+                      <p
+                        className={styles.fpAccessNote}
+                        style={{ marginTop: resumeAvailable || transcriptAvailable ? 8 : 0 }}
+                      >
+                        <LockGlyph size={12} /> {docLockedLabels.join(' · ')}
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </aside>
         </>
