@@ -98,8 +98,10 @@ export default async function handler(req, res) {
   }
 
   // Which round's standings to return. 'prior' (default) reads the PRIOR ranklist;
-  // 'posterior' reads the POSTERIOR ranklist (order = rank, enriched from registrants).
-  const round = req.body?.round === 'posterior' ? 'posterior' : 'prior';
+  // 'posterior' reads the POSTERIOR ranklist (order = rank, enriched from registrants);
+  // 'convergence' reads the finals winners ranklist (top 10, enriched from registrants).
+  const requestedRound = req.body?.round;
+  const round = requestedRound === 'posterior' || requestedRound === 'convergence' ? requestedRound : 'prior';
 
   try {
     // Fetch all approved registrants who consented to share data (shared by both rounds)
@@ -153,8 +155,35 @@ export default async function handler(req, res) {
 
     const standingsRaw = [];
 
-    if (round === 'posterior') {
-      // POSTERIOR ranklist: 'Name,CodeforcesHandle' rows, NO header, order = final rank.
+    if (round === 'convergence') {
+      // CONVERGENCE winners ranklist: 'Rank,Name,CF Handle' with a header row.
+      // University / grad year are pulled from the matched registrant record.
+      const csvPath = path.join(process.cwd(), 'convergence-ranklist', 'winners-2026.csv');
+      if (!fs.existsSync(csvPath)) {
+        throw new Error('CONVERGENCE winners CSV file not found on server.');
+      }
+      const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
+      const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+      if (lines.length && parseCsvLine(lines[0])[0].trim().toLowerCase() === 'rank') {
+        lines.shift();
+      }
+
+      lines.forEach((line, idx) => {
+        const parts = parseCsvLine(line);
+        const name = parts[1];
+        if (!name) return;
+        const parsedRank = parseInt(parts[0], 10);
+        const match = registrantsMap.get(name.trim().toLowerCase()) || null;
+        standingsRaw.push({
+          rank: Number.isFinite(parsedRank) ? parsedRank : idx + 1,
+          name,
+          university: match?.university || '',
+          graduationYear: match?.graduationYear || null,
+        });
+      });
+    } else if (round === 'posterior') {
+      // POSTERIOR ranklist: 'Name,CodeforcesHandle' rows, order = final rank.
+      // Tolerate an optional header line: data rows never have 'Name' in column 0.
       // University / grad year are pulled from the matched registrant record.
       const csvPath = path.join(process.cwd(), 'posterior-ranklist', 'posterior-ranklist-v1.1.csv');
       if (!fs.existsSync(csvPath)) {
@@ -162,6 +191,9 @@ export default async function handler(req, res) {
       }
       const csvContent = fs.readFileSync(csvPath, 'utf8').replace(/^﻿/, '');
       const lines = csvContent.split(/\r?\n/).filter(line => line.trim().length > 0);
+      if (lines.length && parseCsvLine(lines[0])[0].trim().toLowerCase() === 'name') {
+        lines.shift();
+      }
 
       lines.forEach((line, idx) => {
         const parts = parseCsvLine(line);

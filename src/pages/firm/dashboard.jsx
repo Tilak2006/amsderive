@@ -686,7 +686,7 @@ function standingToExportRow(row) {
 function FinalistExport({ rows, user }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(() => new Set(DEFAULT_EXPORT_KEYS));
-  const [round, setRound] = useState('round2'); // 'round2' | 'round1' | 'both'
+  const [round, setRound] = useState('round2'); // 'round3' (finals) | 'round2' | 'round1' | 'both'
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -703,6 +703,13 @@ function FinalistExport({ rows, user }) {
     setError(null);
     try {
       let out = [];
+      if (round === 'round3') {
+        const headers = await getAuthHeader(user);
+        const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'convergence' }) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.error || 'Could not load Finals data.');
+        out = out.concat((data.standings || []).map(standingToExportRow));
+      }
       if (round === 'round2' || round === 'both') out = out.concat(rows);
       if (round === 'round1' || round === 'both') {
         const headers = await getAuthHeader(user);
@@ -724,7 +731,7 @@ function FinalistExport({ rows, user }) {
       const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const tag = round === 'both' ? 'round1-2' : round === 'round1' ? 'round1' : 'finalists';
+      const tag = round === 'round3' ? 'finals-winners' : round === 'both' ? 'round1-2' : round === 'round1' ? 'round1' : 'finalists';
       a.href = url;
       a.download = `ams-derive-${tag}-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
@@ -755,6 +762,7 @@ function FinalistExport({ rows, user }) {
             aria-label="Rounds to export"
             style={{ width: '100%', marginBottom: 14 }}
           >
+            <option value="round3">Finals · Winners</option>
             <option value="round2">Round 2 — Finalists</option>
             <option value="round1">Round 1 — Screening</option>
             <option value="both">Both rounds</option>
@@ -989,8 +997,8 @@ export default function FirmDashboard() {
   const [leaderboardSearchName, setLeaderboardSearchName] = useState('');
   const [leaderboardFilterUniversity, setLeaderboardFilterUniversity] = useState('');
   const [leaderboardFilterGradYear, setLeaderboardFilterGradYear] = useState('');
-  // Which round's leaderboard to show: 'round1' (PRIOR) | 'round2' (POSTERIOR, default)
-  const [leaderboardRound, setLeaderboardRound] = useState('round2');
+  // Which round's leaderboard to show: 'round3' (CONVERGENCE finals, default) | 'round2' (POSTERIOR) | 'round1' (PRIOR)
+  const [leaderboardRound, setLeaderboardRound] = useState('round3');
 
   // Auth check on mount
   useEffect(() => {
@@ -1156,7 +1164,7 @@ export default function FirmDashboard() {
     setLeaderboardLoading(true);
     try {
       const headers = await getAuthHeader(user);
-      const round = leaderboardRound === 'round2' ? 'posterior' : 'prior';
+      const round = leaderboardRound === 'round3' ? 'convergence' : leaderboardRound === 'round2' ? 'posterior' : 'prior';
       const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round }) });
       const data = await res.json();
       if (res.status === 403) {
@@ -2255,7 +2263,7 @@ export default function FirmDashboard() {
                   </div>
                 ) : (
                   <>
-                    {/* Round selector — switch between Round 1 (PRIOR, live) and Round 2 (POSTERIOR, upcoming) */}
+                    {/* Round selector: Finals (CONVERGENCE, default), Round 2 (POSTERIOR), Round 1 (PRIOR) */}
                     <div className={styles.talentFilterBar} style={{ marginBottom: '16px' }}>
                       <select
                         className={styles.filterSelect}
@@ -2263,6 +2271,7 @@ export default function FirmDashboard() {
                         onChange={(e) => setLeaderboardRound(e.target.value)}
                         aria-label="Select leaderboard round"
                       >
+                        <option value="round3">Finals · Winners (CONVERGENCE)</option>
                         <option value="round2">Round 2 · Finalists (POSTERIOR)</option>
                         <option value="round1">Round 1 · Screening (PRIOR)</option>
                       </select>
@@ -2319,7 +2328,7 @@ export default function FirmDashboard() {
                       <div className={styles.leaderboardMeta}>
                         <span className={styles.liveIndicator} />
                         <span className={styles.leaderboardTitle}>
-                          {leaderboardRound === 'round2' ? 'ROUND 2 · FINALIST STANDINGS' : 'ROUND 1 · SCREENING STANDINGS'}
+                          {leaderboardRound === 'round3' ? 'CONVERGENCE · FINAL STANDINGS' : leaderboardRound === 'round2' ? 'ROUND 2 · FINALIST STANDINGS' : 'ROUND 1 · SCREENING STANDINGS'}
                         </span>
                         {leaderboardData?.updatedAt && (
                           <span className={styles.leaderboardUpdated}>
