@@ -1806,6 +1806,8 @@ export default function FirmDashboard() {
                       {filteredFinalists.map((finalist) => {
                         const activeRank = poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank;
                         const tier = rankTier(activeRank);
+                        const tierClass = tier && tier !== 'rn' ? styles['cardTier_' + tier] : '';
+                        const chipTierClass = tier && tier !== 'rn' ? styles['rankChip_' + tier] : '';
                         const { chips: signalChipList, more: signalChipMore } = signalChips(finalist.assessment);
                         const lockedLabels = [];
                         if (!finalistsAccess?.resumeDownload) lockedLabels.push('DOCUMENTS');
@@ -1813,14 +1815,14 @@ export default function FirmDashboard() {
                         return (
                         <div
                           key={finalist.id}
-                          className={`${styles.candidateCard}${tier ? ' ' + styles['cardTier_' + tier] : ''}`}
+                          className={`${styles.candidateCard}${tierClass ? ' ' + tierClass : ''}`}
                           onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
                           tabIndex={0}
-                          onKeyDown={(e) => { if (e.key === 'Enter') { setSelectedFinalist(finalist); setDocumentError(null); } }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && e.target === e.currentTarget) { setSelectedFinalist(finalist); setDocumentError(null); } }}
                         >
                           <div className={styles.cardHead}>
                             {activeRank != null && (
-                              <span className={`${styles.rankChip} ${styles['rankChip_' + tier]}`}>#{activeRank}</span>
+                              <span className={`${styles.rankChip}${chipTierClass ? ' ' + chipTierClass : ''}`}>#{activeRank}</span>
                             )}
                             <button
                               className={`${styles.candidateStar} ${starred.has(finalist.id) ? styles.candidateStarActive : ''}`}
