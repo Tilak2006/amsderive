@@ -1930,7 +1930,9 @@ export default function FirmDashboard() {
                                       </button>
                                     )}
                                     {!finalist.resumeUrl && !finalist.transcriptUrl && (
-                                      <span className={styles.docBtnLocked}>DOCUMENTS · NOT PROVIDED</span>
+                                      <p className={styles.fpAccessNote}>
+                                        <LockGlyph size={12} /> DOCUMENTS · NOT PROVIDED
+                                      </p>
                                     )}
                                   </>
                                 )}
@@ -2561,9 +2563,7 @@ export default function FirmDashboard() {
                                   } : undefined}
                                 >
                                   <td className={`${styles.leaderboardTd} ${styles.numCell}`}>
-                                    <span className={row.rank <= 3 ? styles.rankGold : styles.rankMuted}>
-                                      {row.rank}
-                                    </span>
+                                    {row.rank}
                                   </td>
                                   <td className={styles.leaderboardTd} style={{ fontWeight: hasProfile ? 600 : 'normal' }}>
                                     {row.name}
@@ -2775,22 +2775,21 @@ export default function FirmDashboard() {
             </div>
           )}
         </main>
-      </div>
 
-      {/* Finalist side panel */}
-      {selectedFinalist && (
-        <>
-          <div
-            className={styles.panelBackdrop}
-            onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
-          />
-          <aside
-            className={styles.sidePanel}
-            ref={panelRef}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="fpPanelName"
-          >
+        {/* Finalist side panel */}
+        {selectedFinalist && (
+          <>
+            <div
+              className={styles.panelBackdrop}
+              onClick={() => { setSelectedFinalist(null); setDocumentError(null); }}
+            />
+            <aside
+              className={styles.sidePanel}
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="fpPanelName"
+            >
             <div className={styles.panelHeader}>
               <div>
                 <h3 id="fpPanelName" className={styles.panelName}>
@@ -2812,9 +2811,15 @@ export default function FirmDashboard() {
                       </span>
                     );
                   })()}
-                  {selectedFinalist.rank != null && (
-                    <span className={styles.rankChip}>R2 #{selectedFinalist.rank}</span>
-                  )}
+                  {selectedFinalist.rank != null && (() => {
+                    const tier = rankTier(selectedFinalist.rank);
+                    const chipTierClass = tier && tier !== 'rn' ? styles['rankChip_' + tier] : '';
+                    return (
+                      <span className={`${styles.rankChip}${chipTierClass ? ' ' + chipTierClass : ''}`}>
+                        R2 #{selectedFinalist.rank}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
               <button
@@ -2828,10 +2833,6 @@ export default function FirmDashboard() {
               {documentError && (
                 <div className={styles.documentError}>{documentError}</div>
               )}
-              <div className={styles.panelSection}>
-                <p className={styles.panelLabel}>University</p>
-                <p className={styles.panelValue}>{selectedFinalist.university || '—'}</p>
-              </div>
               <div className={styles.panelSection}>
                 <p className={styles.panelLabel}>Round</p>
                 <p className={styles.panelValue} style={{ textTransform: 'uppercase' }}>
@@ -2901,9 +2902,10 @@ export default function FirmDashboard() {
                 );
               })()}
             </div>
-          </aside>
-        </>
-      )}
+            </aside>
+          </>
+        )}
+      </div>
     </>
   );
 }
