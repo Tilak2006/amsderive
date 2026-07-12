@@ -1001,6 +1001,33 @@ export default function FirmDashboard() {
   const [registrantsFilterStage, setRegistrantsFilterStage] = useState('all');
   const [leaderboardSort, setLeaderboardSort] = useState({ key: 'rank', dir: 'asc' });
   const [standingsVisible, setStandingsVisible] = useState(10);
+  const [copiedEmailKey, setCopiedEmailKey] = useState(null);
+  const copiedEmailTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (copiedEmailTimerRef.current) clearTimeout(copiedEmailTimerRef.current);
+  }, []);
+  const copyEmail = (email, rowKey) => {
+    const done = () => {
+      setCopiedEmailKey(rowKey);
+      if (copiedEmailTimerRef.current) clearTimeout(copiedEmailTimerRef.current);
+      copiedEmailTimerRef.current = setTimeout(() => setCopiedEmailKey(null), 1500);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(email).then(done).catch(() => {});
+    } else {
+      const prevFocus = document.activeElement;
+      const ta = document.createElement('textarea');
+      ta.value = email;
+      ta.style.position = 'fixed';
+      ta.style.top = '-9999px';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); done(); } catch { /* no clipboard available */ }
+      ta.remove();
+      if (prevFocus?.focus) prevFocus.focus();
+    }
+  };
 
   const handleRegistrantsSort = useCallback((key) => {
     setRegistrantsSort((p) => (p.key === key ? { key, dir: p.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
@@ -2579,13 +2606,22 @@ export default function FirmDashboard() {
                                   {registrantsAccess?.emailAccess && (
                                     <td className={styles.leaderboardTd}>
                                       {row.registrant?.email ? (
-                                        <a
-                                          href={`mailto:${row.registrant.email}`}
-                                          className={styles.emailLink}
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {row.registrant.email}
-                                        </a>
+                                        <>
+                                          <button
+                                            type="button"
+                                            className={styles.emailLink}
+                                            aria-label={`Copy ${row.registrant.email} to clipboard`}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              copyEmail(row.registrant.email, `${row.name}-${row.rank}`);
+                                            }}
+                                          >
+                                            {copiedEmailKey === `${row.name}-${row.rank}` ? 'Copied to clipboard' : row.registrant.email}
+                                          </button>
+                                          <span className={styles.srOnly} role="status">
+                                            {copiedEmailKey === `${row.name}-${row.rank}` ? 'Copied to clipboard' : ''}
+                                          </span>
+                                        </>
                                       ) : null}
                                     </td>
                                   )}
