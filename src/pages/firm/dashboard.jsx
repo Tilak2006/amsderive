@@ -2525,8 +2525,8 @@ export default function FirmDashboard() {
                         </p>
                       </div>
                     ) : (
-                      <div className={styles.leaderboardTableWrap}>
-                        <table className={styles.leaderboardTable}>
+                      <div className={`${styles.leaderboardTableWrap} ${styles.standingsWrap}`}>
+                        <table className={`${styles.leaderboardTable} ${styles.standingsTable}`}>
                           <caption className={styles.srOnly}>{standingsCaption}</caption>
                           <thead>
                             <tr className={styles.leaderboardThead}>
