@@ -237,6 +237,49 @@
   font-family: var(--font-serif);
 }
 
+/* Firm-portal polish tokens (2026-07-12). AA-checked on #0e0e0e-class bg. */
+.dashPage {
+  --fp-text: #f0ede6;
+  --fp-text-2: #a89f94; /* secondary: was #6b6560 (2.9:1), now >= 4.6:1 */
+  --fp-text-3: #8f8880; /* caps labels at 11px+tracking: >= 3.7:1, large-glyph use only */
+  --fp-gold: #d4af37;
+  --fp-gold-dim: rgba(212, 175, 55, 0.14);
+  --fp-rank-1: #d4af37;
+  --fp-rank-1-bg: rgba(212, 175, 55, 0.12);
+  --fp-rank-2: #b9c0cc;
+  --fp-rank-2-bg: rgba(185, 192, 204, 0.1);
+  --fp-rank-3: #c08a5a;
+  --fp-rank-3-bg: rgba(192, 138, 90, 0.1);
+  --fp-focus: #d4af37;
+}
+
+.fpChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--fp-text-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fpAccessNote {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--fp-text-2);
+}
+
+
 .topBar {
   position: sticky;
   top: 0;
@@ -905,7 +948,7 @@
 .resultCount {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: #6b6560;
+  color: var(--fp-text-2);
   white-space: nowrap;
   letter-spacing: 0.04em;
 }
@@ -958,7 +1001,7 @@
 .candidateUniv {
   font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: #6b6560;
+  color: var(--fp-text-2);
   letter-spacing: 0.04em;
   margin: 0 0 14px;
 }
@@ -973,7 +1016,7 @@
   padding: 0;
   background: none;
   border: none;
-  color: #6b6560;
+  color: var(--fp-text-2);
 }
 
 .candidateRoundBadge[data-round='convergence'] {
@@ -1128,7 +1171,7 @@
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: #6b6560;
+  color: var(--fp-text-3);
 }
 
 .panelValue {
@@ -3653,7 +3696,7 @@
   font-size: 0.66rem;
   letter-spacing: 0.02em;
   line-height: 1.5;
-  color: #6b6560;
+  color: var(--fp-text-2);
 }
 
 .talentLegendStar {
@@ -3758,4 +3801,17 @@
   font-size: 0.64rem;
   line-height: 1.5;
   color: #d98b7a;
+}
+
+.dashPage :is(button, a, select, input, [tabindex="0"]):focus-visible {
+  outline: 2px solid var(--fp-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashPage * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
