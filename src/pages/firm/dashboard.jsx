@@ -708,7 +708,7 @@ function FinalistExport({ rows, user }) {
         const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'convergence' }) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || data.error || 'Could not load Finals data.');
-        out = out.concat((data.standings || []).map(standingToExportRow));
+        out = out.concat((data.standings || []).map((s) => ({ ...standingToExportRow(s), round: 'convergence' })));
       }
       if (round === 'round2' || round === 'both') out = out.concat(rows);
       if (round === 'round1' || round === 'both') {

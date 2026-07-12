@@ -173,12 +173,21 @@ export default async function handler(req, res) {
         const name = parts[1];
         if (!name) return;
         const parsedRank = parseInt(parts[0], 10);
-        const match = registrantsMap.get(name.trim().toLowerCase()) || null;
+        const csvHandle = (parts[2] || '').trim().toLowerCase();
+        let match = registrantsMap.get(name.trim().toLowerCase()) || null;
+        // A name can collide across registrants; the winners CSV carries the CF
+        // handle, so when both sides have one, they must agree or we attach no
+        // profile at all rather than risk another person's gated data.
+        const matchHandle = (match?.codeforcesHandle || '').trim().toLowerCase();
+        if (match && csvHandle && matchHandle && matchHandle !== csvHandle) {
+          match = null;
+        }
         standingsRaw.push({
           rank: Number.isFinite(parsedRank) ? parsedRank : idx + 1,
           name,
           university: match?.university || '',
           graduationYear: match?.graduationYear || null,
+          registrant: match,
         });
       });
     } else if (round === 'posterior') {
@@ -249,7 +258,7 @@ export default async function handler(req, res) {
     // Map each standings row to its registrant details (if available)
     const standings = standingsRaw.map(row => {
       const nameKey = (row.name || '').trim().toLowerCase();
-      const registrant = registrantsMap.get(nameKey) || null;
+      const registrant = row.registrant !== undefined ? row.registrant : (registrantsMap.get(nameKey) || null);
       return {
         rank: row.rank,
         name: row.name,
