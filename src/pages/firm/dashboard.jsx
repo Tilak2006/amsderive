@@ -684,10 +684,10 @@ function standingToExportRow(row) {
   };
 }
 
-function FinalistExport({ rows, user }) {
+function FinalistExport({ rows, allRows, user }) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState(() => new Set(DEFAULT_EXPORT_KEYS));
-  const [round, setRound] = useState('round2'); // 'round3' (finals) | 'round2' | 'round1' | 'both'
+  const [round, setRound] = useState('round2'); // 'view' (current view) | 'round3' (finals) | 'round2' | 'round1' | 'both'
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
@@ -704,14 +704,15 @@ function FinalistExport({ rows, user }) {
     setError(null);
     try {
       let out = [];
+      if (round === 'view') out = out.concat(rows);
       if (round === 'round3') {
         const headers = await getAuthHeader(user);
         const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'convergence' }) });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || data.error || 'Could not load Finals data.');
-        out = out.concat((data.standings || []).map((s) => ({ ...standingToExportRow(s), round: 'convergence' })));
+        out = out.concat((data.standings || []).map((s) => ({ ...standingToExportRow(s), round: 'convergence', convergenceRank: s.rank })));
       }
-      if (round === 'round2' || round === 'both') out = out.concat(rows);
+      if (round === 'round2' || round === 'both') out = out.concat(allRows ?? rows);
       if (round === 'round1' || round === 'both') {
         const headers = await getAuthHeader(user);
         const res = await fetch('/api/firm/get-leaderboard', { method: 'POST', headers, body: JSON.stringify({ round: 'prior' }) });
@@ -732,7 +733,7 @@ function FinalistExport({ rows, user }) {
       const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const tag = round === 'round3' ? 'finals-winners' : round === 'both' ? 'round1-2' : round === 'round1' ? 'round1' : 'finalists';
+      const tag = round === 'view' ? 'current-view' : round === 'round3' ? 'finals-winners' : round === 'both' ? 'round1-2' : round === 'round1' ? 'round1' : 'finalists';
       a.href = url;
       a.download = `ams-derive-${tag}-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(a);
@@ -763,6 +764,7 @@ function FinalistExport({ rows, user }) {
             aria-label="Rounds to export"
             style={{ width: '100%', marginBottom: 14 }}
           >
+            <option value="view">Current view</option>
             <option value="round3">Finals · Winners</option>
             <option value="round2">Round 2 — Finalists</option>
             <option value="round1">Round 1 — Screening</option>
@@ -1270,9 +1272,10 @@ export default function FirmDashboard() {
   }, [finalists, searchQuery, filterUniversity, poolRound]);
 
   const uniqueUniversities = useMemo(() => {
-    const set = new Set(finalists.map((f) => f.university).filter(Boolean));
+    const pool = poolRound === 'all' ? finalists : finalists.filter((f) => f.round === poolRound);
+    const set = new Set(pool.map((f) => f.university).filter(Boolean));
     return Array.from(set).sort();
-  }, [finalists]);
+  }, [finalists, poolRound]);
 
   const uniqueRegistrantUniversities = useMemo(() => {
     const set = new Set(registrants.map((r) => r.university).filter(Boolean));
@@ -1705,7 +1708,7 @@ export default function FirmDashboard() {
                     <select
                       className={styles.filterSelect}
                       value={poolRound}
-                      onChange={(e) => setPoolRound(e.target.value)}
+                      onChange={(e) => { setPoolRound(e.target.value); setFilterUniversity('all'); }}
                       aria-label="Select talent pool round"
                     >
                       <option value="convergence">Convergence · Finals</option>
@@ -1742,7 +1745,7 @@ export default function FirmDashboard() {
                     >
                       {talentRefreshLabel}
                     </button>
-                    <FinalistExport rows={filteredFinalists} user={user} />
+                    <FinalistExport rows={filteredFinalists} allRows={finalists} user={user} />
                   </div>
 
                   <p className={styles.talentLegend}>
@@ -1762,7 +1765,7 @@ export default function FirmDashboard() {
                       <p className={styles.accessDeniedText}>
                         {finalistsCount === 0
                           ? 'Candidates who advance past PRIOR will appear here once results are published.'
-                          : 'Try adjusting your search or university filter.'}
+                          : 'Try adjusting your search, the round dropdown, or the university filter.'}
                       </p>
                     </div>
                   ) : (
@@ -1770,7 +1773,7 @@ export default function FirmDashboard() {
                       {filteredFinalists.map((finalist) => (
                         <div
                           key={finalist.id}
-                          className={`${styles.candidateCard} ${typeof finalist.rank === 'number' ? styles.candidateCardR2 : ''}`}
+                          className={`${styles.candidateCard} ${typeof (poolRound === 'convergence' ? finalist.convergenceRank : finalist.rank) === 'number' ? styles.candidateCardR2 : ''}`}
                           onClick={() => { setSelectedFinalist(finalist); setDocumentError(null); }}
                         >
                           <button

@@ -68,7 +68,8 @@ function loadConvergenceRankMap() {
       const parts = parseCsvLine(line);
       const name = (parts[1] || '').trim().toLowerCase();
       const rank = parseInt(parts[0], 10);
-      if (name && !map.has(name)) map.set(name, Number.isFinite(rank) ? rank : idx + 1);
+      const handle = (parts[2] || '').trim().toLowerCase();
+      if (name && !map.has(name)) map.set(name, { rank: Number.isFinite(rank) ? rank : idx + 1, handle });
     });
   } catch {
     // Missing/unreadable standings — candidates just won't carry a finals rank.
@@ -185,7 +186,15 @@ export default async function handler(req, res) {
         graduationYear: d.graduationYear || null,
         round: d.round,
         rank: rankByName.get(nameKey) ?? null,
-        convergenceRank: convRankByName.get(nameKey) ?? null,
+        convergenceRank: (() => {
+          // A name can collide across registrants; require CF handle agreement
+          // (when both sides have one) before attaching a finals rank.
+          const cr = convRankByName.get(nameKey);
+          if (!cr) return null;
+          const regHandle = (d.codeforcesHandle || '').trim().toLowerCase();
+          if (cr.handle && regHandle && cr.handle !== regHandle) return null;
+          return cr.rank;
+        })(),
       };
       const assessment = getAssessment(assessmentMaps, d.fullName, d.email);
       if (assessment) entry.assessment = assessment;
