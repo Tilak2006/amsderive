@@ -2118,14 +2118,24 @@
   color: var(--fp-text-2);
 }
 
-.rowTier_r1 {
+@media (hover: hover) {
+  .standingsTable .leaderboardTr:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.standingsTable .leaderboardTr.rowTier_r1 {
   background: var(--fp-rank-1-bg);
 }
-.rowTier_r2 {
+.standingsTable .leaderboardTr.rowTier_r2 {
   background: var(--fp-rank-2-bg);
 }
-.rowTier_r3 {
+.standingsTable .leaderboardTr.rowTier_r3 {
   background: var(--fp-rank-3-bg);
+}
+
+.standingsTable .leaderboardTr.leaderboardTrSelected {
+  background: rgba(212, 175, 55, 0.06);
 }
 .standingsTable .rowTier_r1 td:first-child {
   color: var(--fp-rank-1);
